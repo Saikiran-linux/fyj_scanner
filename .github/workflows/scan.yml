@@ -11,6 +11,11 @@ concurrency:
   group: scan
   cancel-in-progress: false
 
+# Opt into Node 24 for action runtimes (actions/checkout etc).
+# Node 20 is deprecated for actions effective June 2026.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   scan:
     runs-on: ubuntu-latest

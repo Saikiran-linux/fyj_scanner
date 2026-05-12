@@ -7,6 +7,11 @@ name: seed-companies
 on:
   workflow_dispatch: {}
 
+# Opt into Node 24 for action runtimes (actions/checkout etc).
+# Node 20 is deprecated for actions effective June 2026.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   seed:
     runs-on: ubuntu-latest
