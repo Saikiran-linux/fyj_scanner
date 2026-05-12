@@ -1,0 +1,16 @@
+{
+  "name": "fyj-scanner",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Daily multi-tenant ATS scanner. Hits Greenhouse / Ashby / Lever / SmartRecruiters APIs, stores jobs in Supabase, tracks job lifecycle (new / seen / closed), records per-scan metrics.",
+  "scripts": {
+    "scrape-slugs": "node seed/scrape-hn.mjs",
+    "build-seeds": "node seed/build-seeds.mjs",
+    "load-companies": "node src/seed-companies.mjs",
+    "scan": "node src/scan.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,42 @@
+name: scan
+
+on:
+  schedule:
+    # 2x/day at 03:00 and 15:00 UTC. Adjust as needed.
+    - cron: '0 3,15 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  # Never run two scans at once — they'd double-close jobs.
+  group: scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SCAN_CONCURRENCY: '20'
+        run: node src/scan.mjs
+
+      - name: Upload logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-log-${{ github.run_id }}
+          path: |
+            *.log
+          if-no-files-found: ignore
+          retention-days: 14
