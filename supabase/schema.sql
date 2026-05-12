@@ -172,6 +172,67 @@ where j.first_seen_at > now() - interval '24 hours'
   and j.closed_at is null
 order by j.first_seen_at desc;
 
+-- Per-source health over the last 24h — the SLA-monitoring view.
+-- Target: block_rate_pct < 1.0 for every source on a rolling basis.
+create or replace view public.v_source_health_24h as
+select
+  c.ats as source,
+  count(pr.*)                                            as probes,
+  count(pr.*) filter (where pr.schema_ok)                as ok,
+  count(pr.*) filter (where pr.http_status in (403, 429)) as blocked,
+  count(pr.*) filter (
+    where not pr.schema_ok and pr.http_status not in (403, 429)
+  ) as errored,
+  case when count(pr.*) > 0
+    then round(100.0 * count(pr.*) filter (where pr.http_status in (403, 429)) / count(pr.*), 2)
+    else 0
+  end as block_rate_pct,
+  case when count(pr.*) > 0
+    then round(100.0 * count(pr.*) filter (where pr.schema_ok) / count(pr.*), 2)
+    else 0
+  end as success_rate_pct,
+  round(avg(pr.latency_ms)) as avg_latency_ms,
+  round(percentile_cont(0.5) within group (order by pr.latency_ms))::int  as p50_latency_ms,
+  round(percentile_cont(0.95) within group (order by pr.latency_ms))::int as p95_latency_ms
+from public.probe_results pr
+join public.companies c on c.id = pr.company_id
+where pr.created_at > now() - interval '24 hours'
+group by c.ats
+order by c.ats;
+
+-- Same shape, but for an arbitrary window. Useful for ad-hoc drilldown:
+--   select * from f_source_health(interval '7 days');
+create or replace function public.f_source_health(p_window interval)
+returns table (
+  source text,
+  probes bigint,
+  ok bigint,
+  blocked bigint,
+  errored bigint,
+  block_rate_pct numeric,
+  success_rate_pct numeric
+) language sql stable as $$
+  select
+    c.ats,
+    count(pr.*),
+    count(pr.*) filter (where pr.schema_ok),
+    count(pr.*) filter (where pr.http_status in (403, 429)),
+    count(pr.*) filter (where not pr.schema_ok and pr.http_status not in (403, 429)),
+    case when count(pr.*) > 0
+      then round(100.0 * count(pr.*) filter (where pr.http_status in (403, 429)) / count(pr.*), 2)
+      else 0
+    end,
+    case when count(pr.*) > 0
+      then round(100.0 * count(pr.*) filter (where pr.schema_ok) / count(pr.*), 2)
+      else 0
+    end
+  from public.probe_results pr
+  join public.companies c on c.id = pr.company_id
+  where pr.created_at > now() - p_window
+  group by c.ats
+  order by c.ats;
+$$;
+
 create or replace view public.v_active_jobs as
 select
   j.id,

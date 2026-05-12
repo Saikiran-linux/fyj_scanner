@@ -16,16 +16,22 @@ Priorities:
 
 - [ ] **[P0] Run `schema.sql` in Supabase Studio** — creates 4 tables + 4 views + indexes
 - [ ] **[P0] Add `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` to GitHub Actions secrets** — `Settings → Secrets and variables → Actions`
-- [ ] **[P0] Run `node src/seed-companies.mjs` once locally** — uploads the 500-row seed list to `companies`
-- [ ] **[P0] Trigger first manual scan** — GitHub Actions UI → "scan" → Run workflow. Verifies end-to-end DB writes before cron takes over.
+- [ ] **[P0] Trigger seed workflow** — GitHub Actions UI → "seed-companies" → Run workflow. Uploads the 500-row seed list to `companies`. Uses repo secrets, no local env needed.
+- [ ] **[P0] Trigger first scan workflow** — GitHub Actions UI → "scan" → Run workflow. Verifies end-to-end DB writes before cron takes over.
 - [ ] **[P0] Save the 12 queries in [`supabase/dashboard-queries.sql`](supabase/dashboard-queries.sql) as Supabase Studio snippets** — so the dashboard is one click away
+
+## SLA targets (active monitoring)
+
+- [x] ~~Per-provider concurrency caps + adaptive throttling on 403/429~~ — implemented in `src/rate-limiter.mjs`, wired into `scan.mjs`/`providers.mjs`
+- [x] ~~Per-source observability view~~ — `v_source_health_24h` + `f_source_health(interval)` in `schema.sql`, surfaced in dashboard query 0a
+- [ ] **[P0] Verify each SLA hits target after 7 days of data** — run dashboard queries 0a/0b/0c daily. If 0b (volume) is short, expand slug pool; if 0a (block rate) is over, lower the per-provider concurrency default for that source.
+- [ ] **[P1] Persist limiter snapshot to a structured column, not `scans.notes`** — once the format stabilises, add `scans.source_metrics jsonb` and graph block-rate over time
 
 ## Reliability (first week)
 
 - [ ] **[P1] Greenhouse 404 recovery** — 132 of 254 Greenhouse seeds 404'd in the viability run because the slug drifted (`notion` → maybe `notion-labs`?). Add a one-shot script that tries 2-3 slug variations and rewrites the row if a variant succeeds. · `src/recover-greenhouse-slugs.mjs` (new)
-- [ ] **[P1] Re-seed more aggressively** — scrape more sources to grow the pool beyond HN (LinkedIn careers pages, AngelList/Wellfound, the YC company list). Today's 1,380-slug pool caps us around ~600 supported companies. · `seed/scrape-*.mjs` (new sources)
+- [ ] **[P1] Expand slug pool past HN's relevance cap** — current 2,465 slugs (Greenhouse 883, Lever 1217, Ashby 350, SmartRecruiters 15) won't grow further via HN alphabet-fanning. Add a second source: YC companies API (~5k companies → website probes), GitHub raw README search, or a curated bootstrap list for SmartRecruiters specifically. · `seed/scrape-yc.mjs`, `seed/scrape-github.mjs` (new)
 - [ ] **[P1] Document operator checklist for first 7 days** — what to look at in the dashboard each day, what's normal vs alarming · `docs/operations.md` (new)
-- [ ] **[P2] Per-provider concurrency caps** — Ashby p95 is 3.5s; running 20-wide hammers them. Stagger by provider once we see whether they rate-limit. · `src/scan.mjs`
 
 ## Coverage (after we know what's missing)
 

@@ -1,8 +1,20 @@
 # fyj_scanner
 
-Daily multi-tenant ATS scanner. Hits Greenhouse / Ashby / Lever / SmartRecruiters public APIs across ~500 companies, stores jobs in Supabase, tracks each job's lifecycle (new → seen → closed), and records per-scan metrics for monitoring.
+Daily multi-tenant ATS scanner. Hits Greenhouse / Ashby / Lever / SmartRecruiters public APIs across ~2,500 companies, stores jobs in Supabase, tracks each job's lifecycle (new → seen → closed), and records per-scan and per-source metrics for monitoring.
 
-Origin: this is the productionised version of the viability test in [`../fyj_scanner_test`](../fyj_scanner_test). Viability report: 75% schema-OK and 69% active across the 4 supported providers, ~13k live jobs surfaced from 500 probes.
+Origin: this is the productionised version of the viability test in [`../fyj_scanner_test`](../fyj_scanner_test). Viability report: 75% schema-OK and 69% active across the 4 supported providers, ~13k live jobs surfaced from 500 probes — extrapolates to ~45-55k from 2,500.
+
+## SLA targets
+
+The scanner is designed and instrumented to hit these targets in steady state:
+
+| # | Target | How it's measured | Where to check |
+|---|---|---|---|
+| 1 | **< 1% block rate** per source, sustained | `v_source_health_24h.block_rate_pct` | Dashboard query 0a |
+| 2 | **≥ 50,000 unique active jobs** across all sources | `count(*) from v_unique_active_jobs` | Dashboard query 0b |
+| 3 | **< 6h** since last successful scan, per source | `max(scans.ended_at) per ats` | Dashboard query 0c |
+
+If any of these go red, dashboard queries 0a/0b/0c surface it directly. The adaptive rate limiter in [src/rate-limiter.mjs](src/rate-limiter.mjs) actively defends target #1 by halving concurrency and doubling inter-request gap whenever rolling block-rate exceeds 5% on any single provider.
 
 ## Architecture
 
@@ -107,6 +119,27 @@ Both the raw and deduped views are kept:
 - **`v_duplicate_postings`** — audit view; lists fingerprints with >1 active posting per company
 
 Cross-company deduplication (parent + subsidiary, RPO cross-posting) is **not** handled. That requires entity resolution on company names and a `company_group` table — defer until you actually see it as a problem in the data.
+
+## Rate limiting and block-rate defense
+
+The scanner uses per-source budgets, not a global concurrency setting:
+
+| Provider | Default concurrency | Min interval between requests |
+|---|---|---|
+| greenhouse | 10 | 0 ms |
+| ashby | 3 | 200 ms |
+| lever | 5 | 100 ms |
+| smartrecruiters | 3 | 100 ms |
+
+These defaults were tuned from the viability run (Ashby was 14% blocked at 20-way uniform concurrency; Greenhouse was 0%). The limiter then **adapts at runtime**:
+
+- Rolling 20-request block-rate **> 5%** → halve concurrency, double interval, log to console
+- Rolling block-rate **< 1%** after adapting → step back toward defaults (one increment per window) to avoid oscillation
+- Floor: concurrency 1, interval 50 ms. Ceiling: concurrency 20, interval 0 ms.
+
+The limiter also honours `Retry-After` on HTTP 429 (sleeps up to 30 s before the next attempt at that provider).
+
+After each scan, the limiter snapshot is persisted to `scans.notes` (e.g. `greenhouse: 870/883 ok, 0.0% blocked, conc=10`) so historical blocking can be queried by parsing the column.
 
 ## Per-company error handling
 

@@ -18,11 +18,17 @@
 import { select, insert, upsert, update } from './supabase-client.mjs';
 import { fetchJobs, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
+import { RateLimiter } from './rate-limiter.mjs';
 
-const CONCURRENCY = Number(process.env.SCAN_CONCURRENCY || 20);
+// Outer-loop concurrency is a ceiling — actual per-provider concurrency comes
+// from the rate limiter, which throttles down on 403/429 bursts. Setting this
+// higher than the sum of per-provider concurrency just wastes worker slots.
+const WORKER_POOL = Number(process.env.SCAN_WORKER_POOL || 25);
 const TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS || 15_000);
 const AUTO_DISABLE_THRESHOLD = Number(process.env.AUTO_DISABLE_THRESHOLD || 5);
 const PROBE_RESULT_BATCH = 200;
+
+const limiter = new RateLimiter();
 
 const SCAN_ID = await openScan();
 console.log(`Scan ${SCAN_ID} started`);
@@ -34,6 +40,14 @@ try {
   await closeScan(SCAN_ID, 'failed', { notes: `failed to load companies: ${e.message}` });
   console.error(e);
   process.exit(1);
+}
+
+// Shuffle so workers don't pull all-Greenhouse-then-all-Ashby in order.
+// Interleaving providers spreads the rate-limit pressure: while one bucket
+// cools down, others are still draining.
+for (let i = companies.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [companies[i], companies[j]] = [companies[j], companies[i]];
 }
 
 console.log(`Loaded ${companies.length} enabled companies`);
@@ -70,7 +84,7 @@ async function probeOne(company) {
     return recordProbe(company, { schema_ok: false, error: `unsupported ats: ${company.ats}` });
   }
 
-  const result = await fetchJobs(company.ats, company.slug, { timeoutMs: TIMEOUT_MS });
+  const result = await fetchJobs(company.ats, company.slug, { timeoutMs: TIMEOUT_MS, limiter });
 
   if (!result.schema_ok) {
     totals.companies_error++;
@@ -214,7 +228,7 @@ async function worker() {
   }
 }
 
-await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+await Promise.all(Array.from({ length: WORKER_POOL }, () => worker()));
 await flushProbeResults(true);
 
 // Compute the post-scan active-jobs count for the dashboard's anomaly detector.
@@ -242,9 +256,19 @@ try {
   console.error(`active-jobs count failed: ${e.message}`);
 }
 
-await closeScan(SCAN_ID, 'ok', { ...totals, active_jobs_after });
+const rateSnapshot = limiter.snapshot();
+const sourceNotes = Object.entries(rateSnapshot)
+  .map(([ats, s]) => `${ats}: ${s.ok}/${s.ok + s.block + s.error} ok, ${s.block_rate_pct}% blocked, conc=${s.concurrency}`)
+  .join(' | ');
+
+await closeScan(SCAN_ID, 'ok', {
+  ...totals,
+  active_jobs_after,
+  notes: sourceNotes,
+});
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
 console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
+console.log(`Per-source: ${sourceNotes}`);
 
 // ── helpers ────────────────────────────────────────────────────────
 

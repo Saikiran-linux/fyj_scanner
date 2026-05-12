@@ -18,61 +18,72 @@ const ROOT = join(__dirname, '..');
 const DATA_DIR = join(ROOT, 'data');
 mkdirSync(DATA_DIR, { recursive: true });
 
+// HN Algolia returns top ~1000 most-relevant hits per query, won't paginate
+// past that. To bust the cap we fan queries across the slug alphabet: each
+// provider gets the base host query plus 26 sub-queries ("<host>/a", "<host>/b",
+// …). Sub-queries bias relevance toward slugs starting with that letter,
+// surfacing the long tail. No auth needed, no rate limit.
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
+
+function alphaFan(base) {
+  return [base, ...ALPHABET.map((c) => `${base}/${c}`)];
+}
+
+const greenhouseExtract = (text) => {
+  const slugs = [];
+  const re = /(?:boards|job-boards)\.greenhouse\.io\/([a-z0-9][a-z0-9-_]{1,60})/gi;
+  let m;
+  while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
+  return slugs;
+};
+
+const leverExtract = (text) => {
+  const slugs = [];
+  const re = /jobs\.lever\.co\/([a-z0-9][a-z0-9-_]{1,60})/gi;
+  let m;
+  while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
+  return slugs;
+};
+
+const ashbyExtract = (text) => {
+  const slugs = [];
+  const re = /jobs\.ashbyhq\.com\/([a-z0-9][a-z0-9-_]{1,60})/gi;
+  let m;
+  while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
+  return slugs;
+};
+
+const smartrecruitersExtract = (text) => {
+  const slugs = [];
+  const re = /careers\.smartrecruiters\.com\/([a-z0-9][a-z0-9-_]{1,60})/gi;
+  let m;
+  while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
+  return slugs;
+};
+
 const SOURCES = [
   {
     ats: 'greenhouse',
-    queries: ['boards.greenhouse.io', 'job-boards.greenhouse.io'],
-    extract: (text) => {
-      const slugs = [];
-      const re = /(?:boards|job-boards)\.greenhouse\.io\/([a-z0-9][a-z0-9-_]{1,60})/gi;
-      let m;
-      while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
-      return slugs;
-    },
+    queries: [
+      ...alphaFan('boards.greenhouse.io'),
+      ...alphaFan('job-boards.greenhouse.io'),
+    ],
+    extract: greenhouseExtract,
   },
   {
     ats: 'lever',
-    queries: ['jobs.lever.co'],
-    extract: (text) => {
-      const slugs = [];
-      const re = /jobs\.lever\.co\/([a-z0-9][a-z0-9-_]{1,60})/gi;
-      let m;
-      while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
-      return slugs;
-    },
+    queries: alphaFan('jobs.lever.co'),
+    extract: leverExtract,
   },
   {
     ats: 'ashby',
-    queries: ['jobs.ashbyhq.com', 'ashbyhq.com'],
-    extract: (text) => {
-      const slugs = [];
-      const re = /jobs\.ashbyhq\.com\/([a-z0-9][a-z0-9-_]{1,60})/gi;
-      let m;
-      while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
-      return slugs;
-    },
+    queries: alphaFan('jobs.ashbyhq.com'),
+    extract: ashbyExtract,
   },
   {
     ats: 'smartrecruiters',
-    queries: ['careers.smartrecruiters.com', 'smartrecruiters.com'],
-    extract: (text) => {
-      const slugs = [];
-      const re = /careers\.smartrecruiters\.com\/([a-z0-9][a-z0-9-_]{1,60})/gi;
-      let m;
-      while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
-      return slugs;
-    },
-  },
-  {
-    ats: 'workable',
-    queries: ['apply.workable.com', 'workable.com'],
-    extract: (text) => {
-      const slugs = [];
-      const re = /apply\.workable\.com\/([a-z0-9][a-z0-9-_]{1,60})/gi;
-      let m;
-      while ((m = re.exec(text))) slugs.push(m[1].toLowerCase());
-      return slugs;
-    },
+    queries: alphaFan('careers.smartrecruiters.com'),
+    extract: smartrecruitersExtract,
   },
 ];
 
@@ -126,16 +137,26 @@ async function pullPage(query, beforeTs) {
 async function scrapeOne(source) {
   // slug -> { hits, latestYear }
   const slugMap = new Map();
-  for (const query of source.queries) {
+  const totalQueries = source.queries.length;
+  for (let qi = 0; qi < totalQueries; qi++) {
+    const query = source.queries[qi];
     let beforeTs = null;
     let page = 0;
-    while (page < 50) {
+    // 5 pages per sub-query is plenty — each is a 1000-hit chronological slice;
+    // marginal slug yield drops sharply after the first 1-2 pages on prefix queries.
+    while (page < 5) {
       let json;
       try {
         json = await pullPage(query, beforeTs);
       } catch (e) {
-        console.error(`  ${query}: ${e.message}`);
-        break;
+        // Most likely a 429 from HN Algolia — sleep and retry once.
+        await sleep(2000);
+        try {
+          json = await pullPage(query, beforeTs);
+        } catch (e2) {
+          console.error(`  ${query} (after retry): ${e2.message}`);
+          break;
+        }
       }
       const hits = json.hits || [];
       if (hits.length === 0) break;
@@ -154,14 +175,22 @@ async function scrapeOne(source) {
           slugMap.set(slug, prev);
         }
       }
-      console.log(`  ${source.ats} q="${query}" page=${page}: ${hits.length} hits → +${newSlugs} new (${slugMap.size} total)`);
+      if (newSlugs > 0 || page === 0) {
+        console.log(`  ${source.ats} [${qi + 1}/${totalQueries}] "${query}" p${page}: ${hits.length} hits → +${newSlugs} new (${slugMap.size} total)`);
+      }
       if (hits.length < 1000) break;
       if (oldestTs === Infinity) break;
       beforeTs = oldestTs;
       page++;
+      await sleep(120); // polite gap, HN Algolia tolerates ~10 req/s
     }
+    await sleep(120);
   }
   return [...slugMap.entries()].map(([slug, meta]) => ({ slug, ...meta }));
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function main() {

@@ -2,6 +2,52 @@
 -- Save each as a "snippet" in Supabase Studio (SQL Editor → Save).
 -- The views referenced here are created by schema.sql.
 
+-- ─── SLA monitoring ────────────────────────────────────────────────
+-- Hard targets:
+--   1. block_rate_pct  < 1.0 sustained per source
+--   2. unique_active_jobs ≥ 50,000 across all sources
+--   3. last full scan completed within < 6h per source
+
+-- 0a. SLA: block rate per source over last 24h.
+-- RED if > 1.0%, AMBER if 0.5-1.0%, GREEN otherwise.
+select
+  source,
+  probes,
+  blocked,
+  block_rate_pct,
+  success_rate_pct,
+  case
+    when block_rate_pct > 1.0 then 'RED'
+    when block_rate_pct > 0.5 then 'AMBER'
+    else 'GREEN'
+  end as block_sla
+from v_source_health_24h;
+
+-- 0b. SLA: total unique active jobs.
+-- Target: ≥ 50,000.
+select
+  count(*) as unique_active_jobs,
+  case when count(*) >= 50000 then 'GREEN' else 'RED' end as volume_sla
+from v_unique_active_jobs;
+
+-- 0c. SLA: most recent successful scan per source.
+-- Target: < 6h ago.
+select
+  c.ats as source,
+  max(s.ended_at) as last_success_at,
+  extract(epoch from (now() - max(s.ended_at)))::int / 60 as minutes_since,
+  case
+    when max(s.ended_at) > now() - interval '6 hours' then 'GREEN'
+    when max(s.ended_at) > now() - interval '12 hours' then 'AMBER'
+    else 'RED'
+  end as freshness_sla
+from scans s
+join probe_results pr on pr.scan_id = s.id
+join companies c on c.id = pr.company_id
+where s.status = 'ok' and pr.schema_ok
+group by c.ats
+order by c.ats;
+
 -- ─── 1. Today at a glance ──────────────────────────────────────────
 -- Most recent scan + headline metrics.
 select * from v_recent_scans limit 1;

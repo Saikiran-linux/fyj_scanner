@@ -82,37 +82,67 @@ export const PROVIDERS = {
 
 export const PROVIDER_NAMES = Object.keys(PROVIDERS);
 
-export function fetchJobs(ats, slug, { timeoutMs = 15_000 } = {}) {
+// Classify HTTP outcomes for the rate-limiter's adaptive policy.
+// "block" = the source actively refused us (will keep refusing without backoff).
+// "error" = transport/server issue (retry later, but not a blocking signal).
+function classify(httpStatus, errorString) {
+  if (httpStatus >= 200 && httpStatus < 300) return 'ok';
+  if (httpStatus === 403 || httpStatus === 429) return 'block';
+  return 'error';
+}
+
+export async function fetchJobs(ats, slug, { timeoutMs = 15_000, limiter = null } = {}) {
   const provider = PROVIDERS[ats];
   if (!provider) throw new Error(`Unknown ATS: ${ats}`);
-  return doFetch(provider.probeUrl(slug), timeoutMs).then(async (firstResult) => {
-    if (firstResult.ok) {
-      const parsed = safeParse(firstResult.json, provider);
-      return {
-        ...firstResult,
-        jobs: parsed,
-        schema_ok: parsed !== null,
-      };
-    }
-    // 404 → try fallback URL once if the provider offers one.
-    if (firstResult.http_status === 404) {
-      const fallback = provider.fallbackUrl(slug);
-      if (fallback) {
-        const second = await doFetch(fallback, timeoutMs);
-        if (second.ok) {
-          const parsed = safeParse(second.json, provider);
-          return {
-            ...second,
-            jobs: parsed,
-            schema_ok: parsed !== null,
-            used_fallback: true,
-          };
-        }
-        return { ...second, used_fallback: true };
+
+  const release = limiter ? await limiter.acquire(ats) : () => {};
+
+  let firstResult;
+  try {
+    firstResult = await doFetch(provider.probeUrl(slug), timeoutMs);
+  } catch (e) {
+    release('error');
+    throw e;
+  }
+
+  // Honour Retry-After on 429 by sleeping (the limiter will also adapt).
+  if (firstResult.http_status === 429 && firstResult.retry_after_s) {
+    const ms = Math.min(firstResult.retry_after_s * 1000, 30_000);
+    await new Promise((r) => setTimeout(r, ms));
+  }
+
+  if (firstResult.ok) {
+    const parsed = safeParse(firstResult.json, provider);
+    release('ok');
+    return { ...firstResult, jobs: parsed, schema_ok: parsed !== null };
+  }
+
+  // 404 → try fallback URL once if the provider offers one. Re-acquire so we
+  // don't blow past the rate budget.
+  if (firstResult.http_status === 404) {
+    const fallback = provider.fallbackUrl(slug);
+    if (fallback) {
+      release(classify(firstResult.http_status));
+      const release2 = limiter ? await limiter.acquire(ats) : () => {};
+      let second;
+      try {
+        second = await doFetch(fallback, timeoutMs);
+      } catch (e) {
+        release2('error');
+        throw e;
       }
+      if (second.ok) {
+        const parsed = safeParse(second.json, provider);
+        release2('ok');
+        return { ...second, jobs: parsed, schema_ok: parsed !== null, used_fallback: true };
+      }
+      release2(classify(second.http_status));
+      return { ...second, used_fallback: true };
     }
-    return firstResult;
-  });
+  }
+
+  release(classify(firstResult.http_status, firstResult.error));
+  return firstResult;
 }
 
 function safeParse(json, provider) {
@@ -132,12 +162,29 @@ async function doFetch(url, timeoutMs) {
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'User-Agent': 'fyj-scanner/0.1 (+https://github.com/Saikiran-linux/fyj_scanner)',
+        // Polite UA with contact path. Some providers (Ashby) treat blank/curl
+        // UAs as bots → 403. A real-looking UA + project URL dropped Ashby's
+        // 403 rate sharply in tests.
+        'User-Agent': 'Mozilla/5.0 (compatible; fyj-scanner/0.2; +https://github.com/Saikiran-linux/fyj_scanner)',
+        'Accept-Encoding': 'gzip, deflate, br',
       },
     });
     const latency_ms = Date.now() - startedAt;
+    const retry_after_s = (() => {
+      const ra = res.headers.get('retry-after');
+      if (!ra) return null;
+      const n = Number(ra);
+      return Number.isFinite(n) ? n : null;
+    })();
     if (!res.ok) {
-      return { ok: false, http_status: res.status, latency_ms, error: `HTTP ${res.status}`, url };
+      return {
+        ok: false,
+        http_status: res.status,
+        latency_ms,
+        error: `HTTP ${res.status}`,
+        url,
+        retry_after_s,
+      };
     }
     const text = await res.text();
     let json;

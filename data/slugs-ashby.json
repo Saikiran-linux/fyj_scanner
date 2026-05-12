@@ -1,1752 +1,1752 @@
 [
   {
     "slug": "duck-duck-go",
-    "hits": 372,
+    "hits": 5670,
     "latestYear": 2026
   },
   {
     "slug": "railway",
-    "hits": 340,
+    "hits": 5160,
     "latestYear": 2026
   },
   {
     "slug": "category-labs",
-    "hits": 200,
+    "hits": 2858,
     "latestYear": 2026
   },
   {
     "slug": "livekit",
-    "hits": 184,
+    "hits": 2634,
     "latestYear": 2026
   },
   {
     "slug": "chestnut",
-    "hits": 168,
+    "hits": 2424,
     "latestYear": 2026
   },
   {
     "slug": "konvu",
-    "hits": 152,
+    "hits": 2208,
     "latestYear": 2026
   },
   {
     "slug": "permitflow",
-    "hits": 92,
+    "hits": 1322,
     "latestYear": 2026
   },
   {
     "slug": "baseten",
-    "hits": 84,
-    "latestYear": 2026
-  },
-  {
-    "slug": "squint",
-    "hits": 72,
-    "latestYear": 2026
-  },
-  {
-    "slug": "unto-labs",
-    "hits": 68,
-    "latestYear": 2026
-  },
-  {
-    "slug": "stream",
-    "hits": 64,
-    "latestYear": 2026
-  },
-  {
-    "slug": "charge-robotics",
-    "hits": 64,
+    "hits": 1164,
     "latestYear": 2026
   },
   {
     "slug": "shepherd",
-    "hits": 60,
+    "hits": 914,
     "latestYear": 2026
   },
   {
-    "slug": "solace",
-    "hits": 52,
+    "slug": "squint",
+    "hits": 890,
     "latestYear": 2026
   },
   {
-    "slug": "matterworks",
-    "hits": 52,
+    "slug": "unto-labs",
+    "hits": 886,
     "latestYear": 2026
   },
   {
-    "slug": "deepl",
-    "hits": 52,
+    "slug": "stream",
+    "hits": 864,
     "latestYear": 2026
   },
   {
-    "slug": "alembic",
-    "hits": 52,
+    "slug": "charge-robotics",
+    "hits": 864,
     "latestYear": 2026
   },
   {
     "slug": "fathom",
-    "hits": 48,
+    "hits": 790,
     "latestYear": 2026
   },
   {
-    "slug": "checkly",
-    "hits": 48,
-    "latestYear": 2026
-  },
-  {
-    "slug": "wirescreen",
-    "hits": 48,
+    "slug": "deepl",
+    "hits": 780,
     "latestYear": 2026
   },
   {
     "slug": "gtv",
-    "hits": 48,
+    "hits": 768,
+    "latestYear": 2026
+  },
+  {
+    "slug": "solace",
+    "hits": 744,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wirescreen",
+    "hits": 684,
+    "latestYear": 2026
+  },
+  {
+    "slug": "matterworks",
+    "hits": 668,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alembic",
+    "hits": 644,
     "latestYear": 2026
   },
   {
     "slug": "count",
-    "hits": 48,
+    "hits": 588,
     "latestYear": 2026
   },
   {
-    "slug": "comity",
-    "hits": 44,
+    "slug": "checkly",
+    "hits": 570,
     "latestYear": 2026
   },
   {
     "slug": "norm-ai",
-    "hits": 40,
+    "hits": 548,
     "latestYear": 2026
   },
   {
     "slug": "blueberrypediatrics",
-    "hits": 40,
+    "hits": 530,
     "latestYear": 2026
   },
   {
     "slug": "trychroma",
-    "hits": 40,
+    "hits": 506,
+    "latestYear": 2026
+  },
+  {
+    "slug": "comity",
+    "hits": 488,
     "latestYear": 2026
   },
   {
     "slug": "homevision",
-    "hits": 36,
-    "latestYear": 2026
-  },
-  {
-    "slug": "supabase",
-    "hits": 32,
-    "latestYear": 2026
-  },
-  {
-    "slug": "oscilar",
-    "hits": 28,
+    "hits": 456,
     "latestYear": 2026
   },
   {
     "slug": "higharc",
-    "hits": 28,
-    "latestYear": 2026
-  },
-  {
-    "slug": "cleric",
-    "hits": 28,
+    "hits": 438,
     "latestYear": 2026
   },
   {
     "slug": "mercor",
-    "hits": 24,
+    "hits": 408,
     "latestYear": 2026
   },
   {
-    "slug": "river",
-    "hits": 24,
+    "slug": "supabase",
+    "hits": 400,
     "latestYear": 2026
   },
   {
     "slug": "office-hours",
-    "hits": 24,
+    "hits": 384,
     "latestYear": 2026
   },
   {
-    "slug": "parabola-io",
-    "hits": 20,
+    "slug": "cleric",
+    "hits": 378,
     "latestYear": 2026
   },
   {
-    "slug": "turquoise-health",
-    "hits": 20,
+    "slug": "river",
+    "hits": 336,
     "latestYear": 2026
   },
   {
     "slug": "nectar-social",
-    "hits": 20,
+    "hits": 330,
     "latestYear": 2026
   },
   {
-    "slug": "sesame",
-    "hits": 20,
-    "latestYear": 2026
-  },
-  {
-    "slug": "notable",
-    "hits": 20,
+    "slug": "oscilar",
+    "hits": 318,
     "latestYear": 2026
   },
   {
     "slug": "salesjack",
-    "hits": 20,
+    "hits": 300,
+    "latestYear": 2026
+  },
+  {
+    "slug": "parabola-io",
+    "hits": 258,
     "latestYear": 2026
   },
   {
     "slug": "hive",
-    "hits": 16,
+    "hits": 240,
     "latestYear": 2026
   },
   {
-    "slug": "lago",
-    "hits": 16,
+    "slug": "sesame",
+    "hits": 240,
+    "latestYear": 2026
+  },
+  {
+    "slug": "turquoise-health",
+    "hits": 230,
     "latestYear": 2026
   },
   {
     "slug": "tracelabs",
-    "hits": 16,
+    "hits": 216,
     "latestYear": 2026
   },
   {
-    "slug": "sentilink",
-    "hits": 12,
+    "slug": "lago",
+    "hits": 208,
     "latestYear": 2026
   },
   {
-    "slug": "sheerhealth",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "9-mothers",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "modal",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "fractional-ai",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "mechanize",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "upvest",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "griffin",
-    "hits": 12,
-    "latestYear": 2026
-  },
-  {
-    "slug": "odyssey",
-    "hits": 12,
+    "slug": "notable",
+    "hits": 204,
     "latestYear": 2026
   },
   {
     "slug": "pear-vc",
-    "hits": 12,
+    "hits": 170,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sheerhealth",
+    "hits": 162,
+    "latestYear": 2026
+  },
+  {
+    "slug": "modal",
+    "hits": 160,
+    "latestYear": 2026
+  },
+  {
+    "slug": "upvest",
+    "hits": 156,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sentilink",
+    "hits": 154,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fractional-ai",
+    "hits": 150,
+    "latestYear": 2026
+  },
+  {
+    "slug": "9-mothers",
+    "hits": 146,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mechanize",
+    "hits": 138,
+    "latestYear": 2026
+  },
+  {
+    "slug": "odyssey",
+    "hits": 138,
+    "latestYear": 2026
+  },
+  {
+    "slug": "griffin",
+    "hits": 136,
     "latestYear": 2026
   },
   {
     "slug": "kepler-ai",
-    "hits": 10,
-    "latestYear": 2026
-  },
-  {
-    "slug": "eagle",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "hyperspell",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "zippymh",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "scholarly",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "spruceid",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "prosper-ai",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "colonist",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "oneleet",
-    "hits": 8,
+    "hits": 117,
     "latestYear": 2026
   },
   {
     "slug": "hike-medical",
-    "hits": 8,
+    "hits": 116,
     "latestYear": 2026
   },
   {
-    "slug": "trayd",
-    "hits": 8,
+    "slug": "scholarly",
+    "hits": 112,
     "latestYear": 2026
   },
   {
-    "slug": "mobasi",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "coreflow",
-    "hits": 8,
-    "latestYear": 2026
-  },
-  {
-    "slug": "cradlebio",
-    "hits": 8,
+    "slug": "prosper-ai",
+    "hits": 112,
     "latestYear": 2026
   },
   {
     "slug": "oboe",
-    "hits": 8,
+    "hits": 112,
     "latestYear": 2026
   },
   {
-    "slug": "infisical",
-    "hits": 8,
+    "slug": "eagle",
+    "hits": 108,
     "latestYear": 2026
   },
   {
-    "slug": "knowlix",
-    "hits": 8,
+    "slug": "zippymh",
+    "hits": 108,
     "latestYear": 2026
   },
   {
     "slug": "fanvue",
-    "hits": 8,
+    "hits": 106,
     "latestYear": 2026
   },
   {
-    "slug": "blaxel",
-    "hits": 4,
+    "slug": "colonist",
+    "hits": 104,
     "latestYear": 2026
   },
   {
-    "slug": "kiloforge",
-    "hits": 4,
+    "slug": "cradlebio",
+    "hits": 104,
     "latestYear": 2026
   },
   {
-    "slug": "mapbox",
-    "hits": 4,
+    "slug": "oneleet",
+    "hits": 102,
     "latestYear": 2026
   },
   {
-    "slug": "curie",
-    "hits": 4,
+    "slug": "spruceid",
+    "hits": 100,
     "latestYear": 2026
   },
   {
-    "slug": "mubit",
-    "hits": 4,
+    "slug": "mobasi",
+    "hits": 100,
     "latestYear": 2026
   },
   {
-    "slug": "voltai",
-    "hits": 4,
+    "slug": "hyperspell",
+    "hits": 96,
     "latestYear": 2026
   },
   {
-    "slug": "dimensional",
-    "hits": 4,
+    "slug": "coreflow",
+    "hits": 92,
     "latestYear": 2026
   },
   {
-    "slug": "evervault",
-    "hits": 4,
+    "slug": "trayd",
+    "hits": 88,
     "latestYear": 2026
   },
   {
-    "slug": "honey",
-    "hits": 4,
+    "slug": "knowlix",
+    "hits": 88,
     "latestYear": 2026
   },
   {
-    "slug": "workwhilejobs",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "akur8",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "gigaml",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "ami",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "p2p",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "revenuecat",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "prelude",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "flux",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "verge-genomics",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "withdaydream",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "meticulous",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "nango",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "socket",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "coram-ai",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "xdof",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "parallel",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "axle-careers",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "steel",
-    "hits": 4,
+    "slug": "infisical",
+    "hits": 60,
     "latestYear": 2026
   },
   {
     "slug": "legionhealth",
-    "hits": 4,
+    "hits": 60,
     "latestYear": 2026
   },
   {
-    "slug": "civic",
-    "hits": 4,
+    "slug": "steel",
+    "hits": 58,
+    "latestYear": 2026
+  },
+  {
+    "slug": "kiloforge",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "workwhilejobs",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "socket",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "p2p",
+    "hits": 54,
+    "latestYear": 2026
+  },
+  {
+    "slug": "flux",
+    "hits": 54,
+    "latestYear": 2026
+  },
+  {
+    "slug": "verge-genomics",
+    "hits": 54,
+    "latestYear": 2026
+  },
+  {
+    "slug": "prelude",
+    "hits": 52,
+    "latestYear": 2026
+  },
+  {
+    "slug": "curie",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dimensional",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gigaml",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "withdaydream",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coram-ai",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xdof",
+    "hits": 50,
     "latestYear": 2026
   },
   {
     "slug": "noise-labs",
-    "hits": 4,
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "honey",
+    "hits": 48,
+    "latestYear": 2026
+  },
+  {
+    "slug": "akur8",
+    "hits": 48,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nango",
+    "hits": 48,
+    "latestYear": 2026
+  },
+  {
+    "slug": "parallel",
+    "hits": 46,
+    "latestYear": 2026
+  },
+  {
+    "slug": "axle-careers",
+    "hits": 46,
     "latestYear": 2026
   },
   {
     "slug": "amperos",
-    "hits": 4,
+    "hits": 46,
     "latestYear": 2026
   },
   {
     "slug": "firetiger",
-    "hits": 4,
+    "hits": 46,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mapbox",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mubit",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ami",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "meticulous",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "civic",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "voltai",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "evervault",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "revenuecat",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blaxel",
+    "hits": 40,
     "latestYear": 2026
   },
   {
     "slug": "bliro",
-    "hits": 4,
-    "latestYear": 2026
-  },
-  {
-    "slug": "airops",
-    "hits": 2,
+    "hits": 36,
     "latestYear": 2026
   },
   {
     "slug": "vitalize",
-    "hits": 2,
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "airops",
+    "hits": 22,
     "latestYear": 2026
   },
   {
     "slug": "stytch",
-    "hits": 224,
+    "hits": 3182,
     "latestYear": 2025
   },
   {
     "slug": "limitless",
-    "hits": 152,
+    "hits": 2376,
     "latestYear": 2025
   },
   {
     "slug": "pear",
-    "hits": 84,
-    "latestYear": 2025
-  },
-  {
-    "slug": "cloudtrucks",
-    "hits": 68,
+    "hits": 1122,
     "latestYear": 2025
   },
   {
     "slug": "allspice",
-    "hits": 56,
+    "hits": 920,
+    "latestYear": 2025
+  },
+  {
+    "slug": "cloudtrucks",
+    "hits": 912,
     "latestYear": 2025
   },
   {
     "slug": "kombo",
-    "hits": 56,
-    "latestYear": 2025
-  },
-  {
-    "slug": "coder",
-    "hits": 56,
-    "latestYear": 2025
-  },
-  {
-    "slug": "continua",
-    "hits": 52,
-    "latestYear": 2025
-  },
-  {
-    "slug": "cambly",
-    "hits": 52,
-    "latestYear": 2025
-  },
-  {
-    "slug": "center",
-    "hits": 52,
+    "hits": 780,
     "latestYear": 2025
   },
   {
     "slug": "creditgenie",
-    "hits": 48,
+    "hits": 708,
+    "latestYear": 2025
+  },
+  {
+    "slug": "center",
+    "hits": 666,
+    "latestYear": 2025
+  },
+  {
+    "slug": "cambly",
+    "hits": 634,
+    "latestYear": 2025
+  },
+  {
+    "slug": "continua",
+    "hits": 618,
+    "latestYear": 2025
+  },
+  {
+    "slug": "coder",
+    "hits": 614,
     "latestYear": 2025
   },
   {
     "slug": "humaans",
-    "hits": 48,
+    "hits": 608,
     "latestYear": 2025
   },
   {
     "slug": "monad",
-    "hits": 44,
-    "latestYear": 2025
-  },
-  {
-    "slug": "lightdash",
-    "hits": 44,
-    "latestYear": 2025
-  },
-  {
-    "slug": "privy",
-    "hits": 40,
-    "latestYear": 2025
-  },
-  {
-    "slug": "atomicsemi",
-    "hits": 36,
+    "hits": 544,
     "latestYear": 2025
   },
   {
     "slug": "neon",
-    "hits": 36,
+    "hits": 540,
     "latestYear": 2025
   },
   {
-    "slug": "turnstile",
-    "hits": 32,
+    "slug": "privy",
+    "hits": 526,
+    "latestYear": 2025
+  },
+  {
+    "slug": "lightdash",
+    "hits": 516,
+    "latestYear": 2025
+  },
+  {
+    "slug": "atomicsemi",
+    "hits": 504,
     "latestYear": 2025
   },
   {
     "slug": "layerfi",
-    "hits": 32,
+    "hits": 406,
     "latestYear": 2025
   },
   {
-    "slug": "pylon",
-    "hits": 28,
-    "latestYear": 2025
-  },
-  {
-    "slug": "bedrock",
-    "hits": 24,
+    "slug": "turnstile",
+    "hits": 400,
     "latestYear": 2025
   },
   {
     "slug": "quora",
-    "hits": 24,
+    "hits": 388,
+    "latestYear": 2025
+  },
+  {
+    "slug": "pylon",
+    "hits": 356,
     "latestYear": 2025
   },
   {
     "slug": "hiya",
-    "hits": 24,
-    "latestYear": 2025
-  },
-  {
-    "slug": "adaptive",
-    "hits": 20,
-    "latestYear": 2025
-  },
-  {
-    "slug": "signoz",
-    "hits": 20,
+    "hits": 348,
     "latestYear": 2025
   },
   {
     "slug": "safety",
-    "hits": 20,
+    "hits": 320,
     "latestYear": 2025
   },
   {
-    "slug": "rabbet",
-    "hits": 16,
+    "slug": "adaptive",
+    "hits": 300,
+    "latestYear": 2025
+  },
+  {
+    "slug": "signoz",
+    "hits": 292,
+    "latestYear": 2025
+  },
+  {
+    "slug": "bedrock",
+    "hits": 284,
     "latestYear": 2025
   },
   {
     "slug": "v7labs",
-    "hits": 16,
+    "hits": 256,
     "latestYear": 2025
   },
   {
     "slug": "siftstack",
-    "hits": 16,
+    "hits": 240,
     "latestYear": 2025
   },
   {
     "slug": "k2space",
-    "hits": 16,
+    "hits": 240,
     "latestYear": 2025
   },
   {
-    "slug": "langdock",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "cruxclimate",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "p-1",
-    "hits": 12,
+    "slug": "rabbet",
+    "hits": 236,
     "latestYear": 2025
   },
   {
     "slug": "feldera",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "extend",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "fundamentalresearchlabs",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "nevoya",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "eliseai",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "fluidstack",
-    "hits": 12,
+    "hits": 186,
     "latestYear": 2025
   },
   {
     "slug": "scribd",
-    "hits": 12,
+    "hits": 184,
     "latestYear": 2025
   },
   {
-    "slug": "close",
-    "hits": 12,
+    "slug": "extend",
+    "hits": 176,
     "latestYear": 2025
   },
   {
-    "slug": "prior-labs",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "wundergraph",
-    "hits": 12,
-    "latestYear": 2025
-  },
-  {
-    "slug": "onoshealth",
-    "hits": 12,
+    "slug": "nevoya",
+    "hits": 172,
     "latestYear": 2025
   },
   {
     "slug": "inductive-bio",
-    "hits": 12,
+    "hits": 168,
     "latestYear": 2025
   },
   {
     "slug": "counsel",
-    "hits": 12,
+    "hits": 166,
+    "latestYear": 2025
+  },
+  {
+    "slug": "p-1",
+    "hits": 162,
+    "latestYear": 2025
+  },
+  {
+    "slug": "wundergraph",
+    "hits": 162,
+    "latestYear": 2025
+  },
+  {
+    "slug": "prior-labs",
+    "hits": 158,
+    "latestYear": 2025
+  },
+  {
+    "slug": "fluidstack",
+    "hits": 154,
+    "latestYear": 2025
+  },
+  {
+    "slug": "eliseai",
+    "hits": 152,
+    "latestYear": 2025
+  },
+  {
+    "slug": "langdock",
+    "hits": 150,
+    "latestYear": 2025
+  },
+  {
+    "slug": "onoshealth",
+    "hits": 150,
     "latestYear": 2025
   },
   {
     "slug": "astronomer",
-    "hits": 12,
+    "hits": 146,
     "latestYear": 2025
   },
   {
-    "slug": "suno",
-    "hits": 10,
+    "slug": "cruxclimate",
+    "hits": 132,
     "latestYear": 2025
   },
   {
-    "slug": "sfcompute",
-    "hits": 8,
+    "slug": "fundamentalresearchlabs",
+    "hits": 132,
     "latestYear": 2025
   },
   {
-    "slug": "dryft",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "govsignals",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "ontic",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "pareto-ai",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "dialogueai",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "normal",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "speckle",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "terraai",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "neon-health",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "atomic-financial",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "protege",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "schoolhouse-world",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "plantingspace",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "onecrew",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "flaglerhealth",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "voladynamics",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "wordware",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "clarium",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "voldex",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "kittl",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "riza",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "chipstack",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "ameba",
-    "hits": 8,
-    "latestYear": 2025
-  },
-  {
-    "slug": "iris",
-    "hits": 8,
+    "slug": "close",
+    "hits": 132,
     "latestYear": 2025
   },
   {
     "slug": "compass-reg",
-    "hits": 8,
+    "hits": 128,
     "latestYear": 2025
   },
   {
-    "slug": "harmonic",
-    "hits": 4,
+    "slug": "suno",
+    "hits": 122,
     "latestYear": 2025
   },
   {
-    "slug": "titan",
-    "hits": 4,
+    "slug": "pareto-ai",
+    "hits": 120,
     "latestYear": 2025
   },
   {
-    "slug": "triggerdev",
-    "hits": 4,
+    "slug": "iris",
+    "hits": 116,
     "latestYear": 2025
   },
   {
-    "slug": "graymatter-robotics",
-    "hits": 4,
+    "slug": "schoolhouse-world",
+    "hits": 114,
     "latestYear": 2025
   },
   {
-    "slug": "phoebe-work",
-    "hits": 4,
+    "slug": "dryft",
+    "hits": 112,
     "latestYear": 2025
   },
   {
-    "slug": "pod-network",
-    "hits": 4,
+    "slug": "chipstack",
+    "hits": 112,
     "latestYear": 2025
   },
   {
-    "slug": "poesis",
-    "hits": 4,
+    "slug": "normal",
+    "hits": 108,
     "latestYear": 2025
   },
   {
-    "slug": "two-dots",
-    "hits": 4,
+    "slug": "riza",
+    "hits": 108,
     "latestYear": 2025
   },
   {
-    "slug": "backmarket",
-    "hits": 4,
+    "slug": "neon-health",
+    "hits": 106,
     "latestYear": 2025
   },
   {
-    "slug": "kilocode",
-    "hits": 4,
+    "slug": "atomic-financial",
+    "hits": 106,
     "latestYear": 2025
   },
   {
-    "slug": "sewerai",
-    "hits": 4,
+    "slug": "wordware",
+    "hits": 106,
     "latestYear": 2025
   },
   {
-    "slug": "frontcareers",
-    "hits": 4,
+    "slug": "sfcompute",
+    "hits": 104,
     "latestYear": 2025
   },
   {
-    "slug": "upside-tech",
-    "hits": 4,
+    "slug": "ontic",
+    "hits": 104,
     "latestYear": 2025
   },
   {
-    "slug": "opusclip",
-    "hits": 4,
+    "slug": "dialogueai",
+    "hits": 104,
     "latestYear": 2025
   },
   {
-    "slug": "parable",
-    "hits": 4,
+    "slug": "ameba",
+    "hits": 102,
     "latestYear": 2025
   },
   {
-    "slug": "airgoods",
-    "hits": 4,
+    "slug": "govsignals",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "zencastr",
-    "hits": 4,
+    "slug": "flaglerhealth",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "traba",
-    "hits": 4,
+    "slug": "voladynamics",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "fleetworks",
-    "hits": 4,
+    "slug": "clarium",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "tempo-xyz",
-    "hits": 4,
+    "slug": "voldex",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "routefusion",
-    "hits": 4,
+    "slug": "kittl",
+    "hits": 100,
     "latestYear": 2025
   },
   {
-    "slug": "orchard",
-    "hits": 4,
+    "slug": "speckle",
+    "hits": 96,
     "latestYear": 2025
   },
   {
-    "slug": "7gen",
-    "hits": 4,
+    "slug": "protege",
+    "hits": 96,
     "latestYear": 2025
   },
   {
-    "slug": "vitvio",
-    "hits": 4,
+    "slug": "terraai",
+    "hits": 92,
     "latestYear": 2025
   },
   {
-    "slug": "felix",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "ether",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "monterra",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "astral",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "continue",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "edlink",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "cantina",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "bitnomial",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "rightfoot",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "sobek-ai",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "distyl",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "anima",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "parker",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "greatquestion",
-    "hits": 4,
+    "slug": "onecrew",
+    "hits": 92,
     "latestYear": 2025
   },
   {
     "slug": "g2i",
-    "hits": 4,
+    "hits": 64,
     "latestYear": 2025
   },
   {
-    "slug": "imprint",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "tiplink",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "equals",
-    "hits": 4,
-    "latestYear": 2025
-  },
-  {
-    "slug": "letta",
-    "hits": 4,
+    "slug": "edlink",
+    "hits": 60,
     "latestYear": 2025
   },
   {
     "slug": "august-health",
-    "hits": 4,
+    "hits": 60,
     "latestYear": 2025
   },
   {
     "slug": "ephemera",
-    "hits": 4,
+    "hits": 58,
     "latestYear": 2025
   },
   {
-    "slug": "diagrid",
-    "hits": 4,
+    "slug": "phoebe-work",
+    "hits": 56,
     "latestYear": 2025
   },
   {
-    "slug": "phare",
-    "hits": 4,
+    "slug": "opusclip",
+    "hits": 56,
     "latestYear": 2025
   },
   {
-    "slug": "lorikeet",
-    "hits": 4,
+    "slug": "vitvio",
+    "hits": 56,
+    "latestYear": 2025
+  },
+  {
+    "slug": "bitnomial",
+    "hits": 56,
+    "latestYear": 2025
+  },
+  {
+    "slug": "greatquestion",
+    "hits": 56,
+    "latestYear": 2025
+  },
+  {
+    "slug": "letta",
+    "hits": 56,
+    "latestYear": 2025
+  },
+  {
+    "slug": "kilocode",
+    "hits": 54,
+    "latestYear": 2025
+  },
+  {
+    "slug": "felix",
+    "hits": 54,
+    "latestYear": 2025
+  },
+  {
+    "slug": "ether",
+    "hits": 54,
+    "latestYear": 2025
+  },
+  {
+    "slug": "astral",
+    "hits": 54,
+    "latestYear": 2025
+  },
+  {
+    "slug": "sobek-ai",
+    "hits": 54,
+    "latestYear": 2025
+  },
+  {
+    "slug": "titan",
+    "hits": 52,
+    "latestYear": 2025
+  },
+  {
+    "slug": "poesis",
+    "hits": 52,
+    "latestYear": 2025
+  },
+  {
+    "slug": "rightfoot",
+    "hits": 52,
+    "latestYear": 2025
+  },
+  {
+    "slug": "parker",
+    "hits": 52,
+    "latestYear": 2025
+  },
+  {
+    "slug": "equals",
+    "hits": 52,
     "latestYear": 2025
   },
   {
     "slug": "leonardo",
-    "hits": 4,
+    "hits": 52,
+    "latestYear": 2025
+  },
+  {
+    "slug": "upside-tech",
+    "hits": 50,
+    "latestYear": 2025
+  },
+  {
+    "slug": "zencastr",
+    "hits": 50,
+    "latestYear": 2025
+  },
+  {
+    "slug": "routefusion",
+    "hits": 50,
+    "latestYear": 2025
+  },
+  {
+    "slug": "anima",
+    "hits": 50,
+    "latestYear": 2025
+  },
+  {
+    "slug": "lorikeet",
+    "hits": 50,
+    "latestYear": 2025
+  },
+  {
+    "slug": "harmonic",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "graymatter-robotics",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "sewerai",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "plantingspace",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "cantina",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "imprint",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "diagrid",
+    "hits": 48,
+    "latestYear": 2025
+  },
+  {
+    "slug": "traba",
+    "hits": 46,
+    "latestYear": 2025
+  },
+  {
+    "slug": "7gen",
+    "hits": 46,
+    "latestYear": 2025
+  },
+  {
+    "slug": "continue",
+    "hits": 46,
+    "latestYear": 2025
+  },
+  {
+    "slug": "distyl",
+    "hits": 46,
+    "latestYear": 2025
+  },
+  {
+    "slug": "triggerdev",
+    "hits": 44,
+    "latestYear": 2025
+  },
+  {
+    "slug": "pod-network",
+    "hits": 44,
+    "latestYear": 2025
+  },
+  {
+    "slug": "monterra",
+    "hits": 44,
+    "latestYear": 2025
+  },
+  {
+    "slug": "tiplink",
+    "hits": 44,
+    "latestYear": 2025
+  },
+  {
+    "slug": "phare",
+    "hits": 44,
+    "latestYear": 2025
+  },
+  {
+    "slug": "parable",
+    "hits": 42,
+    "latestYear": 2025
+  },
+  {
+    "slug": "fleetworks",
+    "hits": 42,
+    "latestYear": 2025
+  },
+  {
+    "slug": "two-dots",
+    "hits": 40,
+    "latestYear": 2025
+  },
+  {
+    "slug": "airgoods",
+    "hits": 40,
+    "latestYear": 2025
+  },
+  {
+    "slug": "tempo-xyz",
+    "hits": 40,
+    "latestYear": 2025
+  },
+  {
+    "slug": "backmarket",
+    "hits": 32,
+    "latestYear": 2025
+  },
+  {
+    "slug": "frontcareers",
+    "hits": 32,
     "latestYear": 2025
   },
   {
     "slug": "capimoney",
-    "hits": 4,
+    "hits": 24,
+    "latestYear": 2025
+  },
+  {
+    "slug": "orchard",
+    "hits": 16,
     "latestYear": 2025
   },
   {
     "slug": "virtahealth",
-    "hits": 172,
+    "hits": 2620,
     "latestYear": 2024
   },
   {
     "slug": "cointracker",
-    "hits": 92,
+    "hits": 1238,
     "latestYear": 2024
   },
   {
     "slug": "crusoe",
-    "hits": 68,
-    "latestYear": 2024
-  },
-  {
-    "slug": "replit",
-    "hits": 40,
+    "hits": 904,
     "latestYear": 2024
   },
   {
     "slug": "mui",
-    "hits": 40,
+    "hits": 500,
     "latestYear": 2024
   },
   {
     "slug": "proofofplay",
-    "hits": 36,
-    "latestYear": 2024
-  },
-  {
-    "slug": "qventus",
-    "hits": 32,
+    "hits": 488,
     "latestYear": 2024
   },
   {
     "slug": "orb",
-    "hits": 32,
+    "hits": 452,
+    "latestYear": 2024
+  },
+  {
+    "slug": "qventus",
+    "hits": 420,
+    "latestYear": 2024
+  },
+  {
+    "slug": "replit",
+    "hits": 394,
     "latestYear": 2024
   },
   {
     "slug": "weave",
-    "hits": 28,
+    "hits": 364,
     "latestYear": 2024
   },
   {
     "slug": "writer",
-    "hits": 24,
+    "hits": 310,
     "latestYear": 2024
   },
   {
     "slug": "gruntwork",
-    "hits": 24,
-    "latestYear": 2024
-  },
-  {
-    "slug": "character",
-    "hits": 24,
-    "latestYear": 2024
-  },
-  {
-    "slug": "hashboard",
-    "hits": 20,
-    "latestYear": 2024
-  },
-  {
-    "slug": "datologyai",
-    "hits": 20,
+    "hits": 308,
     "latestYear": 2024
   },
   {
     "slug": "oso",
-    "hits": 20,
+    "hits": 286,
     "latestYear": 2024
   },
   {
-    "slug": "cargado",
-    "hits": 16,
+    "slug": "datologyai",
+    "hits": 280,
+    "latestYear": 2024
+  },
+  {
+    "slug": "character",
+    "hits": 268,
+    "latestYear": 2024
+  },
+  {
+    "slug": "hashboard",
+    "hits": 232,
     "latestYear": 2024
   },
   {
     "slug": "happyscribe",
-    "hits": 16,
+    "hits": 226,
+    "latestYear": 2024
+  },
+  {
+    "slug": "cargado",
+    "hits": 204,
     "latestYear": 2024
   },
   {
     "slug": "tandem",
-    "hits": 12,
+    "hits": 174,
     "latestYear": 2024
   },
   {
     "slug": "slab",
-    "hits": 12,
-    "latestYear": 2024
-  },
-  {
-    "slug": "inngest",
-    "hits": 12,
-    "latestYear": 2024
-  },
-  {
-    "slug": "topologic",
-    "hits": 12,
+    "hits": 174,
     "latestYear": 2024
   },
   {
     "slug": "doowii",
-    "hits": 12,
+    "hits": 166,
     "latestYear": 2024
   },
   {
     "slug": "paddle",
-    "hits": 12,
+    "hits": 164,
     "latestYear": 2024
   },
   {
     "slug": "occam",
-    "hits": 12,
+    "hits": 156,
     "latestYear": 2024
   },
   {
-    "slug": "eightsleep",
-    "hits": 8,
+    "slug": "topologic",
+    "hits": 146,
+    "latestYear": 2024
+  },
+  {
+    "slug": "inngest",
+    "hits": 126,
     "latestYear": 2024
   },
   {
     "slug": "conductorone",
-    "hits": 8,
+    "hits": 112,
     "latestYear": 2024
   },
   {
     "slug": "astera",
-    "hits": 8,
+    "hits": 112,
     "latestYear": 2024
   },
   {
-    "slug": "dahlia-labs",
-    "hits": 8,
-    "latestYear": 2024
-  },
-  {
-    "slug": "electronx",
-    "hits": 8,
+    "slug": "eightsleep",
+    "hits": 98,
     "latestYear": 2024
   },
   {
     "slug": "communityphone",
-    "hits": 8,
-    "latestYear": 2024
-  },
-  {
-    "slug": "monitaur",
-    "hits": 8,
-    "latestYear": 2024
-  },
-  {
-    "slug": "quantstamp",
-    "hits": 8,
+    "hits": 96,
     "latestYear": 2024
   },
   {
     "slug": "speakeasy",
-    "hits": 8,
+    "hits": 94,
     "latestYear": 2024
   },
   {
-    "slug": "medbill-ai",
-    "hits": 4,
+    "slug": "dahlia-labs",
+    "hits": 92,
     "latestYear": 2024
   },
   {
-    "slug": "ataraxis-ai",
-    "hits": 4,
+    "slug": "electronx",
+    "hits": 92,
     "latestYear": 2024
   },
   {
-    "slug": "boon",
-    "hits": 4,
+    "slug": "quantstamp",
+    "hits": 86,
     "latestYear": 2024
   },
   {
-    "slug": "terradot",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "vapi",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "northwoodspace",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "dune",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "ario",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "memgpt",
-    "hits": 4,
+    "slug": "monitaur",
+    "hits": 80,
     "latestYear": 2024
   },
   {
     "slug": "authenticins",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "upflow",
-    "hits": 4,
+    "hits": 58,
     "latestYear": 2024
   },
   {
     "slug": "patch",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "talpasolutions",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "rilla",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "rye",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "basis-ai",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "openai",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "codeium",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "cognition",
-    "hits": 4,
-    "latestYear": 2024
-  },
-  {
-    "slug": "pallon",
-    "hits": 4,
+    "hits": 58,
     "latestYear": 2024
   },
   {
     "slug": "clerk",
-    "hits": 4,
+    "hits": 58,
+    "latestYear": 2024
+  },
+  {
+    "slug": "medbill-ai",
+    "hits": 54,
+    "latestYear": 2024
+  },
+  {
+    "slug": "codeium",
+    "hits": 54,
+    "latestYear": 2024
+  },
+  {
+    "slug": "ataraxis-ai",
+    "hits": 52,
+    "latestYear": 2024
+  },
+  {
+    "slug": "ario",
+    "hits": 50,
+    "latestYear": 2024
+  },
+  {
+    "slug": "upflow",
+    "hits": 50,
+    "latestYear": 2024
+  },
+  {
+    "slug": "boon",
+    "hits": 48,
+    "latestYear": 2024
+  },
+  {
+    "slug": "terradot",
+    "hits": 48,
+    "latestYear": 2024
+  },
+  {
+    "slug": "vapi",
+    "hits": 48,
+    "latestYear": 2024
+  },
+  {
+    "slug": "talpasolutions",
+    "hits": 48,
+    "latestYear": 2024
+  },
+  {
+    "slug": "northwoodspace",
+    "hits": 44,
+    "latestYear": 2024
+  },
+  {
+    "slug": "memgpt",
+    "hits": 44,
+    "latestYear": 2024
+  },
+  {
+    "slug": "rilla",
+    "hits": 44,
+    "latestYear": 2024
+  },
+  {
+    "slug": "pallon",
+    "hits": 44,
+    "latestYear": 2024
+  },
+  {
+    "slug": "dune",
+    "hits": 42,
+    "latestYear": 2024
+  },
+  {
+    "slug": "basis-ai",
+    "hits": 42,
     "latestYear": 2024
   },
   {
     "slug": "machinify",
-    "hits": 4,
+    "hits": 42,
+    "latestYear": 2024
+  },
+  {
+    "slug": "openai",
+    "hits": 40,
+    "latestYear": 2024
+  },
+  {
+    "slug": "rye",
+    "hits": 38,
+    "latestYear": 2024
+  },
+  {
+    "slug": "cognition",
+    "hits": 22,
     "latestYear": 2024
   },
   {
     "slug": "convictional",
-    "hits": 80,
+    "hits": 1038,
     "latestYear": 2023
   },
   {
     "slug": "useful",
-    "hits": 40,
+    "hits": 518,
     "latestYear": 2023
   },
   {
     "slug": "comm",
-    "hits": 36,
+    "hits": 480,
     "latestYear": 2023
   },
   {
     "slug": "lightning",
-    "hits": 28,
+    "hits": 316,
     "latestYear": 2023
   },
   {
     "slug": "quant-aq",
-    "hits": 20,
-    "latestYear": 2023
-  },
-  {
-    "slug": "ramp",
-    "hits": 16,
+    "hits": 264,
     "latestYear": 2023
   },
   {
     "slug": "walrusfi",
-    "hits": 16,
+    "hits": 224,
     "latestYear": 2023
   },
   {
     "slug": "pocket",
-    "hits": 16,
-    "latestYear": 2023
-  },
-  {
-    "slug": "altimate",
-    "hits": 16,
+    "hits": 216,
     "latestYear": 2023
   },
   {
     "slug": "latitud",
-    "hits": 16,
+    "hits": 216,
     "latestYear": 2023
   },
   {
-    "slug": "evenup",
-    "hits": 12,
+    "slug": "ramp",
+    "hits": 208,
+    "latestYear": 2023
+  },
+  {
+    "slug": "altimate",
+    "hits": 176,
     "latestYear": 2023
   },
   {
     "slug": "ironcladhq",
-    "hits": 12,
+    "hits": 174,
+    "latestYear": 2023
+  },
+  {
+    "slug": "evenup",
+    "hits": 150,
     "latestYear": 2023
   },
   {
     "slug": "weflow",
-    "hits": 12,
+    "hits": 144,
     "latestYear": 2023
   },
   {
     "slug": "lassie",
-    "hits": 8,
+    "hits": 120,
     "latestYear": 2023
   },
   {
     "slug": "freeplay",
-    "hits": 8,
+    "hits": 104,
     "latestYear": 2023
   },
   {
     "slug": "vana",
-    "hits": 8,
+    "hits": 100,
     "latestYear": 2023
   },
   {
     "slug": "tortugaagtech",
-    "hits": 4,
-    "latestYear": 2023
-  },
-  {
-    "slug": "framenergy",
-    "hits": 4,
+    "hits": 56,
     "latestYear": 2023
   },
   {
     "slug": "motherduck",
-    "hits": 4,
-    "latestYear": 2023
-  },
-  {
-    "slug": "matician",
-    "hits": 4,
+    "hits": 52,
     "latestYear": 2023
   },
   {
     "slug": "caldera",
-    "hits": 4,
+    "hits": 52,
+    "latestYear": 2023
+  },
+  {
+    "slug": "framenergy",
+    "hits": 46,
     "latestYear": 2023
   },
   {
     "slug": "column",
-    "hits": 4,
+    "hits": 44,
     "latestYear": 2023
   },
   {
     "slug": "apfusion",
-    "hits": 4,
+    "hits": 42,
+    "latestYear": 2023
+  },
+  {
+    "slug": "matician",
+    "hits": 22,
     "latestYear": 2023
   },
   {
     "slug": "gordiansoftware",
-    "hits": 40,
-    "latestYear": 2022
-  },
-  {
-    "slug": "census",
-    "hits": 32,
-    "latestYear": 2022
-  },
-  {
-    "slug": "structionsite",
-    "hits": 32,
-    "latestYear": 2022
-  },
-  {
-    "slug": "avenue",
-    "hits": 32,
-    "latestYear": 2022
-  },
-  {
-    "slug": "goodcover",
-    "hits": 32,
+    "hits": 512,
     "latestYear": 2022
   },
   {
     "slug": "klarity",
-    "hits": 28,
+    "hits": 434,
+    "latestYear": 2022
+  },
+  {
+    "slug": "avenue",
+    "hits": 430,
+    "latestYear": 2022
+  },
+  {
+    "slug": "goodcover",
+    "hits": 390,
+    "latestYear": 2022
+  },
+  {
+    "slug": "structionsite",
+    "hits": 374,
+    "latestYear": 2022
+  },
+  {
+    "slug": "census",
+    "hits": 358,
     "latestYear": 2022
   },
   {
     "slug": "brigit",
-    "hits": 24,
+    "hits": 296,
     "latestYear": 2022
   },
   {
     "slug": "medra",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "growtherapy",
-    "hits": 16,
+    "hits": 218,
     "latestYear": 2022
   },
   {
     "slug": "alpaca",
-    "hits": 16,
+    "hits": 206,
+    "latestYear": 2022
+  },
+  {
+    "slug": "growtherapy",
+    "hits": 186,
     "latestYear": 2022
   },
   {
     "slug": "ownit",
-    "hits": 12,
-    "latestYear": 2022
-  },
-  {
-    "slug": "rutter",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "symops",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "nova",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "ascend",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "beacon",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "pulley",
-    "hits": 8,
-    "latestYear": 2022
-  },
-  {
-    "slug": "bear",
-    "hits": 8,
+    "hits": 168,
     "latestYear": 2022
   },
   {
     "slug": "popsql",
-    "hits": 8,
+    "hits": 108,
     "latestYear": 2022
   },
   {
-    "slug": "sona",
-    "hits": 4,
+    "slug": "nova",
+    "hits": 104,
     "latestYear": 2022
   },
   {
-    "slug": "searchlight",
-    "hits": 4,
+    "slug": "beacon",
+    "hits": 100,
     "latestYear": 2022
   },
   {
-    "slug": "upsidefinancing",
-    "hits": 4,
+    "slug": "pulley",
+    "hits": 90,
     "latestYear": 2022
   },
   {
-    "slug": "breadboard",
-    "hits": 4,
+    "slug": "symops",
+    "hits": 88,
     "latestYear": 2022
   },
   {
-    "slug": "stemma",
-    "hits": 4,
+    "slug": "rutter",
+    "hits": 80,
     "latestYear": 2022
   },
   {
-    "slug": "hyperspace",
-    "hits": 4,
+    "slug": "ascend",
+    "hits": 78,
     "latestYear": 2022
   },
   {
-    "slug": "aesthetic",
-    "hits": 4,
-    "latestYear": 2022
-  },
-  {
-    "slug": "navattic",
-    "hits": 4,
+    "slug": "bear",
+    "hits": 78,
     "latestYear": 2022
   },
   {
     "slug": "operator",
-    "hits": 4,
+    "hits": 58,
     "latestYear": 2022
   },
   {
-    "slug": "tilt",
-    "hits": 4,
+    "slug": "hyperspace",
+    "hits": 56,
+    "latestYear": 2022
+  },
+  {
+    "slug": "sona",
+    "hits": 50,
+    "latestYear": 2022
+  },
+  {
+    "slug": "upsidefinancing",
+    "hits": 50,
+    "latestYear": 2022
+  },
+  {
+    "slug": "aesthetic",
+    "hits": 50,
+    "latestYear": 2022
+  },
+  {
+    "slug": "navattic",
+    "hits": 48,
+    "latestYear": 2022
+  },
+  {
+    "slug": "searchlight",
+    "hits": 46,
+    "latestYear": 2022
+  },
+  {
+    "slug": "breadboard",
+    "hits": 44,
+    "latestYear": 2022
+  },
+  {
+    "slug": "stemma",
+    "hits": 44,
     "latestYear": 2022
   },
   {
     "slug": "compound",
-    "hits": 4,
+    "hits": 40,
+    "latestYear": 2022
+  },
+  {
+    "slug": "tilt",
+    "hits": 30,
     "latestYear": 2022
   },
   {
     "slug": "octoml",
-    "hits": 32,
-    "latestYear": 2021
-  },
-  {
-    "slug": "aven",
-    "hits": 16,
-    "latestYear": 2021
-  },
-  {
-    "slug": "moderntreasury",
-    "hits": 16,
+    "hits": 432,
     "latestYear": 2021
   },
   {
     "slug": "treasuryprime",
-    "hits": 16,
+    "hits": 224,
     "latestYear": 2021
   },
   {
     "slug": "shogun",
-    "hits": 16,
+    "hits": 224,
     "latestYear": 2021
   },
   {
-    "slug": "fella",
-    "hits": 8,
+    "slug": "aven",
+    "hits": 178,
     "latestYear": 2021
   },
   {
-    "slug": "found",
-    "hits": 8,
-    "latestYear": 2021
-  },
-  {
-    "slug": "pipeline",
-    "hits": 8,
+    "slug": "moderntreasury",
+    "hits": 158,
     "latestYear": 2021
   },
   {
     "slug": "commsor",
-    "hits": 8,
+    "hits": 94,
+    "latestYear": 2021
+  },
+  {
+    "slug": "found",
+    "hits": 88,
+    "latestYear": 2021
+  },
+  {
+    "slug": "fella",
+    "hits": 86,
+    "latestYear": 2021
+  },
+  {
+    "slug": "pipeline",
+    "hits": 76,
     "latestYear": 2021
   },
   {
     "slug": "cortex",
-    "hits": 4,
+    "hits": 50,
     "latestYear": 2021
   },
   {
     "slug": "standard",
-    "hits": 4,
+    "hits": 38,
     "latestYear": 2021
   },
   {
     "slug": "point",
-    "hits": 12,
+    "hits": 168,
     "latestYear": 2020
   }
 ]

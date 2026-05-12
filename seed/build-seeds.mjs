@@ -15,7 +15,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DATA = join(ROOT, 'data');
 
-const TARGET_SIZE = Number(process.env.TARGET_SIZE || 500);
+// Default raised to 3,000 to clear the 50k-unique-active-jobs SLA.
+// At ~69% active-tenant rate × ~26 jobs / active tenant from the viability
+// run, 3,000 seeds yields ~54k active jobs in steady state.
+const TARGET_SIZE = Number(process.env.TARGET_SIZE || 3000);
 const ATS_LIST = ['greenhouse', 'ashby', 'lever', 'smartrecruiters'];
 
 const PROBE = {
