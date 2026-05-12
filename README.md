@@ -69,7 +69,7 @@ Either:
 
 A first scan takes ~30s for 500 companies and seeds the `jobs` table with whatever is currently active.
 
-After this, the cron at `0 3,15 * * *` UTC runs automatically.
+After this, the cron at `0 */6 * * *` UTC (every 6h) runs automatically.
 
 ## Dashboard
 
