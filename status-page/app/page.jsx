@@ -9,6 +9,11 @@ const ACTIVE_JOB_SLA = 50_000;
 const BLOCK_RATE_SLA_PCT = 1.0;
 const SCAN_FRESHNESS_SLA_HOURS = 6;
 
+// Mirrors .github/workflows/scan.yml cron `17 0,6,12,18 * * *` UTC.
+// Keep in sync if the schedule changes there.
+const SCAN_CRON_HOURS_UTC = [0, 6, 12, 18];
+const SCAN_CRON_MINUTE_UTC = 17;
+
 const RANGE_TO_INTERVAL = {
   '24h': '24 hours',
   '7d': '7 days',
@@ -50,6 +55,9 @@ export default async function Page({ searchParams }) {
   const lastScanAgoH = lastScanIso ? (Date.now() - new Date(lastScanIso).getTime()) / 3_600_000 : null;
   const worstBlockRate = Math.max(0, ...sourceHealth.map((s) => Number(s.block_rate_pct) || 0));
 
+  const nextScanIso = nextScheduledScan().toISOString();
+  const nextScanInMin = Math.max(0, Math.round((new Date(nextScanIso).getTime() - Date.now()) / 60_000));
+
   const sla1Ok = worstBlockRate < BLOCK_RATE_SLA_PCT;
   const sla2Ok = activeJobs >= ACTIVE_JOB_SLA;
   const sla3Ok = lastScanAgoH !== null && lastScanAgoH < SCAN_FRESHNESS_SLA_HOURS;
@@ -79,7 +87,7 @@ export default async function Page({ searchParams }) {
           </div>
         )}
 
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Sla
             label="Block rate"
             target={`< ${BLOCK_RATE_SLA_PCT}%`}
@@ -100,6 +108,13 @@ export default async function Page({ searchParams }) {
             value={lastScanAgoH === null ? '—' : `${lastScanAgoH.toFixed(1)}h`}
             ok={sla3Ok}
             note={lastScanIso ? `${fmtTs(lastScanIso, { withSeconds: true })} UTC` : 'no successful scans yet'}
+          />
+          <Sla
+            label="Next scan"
+            target="every 6h"
+            value={formatCountdown(nextScanInMin)}
+            ok
+            note={`${fmtTs(nextScanIso, { withSeconds: true })} UTC`}
           />
         </section>
 
@@ -232,4 +247,28 @@ function Chart({ title, subtitle, children, href }) {
 
 function isoMinus(seconds) {
   return new Date(Date.now() - seconds * 1000).toISOString();
+}
+
+function nextScheduledScan(now = new Date()) {
+  for (let dayOffset = 0; dayOffset <= 1; dayOffset++) {
+    for (const h of SCAN_CRON_HOURS_UTC) {
+      const d = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + dayOffset,
+        h,
+        SCAN_CRON_MINUTE_UTC,
+      ));
+      if (d.getTime() > now.getTime()) return d;
+    }
+  }
+  // Unreachable: 4 fires/day across 2 days always yields one in the future.
+  return now;
+}
+
+function formatCountdown(min) {
+  if (min < 60) return `in ${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
 }
