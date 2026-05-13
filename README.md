@@ -69,7 +69,7 @@ Either:
 
 A first scan takes ~30s for 500 companies and seeds the `jobs` table with whatever is currently active.
 
-After this, the cron at `0 */6 * * *` UTC (every 6h) runs automatically.
+After this, the cron at `17 0,6,12,18 * * *` UTC (every 6h, offset off the top of the hour to dodge GitHub's busy scheduler windows) runs automatically.
 
 ## Dashboard
 
