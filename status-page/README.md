@@ -2,12 +2,17 @@
 
 A minimal Next.js 15 dashboard that visualises the scanner's SLA and recent runs by reading from Supabase. Server-rendered — no JavaScript needed in the browser, auto-refreshes every 30s via meta refresh.
 
-## What you see
+## Pages
 
-- **Three SLA tiles** — block rate, active job count, time since last scan. Red dot = breach.
-- **Per-source health (24h)** — `v_source_health_24h`: probes, blocked, latency p50/p95 per ATS.
-- **Active-jobs sparkline** — last 14 scans, SLA line drawn at 50k.
-- **Recent scans table** — last 14 rows from `v_recent_scans`.
+| Path | What it shows |
+|---|---|
+| `/` (Overview) | Three SLA tiles, per-source health (24h/7d/30d toggle), three charts (active jobs, new per scan, closed per scan), recent scans |
+| `/jobs` | Searchable job list — title contains, ATS filter, active-only toggle, paginated 50/page |
+| `/scans` | Paginated scan history with status filter (all/ok/failed/running) |
+| `/scans/[id]` | Single scan — summary tiles, top error reasons, all probe results with filter pills (all/failed/blocked/slowest) |
+| `/companies` | Companies table — slug search, ATS filter, state filter (enabled/disabled/errored), sorted by error count |
+
+All filters live in the URL (`?q=...&ats=...&page=...`) so views are shareable.
 
 ## Run locally
 
@@ -47,9 +52,16 @@ Adding Recharts/Chart.js for one sparkline pulls ~150kB of JS. The inline SVG sp
 
 ```
 app/
-  globals.css     Tailwind v4 entry
-  layout.jsx      Dark shell
-  page.jsx        Whole dashboard — SLA tiles, tables, sparkline
+  globals.css         Tailwind v4 entry
+  layout.jsx          Dark shell + Nav
+  page.jsx            Overview: SLA tiles + per-source + charts + recent scans
+  jobs/page.jsx       Job search with filters + pagination
+  scans/page.jsx      Paginated scan list
+  scans/[id]/page.jsx Scan detail with probe-result filtering
+  companies/page.jsx  Company search with filters + pagination
+components/
+  Nav.jsx             Client component (usePathname for active tab)
+  ui.jsx              Sla, Sparkline, Bars, Badge, Th, Td, Empty, Pagination, RangePills
 lib/
-  supabase.js     Bare PostgREST helpers (pgSelect, pgCount)
+  supabase.js         PostgREST helpers — pgSelect, pgSelectRange, pgCount, pgRpc
 ```
