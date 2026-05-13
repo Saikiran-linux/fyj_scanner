@@ -1,0 +1,21 @@
+{
+  "name": "fyj-scanner-status",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal status page for fyj_scanner. Server-rendered Next.js, reads Supabase via PostgREST.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0"
+  }
+}
