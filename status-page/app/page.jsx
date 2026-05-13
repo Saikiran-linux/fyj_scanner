@@ -147,13 +147,13 @@ export default async function Page({ searchParams }) {
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Chart title="Active jobs (last 30 scans)" subtitle={`SLA target ${ACTIVE_JOB_SLA.toLocaleString()}`}>
+          <Chart href="/charts/active-jobs" title="Active jobs (last 30 scans)" subtitle={`SLA target ${ACTIVE_JOB_SLA.toLocaleString()} · click to expand`}>
             <Sparkline values={activeSeries} target={ACTIVE_JOB_SLA} />
           </Chart>
-          <Chart title="New jobs per scan" subtitle="last 30 successful">
+          <Chart href="/charts/new-jobs" title="New jobs per scan" subtitle="last 30 successful · click to expand">
             <Bars values={newSeries} labels={seriesLabels} color="rgb(96,165,250)" />
           </Chart>
-          <Chart title="Closed jobs per scan" subtitle="last 30 successful">
+          <Chart href="/charts/closed-jobs" title="Closed jobs per scan" subtitle="last 30 successful · click to expand">
             <Bars values={closedSeries} labels={seriesLabels} color="rgb(244,114,182)" />
           </Chart>
         </section>
@@ -209,14 +209,25 @@ export default async function Page({ searchParams }) {
   );
 }
 
-function Chart({ title, subtitle, children }) {
-  return (
-    <div className="border border-zinc-800 rounded p-3">
+function Chart({ title, subtitle, children, href }) {
+  const inner = (
+    <>
       <div className="text-xs uppercase tracking-wide text-zinc-400">{title}</div>
       {subtitle && <div className="text-xs text-zinc-600 mb-2">{subtitle}</div>}
       {children}
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block border border-zinc-800 rounded p-3 hover:border-zinc-700 hover:bg-zinc-900/40 transition-colors cursor-pointer"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="border border-zinc-800 rounded p-3">{inner}</div>;
 }
 
 function isoMinus(seconds) {
