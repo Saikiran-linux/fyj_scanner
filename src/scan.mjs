@@ -15,7 +15,7 @@
  * Per-company failures are normal and counted, not crashes.
  */
 
-import { select, insert, upsert, update } from './supabase-client.mjs';
+import { select, selectAll, insert, upsert, update } from './supabase-client.mjs';
 import { fetchJobs, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
@@ -35,7 +35,9 @@ console.log(`Scan ${SCAN_ID} started`);
 
 let companies;
 try {
-  companies = await select('companies', { enabled: 'eq.true', select: 'id,ats,slug,probe_url,consecutive_errors' });
+  // selectAll paginates past PostgREST's 1k max-rows cap — a bare select()
+  // silently truncates to 1,000 even though the table has more rows.
+  companies = await selectAll('companies', { enabled: 'eq.true', select: 'id,ats,slug,probe_url,consecutive_errors' });
 } catch (e) {
   await closeScan(SCAN_ID, 'failed', { notes: `failed to load companies: ${e.message}` });
   console.error(e);

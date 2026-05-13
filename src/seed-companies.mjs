@@ -12,7 +12,7 @@
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { upsert, select } from './supabase-client.mjs';
+import { upsert, selectAll } from './supabase-client.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SEEDS = join(__dirname, '..', 'data', 'seeds.json');
@@ -20,7 +20,8 @@ const SEEDS = join(__dirname, '..', 'data', 'seeds.json');
 const seeds = JSON.parse(readFileSync(SEEDS, 'utf-8'));
 console.log(`Loaded ${seeds.length} seeds from ${SEEDS}`);
 
-const existing = await select('companies', { select: 'ats,slug,enabled' });
+// selectAll paginates past PostgREST's 1k max-rows cap.
+const existing = await selectAll('companies', { select: 'ats,slug,enabled' });
 const existingMap = new Map(existing.map((c) => [`${c.ats}::${c.slug}`, c]));
 console.log(`Existing in DB: ${existing.length}`);
 
@@ -43,6 +44,6 @@ for (let i = 0; i < rows.length; i += CHUNK) {
   console.log(`  upserted ${Math.min(i + CHUNK, rows.length)}/${rows.length}`);
 }
 
-const after = await select('companies', { select: 'ats', limit: '10000' });
+const after = await selectAll('companies', { select: 'ats' });
 const counts = after.reduce((acc, r) => ({ ...acc, [r.ats]: (acc[r.ats] || 0) + 1 }), {});
 console.log(`\nDone. Companies table now contains:`, counts, `(total ${after.length})`);

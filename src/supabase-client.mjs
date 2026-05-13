@@ -48,6 +48,29 @@ export async function select(table, query = {}) {
   return request('GET', `/${table}`, { query });
 }
 
+/**
+ * Paginated select that walks past Supabase/PostgREST's default `max-rows`
+ * cap (1,000). Use this whenever the result set could be larger than 1k —
+ * a bare select() truncates silently. Pass `pageSize` to override the chunk
+ * size; defaults to 1,000 which is the upstream cap.
+ */
+export async function selectAll(table, query = {}, { pageSize = 1000 } = {}) {
+  const all = [];
+  let offset = 0;
+  // PostgREST honours `limit` and `offset` query params; the server still
+  // applies its own max-rows ceiling per request, so we paginate.
+  while (true) {
+    const page = await request('GET', `/${table}`, {
+      query: { ...query, limit: String(pageSize), offset: String(offset) },
+    });
+    if (!Array.isArray(page) || page.length === 0) break;
+    all.push(...page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 export async function insert(table, rows, { returning = 'representation' } = {}) {
   return request('POST', `/${table}`, {
     body: rows,
