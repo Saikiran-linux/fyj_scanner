@@ -10,7 +10,7 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.companies (
   id                    uuid primary key default gen_random_uuid(),
-  ats                   text not null check (ats in ('greenhouse','ashby','lever','smartrecruiters')),
+  ats                   text not null check (ats in ('greenhouse','ashby','lever','smartrecruiters','workatastartup')),
   slug                  text not null,
   careers_url           text not null,
   probe_url             text not null,

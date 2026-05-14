@@ -7,6 +7,11 @@
  *   - parse(json) → [{ external_id, title, location, url, department, employment_type }]
  *   - fallbackUrl(slug) → string | null   (used on a 404 from probeUrl)
  *
+ * Optional, for non-JSON sources (e.g. server-rendered HTML pages):
+ *   - accept   → Accept header (default 'application/json')
+ *   - extract(text) → unknown   (default JSON.parse(text); pulled JSON is then
+ *                                fed into parse() unchanged)
+ *
  * Returning [] from parse() is "valid response, zero jobs" — distinct from a
  * thrown error, and useful viability signal (inactive tenant).
  */
@@ -78,6 +83,46 @@ export const PROVIDERS = {
       }));
     },
   },
+
+  // YC's Work at a Startup has no public JSON API (confirmed via the YC HN
+  // thread asking exactly that). The company page is server-rendered with
+  // Inertia.js, which embeds the full props payload — including jobs[] — on a
+  // <div data-page="..."> attribute. We fetch the HTML, pull that one
+  // attribute, decode it, and parse() the inner JSON like any other provider.
+  // Slug accepts either the human form ("dots-2") or the numeric YC ID
+  // ("13519") — the URL `/companies/{slug}` resolves both.
+  workatastartup: {
+    probeUrl: (slug) => `https://www.workatastartup.com/companies/${slug}`,
+    careersUrl: (slug) => `https://www.workatastartup.com/companies/${slug}`,
+    fallbackUrl: () => null,
+    accept: 'text/html',
+    extract(text) {
+      const m = text.match(/data-page="([^"]+)"/);
+      if (!m) throw new Error('no data-page attribute');
+      // Decode the five entities Rails' html_safe escaper emits. Order matters:
+      // &amp; must come last so a literal `&amp;quot;` in the source doesn't
+      // get re-decoded into `"`.
+      const decoded = m[1]
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+      return JSON.parse(decoded);
+    },
+    parse(json) {
+      const jobs = json?.props?.company?.jobs;
+      if (!Array.isArray(jobs)) return [];
+      return jobs.map((j) => ({
+        external_id: String(j.id),
+        title: j.title || '',
+        location: j.location || '',
+        url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : '',
+        department: null,
+        employment_type: j.jobType || null,
+      }));
+    },
+  },
 };
 
 export const PROVIDER_NAMES = Object.keys(PROVIDERS);
@@ -99,7 +144,7 @@ export async function fetchJobs(ats, slug, { timeoutMs = 15_000, limiter = null 
 
   let firstResult;
   try {
-    firstResult = await doFetch(provider.probeUrl(slug), timeoutMs);
+    firstResult = await doFetch(provider.probeUrl(slug), timeoutMs, provider);
   } catch (e) {
     release('error');
     throw e;
@@ -126,7 +171,7 @@ export async function fetchJobs(ats, slug, { timeoutMs = 15_000, limiter = null 
       const release2 = limiter ? await limiter.acquire(ats) : () => {};
       let second;
       try {
-        second = await doFetch(fallback, timeoutMs);
+        second = await doFetch(fallback, timeoutMs, provider);
       } catch (e) {
         release2('error');
         throw e;
@@ -153,7 +198,9 @@ function safeParse(json, provider) {
   }
 }
 
-async function doFetch(url, timeoutMs) {
+async function doFetch(url, timeoutMs, provider) {
+  const accept = provider?.accept || 'application/json';
+  const extract = provider?.extract || ((text) => JSON.parse(text));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = Date.now();
@@ -161,7 +208,7 @@ async function doFetch(url, timeoutMs) {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        Accept: 'application/json',
+        Accept: accept,
         // Polite UA with contact path. Some providers (Ashby) treat blank/curl
         // UAs as bots → 403. A real-looking UA + project URL dropped Ashby's
         // 403 rate sharply in tests.
@@ -189,7 +236,7 @@ async function doFetch(url, timeoutMs) {
     const text = await res.text();
     let json;
     try {
-      json = JSON.parse(text);
+      json = extract(text);
     } catch {
       return { ok: false, http_status: res.status, latency_ms, error: 'invalid_json', url };
     }
