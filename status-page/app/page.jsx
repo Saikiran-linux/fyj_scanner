@@ -31,10 +31,12 @@ export default async function Page({ searchParams }) {
   let activeJobs = 0;
   let activeJobsToday = 0;
   let jobsLast7d = [];
+  let newJobsByScanSource = [];
+  let jobsTotalsBySource = [];
   let error = null;
 
   try {
-    [sourceHealth, recentScans, lastScan, activeJobs, activeJobsToday, jobsLast7d] = await Promise.all([
+    [sourceHealth, recentScans, lastScan, activeJobs, activeJobsToday, jobsLast7d, newJobsByScanSource, jobsTotalsBySource] = await Promise.all([
       pgRpc('f_source_health', { p_window: interval }),
       pgSelect('v_recent_scans', { select: '*', limit: '30' }),
       pgSelect('scans', { select: 'ended_at', status: 'eq.ok', order: 'ended_at.desc', limit: '1' }),
@@ -46,10 +48,39 @@ export default async function Page({ searchParams }) {
         order: 'started_at.desc',
         limit: '30',
       }),
+      pgRpc('f_new_jobs_by_scan_source', { p_window: interval }),
+      pgSelect('v_jobs_totals_by_source', { select: '*' }),
     ]);
   } catch (e) {
     error = e.message;
   }
+
+  // Pivot the per-(scan,ats) rows into one row per scan with an ats→count map.
+  // Sources are derived from the rows themselves so adding a 6th provider
+  // doesn't require touching the dashboard.
+  const sourcesInData = new Set();
+  for (const r of newJobsByScanSource) sourcesInData.add(r.ats);
+  for (const r of jobsTotalsBySource) sourcesInData.add(r.source);
+  const sourceCols = [...sourcesInData].sort();
+
+  const scanPivot = new Map();
+  for (const r of newJobsByScanSource) {
+    let row = scanPivot.get(r.scan_id);
+    if (!row) {
+      row = { scan_id: r.scan_id, started_at: r.started_at, byAts: {}, total: 0 };
+      scanPivot.set(r.scan_id, row);
+    }
+    row.byAts[r.ats] = Number(r.new_jobs) || 0;
+    row.total += Number(r.new_jobs) || 0;
+  }
+  const newJobsPivoted = [...scanPivot.values()].sort((a, b) => b.started_at.localeCompare(a.started_at));
+
+  // Range-windowed totals per source (matches the table content above).
+  const rangeWindowKey = range === '24h' ? 'new_24h' : range === '30d' ? 'new_30d' : 'new_7d';
+  const rangeTotalsByAts = Object.fromEntries(
+    jobsTotalsBySource.map((r) => [r.source, Number(r[rangeWindowKey]) || 0])
+  );
+  const rangeGrandTotal = Object.values(rangeTotalsByAts).reduce((a, b) => a + b, 0);
 
   const lastScanIso = lastScan?.[0]?.ended_at ?? null;
   const lastScanAgoH = lastScanIso ? (Date.now() - new Date(lastScanIso).getTime()) / 3_600_000 : null;
@@ -175,6 +206,78 @@ export default async function Page({ searchParams }) {
 
         <section>
           <div className="flex items-baseline justify-between mb-2">
+            <h2 className="text-xs uppercase tracking-wide text-zinc-400">New jobs by source · last {range}</h2>
+            <span className="text-xs text-zinc-600">per scan · footer = {range} totals · also showing lifetime / active</span>
+          </div>
+          <div className="border border-zinc-800 rounded overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-zinc-500 text-left bg-zinc-900/60">
+                <tr>
+                  <Th>started</Th>
+                  {sourceCols.map((s) => (
+                    <Th key={s} className="text-right">{s}</Th>
+                  ))}
+                  <Th className="text-right">total</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {newJobsPivoted.length === 0 ? (
+                  <Empty cols={sourceCols.length + 2}>no new jobs in this window</Empty>
+                ) : (
+                  newJobsPivoted.map((row) => (
+                    <tr key={row.scan_id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
+                      <Td>
+                        <span className="text-zinc-400">{fmtTs(row.started_at, { withSeconds: true })}</span>{' '}
+                        <span className="text-zinc-600 text-xs">({relativeAgo(row.started_at)})</span>
+                      </Td>
+                      {sourceCols.map((s) => {
+                        const v = row.byAts[s] || 0;
+                        return (
+                          <Td key={s} className={`text-right ${v ? 'text-emerald-400' : 'text-zinc-600'}`}>
+                            {v.toLocaleString()}
+                          </Td>
+                        );
+                      })}
+                      <Td className="text-right font-semibold">{row.total.toLocaleString()}</Td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              <tfoot className="border-t-2 border-zinc-700 bg-zinc-900/40 text-zinc-300">
+                <tr>
+                  <Td><span className="text-xs uppercase tracking-wide text-zinc-500">{range} totals</span></Td>
+                  {sourceCols.map((s) => (
+                    <Td key={s} className="text-right">{(rangeTotalsByAts[s] || 0).toLocaleString()}</Td>
+                  ))}
+                  <Td className="text-right font-semibold">{rangeGrandTotal.toLocaleString()}</Td>
+                </tr>
+                <tr className="text-zinc-500">
+                  <Td><span className="text-xs uppercase tracking-wide">lifetime · active</span></Td>
+                  {sourceCols.map((s) => {
+                    const t = jobsTotalsBySource.find((r) => r.source === s);
+                    const total = Number(t?.total_jobs ?? 0);
+                    const active = Number(t?.active_jobs ?? 0);
+                    return (
+                      <Td key={s} className="text-right text-xs">
+                        {total.toLocaleString()} · <span className="text-emerald-500">{active.toLocaleString()}</span>
+                      </Td>
+                    );
+                  })}
+                  <Td className="text-right text-xs font-semibold">
+                    {jobsTotalsBySource.reduce((a, r) => a + Number(r.total_jobs || 0), 0).toLocaleString()}
+                    {' · '}
+                    <span className="text-emerald-500">
+                      {jobsTotalsBySource.reduce((a, r) => a + Number(r.active_jobs || 0), 0).toLocaleString()}
+                    </span>
+                  </Td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-baseline justify-between mb-2">
             <h2 className="text-xs uppercase tracking-wide text-zinc-400">Recent scans</h2>
             <Link href="/scans" className="text-xs text-sky-300 hover:underline">all scans →</Link>
           </div>
@@ -217,7 +320,7 @@ export default async function Page({ searchParams }) {
         </section>
 
         <footer className="text-xs text-zinc-600 pt-4">
-          Source: <code>f_source_health</code>, <code>v_recent_scans</code>, <code>scans</code>, <code>jobs</code>.
+          Source: <code>f_source_health</code>, <code>f_new_jobs_by_scan_source</code>, <code>v_jobs_totals_by_source</code>, <code>v_recent_scans</code>, <code>scans</code>, <code>jobs</code>.
         </footer>
       </main>
     </>

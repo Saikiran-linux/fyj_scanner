@@ -233,6 +233,53 @@ returns table (
   order by c.ats;
 $$;
 
+-- Per-scan, per-source new-jobs breakdown. A "new job" is one whose
+-- first_seen_at falls inside the scan's window: [started_at, next_scan.started_at).
+-- The lead() runs over all ok scans (not just recent) so the window for the
+-- most-recent scan correctly extends to "now" (via 'infinity'::timestamptz).
+-- Window-filtered after the fact so the boundary calc stays correct.
+create or replace function public.f_new_jobs_by_scan_source(p_window interval default interval '7 days')
+returns table (
+  scan_id uuid,
+  started_at timestamptz,
+  ats text,
+  new_jobs bigint
+) language sql stable as $$
+  with windowed as (
+    select id, started_at,
+      coalesce(
+        lead(started_at) over (order by started_at),
+        'infinity'::timestamptz
+      ) as next_started_at
+    from public.scans
+    where status = 'ok'
+  )
+  select w.id, w.started_at, c.ats, count(j.*)::bigint
+  from windowed w
+  join public.jobs j
+    on j.first_seen_at >= w.started_at
+   and j.first_seen_at <  w.next_started_at
+  join public.companies c on c.id = j.company_id
+  where w.started_at > now() - p_window
+  group by w.id, w.started_at, c.ats
+  order by w.started_at desc, c.ats;
+$$;
+
+-- Lifetime + trailing-window totals per source. One row per ats, even if the
+-- ats has zero jobs (left join from companies).
+create or replace view public.v_jobs_totals_by_source as
+select
+  c.ats as source,
+  count(j.*)                                                                 as total_jobs,
+  count(j.*) filter (where j.closed_at is null)                              as active_jobs,
+  count(j.*) filter (where j.first_seen_at > now() - interval '24 hours')    as new_24h,
+  count(j.*) filter (where j.first_seen_at > now() - interval '7 days')      as new_7d,
+  count(j.*) filter (where j.first_seen_at > now() - interval '30 days')     as new_30d
+from public.companies c
+left join public.jobs j on j.company_id = c.id
+group by c.ats
+order by c.ats;
+
 create or replace view public.v_active_jobs as
 select
   j.id,
