@@ -2,6 +2,7 @@
 -- Paste into Supabase SQL editor and run. Idempotent.
 
 create extension if not exists "pgcrypto";
+create extension if not exists vector;
 
 -- ── companies ──────────────────────────────────────────────────────
 -- One row per ATS tenant we scan. Slug + ats together are the natural key.
@@ -62,6 +63,22 @@ create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at des
 create index if not exists jobs_active_idx on public.jobs (company_id, last_seen_at desc) where closed_at is null;
 create index if not exists jobs_title_trgm_idx on public.jobs using gin (title gin_trgm_ops);
 create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fingerprint) where closed_at is null;
+
+-- ── job embeddings ─────────────────────────────────────────────────
+-- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
+-- for existing rows). embedding_model is tracked so we can re-embed in batches
+-- when swapping models without orphaning rows.
+
+alter table public.jobs add column if not exists embedding vector(1536);
+alter table public.jobs add column if not exists embedding_model text;
+alter table public.jobs add column if not exists embedded_at timestamptz;
+
+-- IVFFlat for cosine similarity. lists ≈ sqrt(rows); start at 100 and retune
+-- once jobs > 100k. Build *after* the backfill — building empty is fine but
+-- the planner picks better lists with real data.
+create index if not exists jobs_embedding_idx
+  on public.jobs using ivfflat (embedding vector_cosine_ops)
+  with (lists = 100);
 
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
@@ -338,3 +355,79 @@ where j.closed_at is null
 group by c.ats, c.slug, j.fingerprint
 having count(*) > 1
 order by count(*) desc;
+
+-- ── user_profiles ──────────────────────────────────────────────────
+-- One row per authenticated user. Holds the parsed resume text + embedding
+-- and the hard-filter preferences used by the "For You" and "Ask" search
+-- modes. RLS is on: a user can only ever see/modify their own row.
+--
+-- resume_storage_path points to a file in the `resumes` Storage bucket
+-- (see Storage policies below). The actual PDF is never read from SQL —
+-- it's parsed and embedded by the process-resume edge function on upload.
+
+create table if not exists public.user_profiles (
+  user_id              uuid primary key references auth.users(id) on delete cascade,
+  resume_text          text,
+  resume_embedding     vector(1536),
+  resume_storage_path  text,
+  preferred_locations  text[],
+  remote_ok            boolean not null default true,
+  min_comp             integer,
+  seniority            text check (seniority is null or seniority in ('junior','mid','senior','staff','principal')),
+  updated_at           timestamptz not null default now()
+);
+
+create index if not exists user_profiles_embedding_idx
+  on public.user_profiles using ivfflat (resume_embedding vector_cosine_ops)
+  with (lists = 10);
+
+drop trigger if exists user_profiles_updated_at on public.user_profiles;
+create trigger user_profiles_updated_at before update on public.user_profiles
+  for each row execute function public.touch_updated_at();
+
+alter table public.user_profiles enable row level security;
+
+drop policy if exists "own profile read"   on public.user_profiles;
+drop policy if exists "own profile insert" on public.user_profiles;
+drop policy if exists "own profile update" on public.user_profiles;
+drop policy if exists "own profile delete" on public.user_profiles;
+
+create policy "own profile read"   on public.user_profiles for select using (auth.uid() = user_id);
+create policy "own profile insert" on public.user_profiles for insert with check (auth.uid() = user_id);
+create policy "own profile update" on public.user_profiles for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own profile delete" on public.user_profiles for delete using (auth.uid() = user_id);
+
+-- ── Storage policies for the `resumes` bucket ──────────────────────
+-- Create the bucket first in Supabase Studio → Storage (private, no public
+-- access). Then run these policies. Convention: each user's files live under
+-- a folder named after their UUID, e.g. `resumes/{user_id}/resume.pdf`.
+-- The `(storage.foldername(name))[1]` extracts the first path segment.
+
+drop policy if exists "resumes: own folder read"   on storage.objects;
+drop policy if exists "resumes: own folder insert" on storage.objects;
+drop policy if exists "resumes: own folder update" on storage.objects;
+drop policy if exists "resumes: own folder delete" on storage.objects;
+
+create policy "resumes: own folder read" on storage.objects
+  for select using (
+    bucket_id = 'resumes'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "resumes: own folder insert" on storage.objects
+  for insert with check (
+    bucket_id = 'resumes'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "resumes: own folder update" on storage.objects
+  for update using (
+    bucket_id = 'resumes'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "resumes: own folder delete" on storage.objects
+  for delete using (
+    bucket_id = 'resumes'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
