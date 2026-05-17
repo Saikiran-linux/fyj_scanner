@@ -5,14 +5,14 @@
   "private": true,
   "description": "Daily multi-tenant ATS scanner. Hits Greenhouse / Ashby / Lever / SmartRecruiters APIs, stores jobs in Supabase, tracks job lifecycle (new / seen / closed), records per-scan metrics.",
   "scripts": {
-    "scrape-slugs": "node seed/scrape-hn.mjs",
-    "build-seeds": "node seed/build-seeds.mjs",
-    "load-companies": "node src/seed-companies.mjs",
-    "scan": "node src/scan.mjs",
-    "embed-backfill": "node scripts/backfill-embeddings.mjs",
-    "backfill-descriptions": "node scripts/backfill-descriptions.mjs"
+    "scrape-slugs": "node --env-file-if-exists=.env seed/scrape-hn.mjs",
+    "build-seeds": "node --env-file-if-exists=.env seed/build-seeds.mjs",
+    "load-companies": "node --env-file-if-exists=.env src/seed-companies.mjs",
+    "scan": "node --env-file-if-exists=.env src/scan.mjs",
+    "embed-backfill": "node --env-file-if-exists=.env scripts/backfill-embeddings.mjs",
+    "backfill-descriptions": "node --env-file-if-exists=.env scripts/backfill-descriptions.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12"
   }
 }
