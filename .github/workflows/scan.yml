@@ -36,6 +36,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional. Enables the post-scan embedding pass that powers
+          # resume matching + NL search. Scanner skips embeddings silently
+          # if this secret isn't set.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SCAN_CONCURRENCY: '20'
         run: node src/scan.mjs
 

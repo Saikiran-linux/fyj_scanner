@@ -8,7 +8,9 @@
     "scrape-slugs": "node seed/scrape-hn.mjs",
     "build-seeds": "node seed/build-seeds.mjs",
     "load-companies": "node src/seed-companies.mjs",
-    "scan": "node src/scan.mjs"
+    "scan": "node src/scan.mjs",
+    "embed-backfill": "node scripts/backfill-embeddings.mjs",
+    "backfill-descriptions": "node scripts/backfill-descriptions.mjs"
   },
   "engines": {
     "node": ">=20"
