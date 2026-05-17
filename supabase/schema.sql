@@ -64,6 +64,23 @@ create index if not exists jobs_active_idx on public.jobs (company_id, last_seen
 create index if not exists jobs_title_trgm_idx on public.jobs using gin (title gin_trgm_ops);
 create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fingerprint) where closed_at is null;
 
+-- ── job descriptions ───────────────────────────────────────────────
+-- Plain-text job description, populated by the scanner (for providers where
+-- it ships in the listing response) or by a separate per-job fetch pass.
+-- Stored as text rather than in `raw` jsonb so the embedder can read it
+-- cheaply without unpacking the full provider payload.
+--
+-- When a description is written, the row's embedding is nulled at the same
+-- time so the next embedding pass re-embeds with description included.
+
+alter table public.jobs add column if not exists description text;
+alter table public.jobs add column if not exists description_fetched_at timestamptz;
+
+-- Lets the backfill / scan-time description pass find candidates fast.
+create index if not exists jobs_description_pending_idx
+  on public.jobs (company_id)
+  where description is null and closed_at is null;
+
 -- ── job embeddings ─────────────────────────────────────────────────
 -- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
@@ -130,6 +147,27 @@ $$ language plpgsql;
 drop trigger if exists companies_updated_at on public.companies;
 create trigger companies_updated_at before update on public.companies
   for each row execute function public.touch_updated_at();
+
+-- When a job's description text changes, null its embedding so the next
+-- embedding pass re-embeds with the new content. Identical-description
+-- writes (the common case — scanner re-sends the same text every scan)
+-- pass through untouched, so we don't burn re-embedding cost on every run.
+create or replace function public.invalidate_embedding_on_description_change()
+returns trigger as $$
+begin
+  if old.description is distinct from new.description then
+    new.embedding := null;
+    new.embedding_model := null;
+    new.embedded_at := null;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists jobs_invalidate_embedding_on_description_change on public.jobs;
+create trigger jobs_invalidate_embedding_on_description_change
+  before update on public.jobs
+  for each row execute function public.invalidate_embedding_on_description_change();
 
 -- ── views ──────────────────────────────────────────────────────────
 

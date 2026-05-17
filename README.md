@@ -86,9 +86,13 @@ These can't be done from SQL — click through them in Supabase Studio before ap
 2. **Create the `resumes` Storage bucket** — Storage → New bucket
    - Name: `resumes`
    - Public: **off** (private)
-   - File size limit: 5 MB is plenty for a PDF resume
-   - Allowed MIME types: `application/pdf`
+   - File size limit: 5 MB is plenty for a resume
+   - Allowed MIME types (paste comma-separated):
+     - `application/pdf` — .pdf
+     - `application/vnd.openxmlformats-officedocument.wordprocessingml.document` — .docx
+     - `application/msword` — legacy .doc
    - The RLS policies for this bucket are created automatically by `schema.sql` — no manual policy work in the UI.
+   - Note: the Phase 3 `process-resume` edge function will need a parser per format — `pdfjs-dist` for PDF and `mammoth` for .docx. Legacy `.doc` is rare and a pain to parse server-side; consider rejecting it client-side and prompting users to re-save as .docx.
 
 3. **Add `OPENAI_API_KEY`** in two places:
    - GitHub Actions: Settings → Secrets and variables → Actions → New repository secret. Used by the scanner to embed jobs on insert.
@@ -105,7 +109,42 @@ Re-run `supabase/schema.sql` in the SQL Editor. It's idempotent, so existing tab
 
 If `create extension vector` fails with a permissions error, enable pgvector first via Database → Extensions → search "vector" → Enable.
 
-After this, you're ready for Phase 2 (job embedding pipeline — changes to `src/scan.mjs` + a backfill script).
+### Phase 2 — Job descriptions + embedding pipeline
+
+Two cooperating passes run at the end of every scan:
+
+**Description pass** populates the new `jobs.description` column so the embedder has more than just titles to work with.
+
+| Provider | How descriptions land |
+|---|---|
+| Greenhouse | Listing URL switched to `?content=true`, descriptions included inline. No extra requests. |
+| Ashby / Lever / workatastartup | Listing response already carries descriptions; the parser extracts them. |
+| SmartRecruiters | Per-job fetch — listing only has summaries. Capped at `DESCRIPTION_FETCH_CAP` (default 500) per scan. |
+
+The cap exists because SR has ~10k postings and per-job fetches at rate-limit pace would blow the 15-min scan budget. The backlog drains over successive scans, or you can use the backfill script (below) once for the initial catch-up.
+
+**Embedding pass** then embeds any active job whose embedding is null. The `jobs_invalidate_embedding_on_description_change` DB trigger nulls a row's embedding when its description text changes, so adding a description automatically queues a re-embed.
+
+- Embedded text: title + department + location + first 1500 chars of description.
+- Model: OpenAI `text-embedding-3-small` (1536 dims).
+- Skipped silently if `OPENAI_API_KEY` isn't set.
+- Per-scan stats appended to `scans.notes` (e.g. `desc: 480/500 ok || embed: 247 ok, 0 failed (~$0.0003)`).
+
+**Backfills** (run once after deploying Phase 1 + 2):
+
+```powershell
+$env:OPENAI_API_KEY = "sk-..."
+
+# 1. Per-job descriptions for SmartRecruiters (~1-2 hr for 10k jobs)
+npm run backfill-descriptions
+
+# 2. Embed everything that's now missing a vector (~10 min for 30k jobs, ~$0.50)
+npm run embed-backfill
+```
+
+Both scripts are idempotent and resumable — rerun if some rows fail.
+
+After Phase 2, you're ready for Phase 3 (resume upload + `process-resume` edge function).
 
 ## Dashboard
 

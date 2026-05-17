@@ -16,9 +16,16 @@
  */
 
 import { select, selectAll, insert, upsert, update } from './supabase-client.mjs';
-import { fetchJobs, PROVIDER_NAMES } from './providers.mjs';
+import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
+import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
+
+// How many per-job description fetches the scanner is willing to do in one
+// run. Caps the time spent on providers like SmartRecruiters whose listing
+// doesn't include descriptions. The backlog drains over many scans; for the
+// initial bulk catch-up use `npm run backfill-descriptions` instead.
+const DESCRIPTION_FETCH_CAP = Number(process.env.DESCRIPTION_FETCH_CAP || 500);
 
 // Outer-loop concurrency is a ceiling — actual per-provider concurrency comes
 // from the rate limiter, which throttles down on 403/429 bursts. Setting this
@@ -114,9 +121,10 @@ async function probeOne(company) {
   // Success path: upsert each job, then compute closed jobs.
   totals.companies_ok++;
   const seenExternalIds = new Set();
+  const nowIso = new Date().toISOString();
   const jobRows = result.jobs.map((j) => {
     seenExternalIds.add(j.external_id);
-    return {
+    const row = {
       company_id: company.id,
       external_id: j.external_id,
       title: j.title,
@@ -125,11 +133,23 @@ async function probeOne(company) {
       department: j.department,
       employment_type: j.employment_type,
       fingerprint: fingerprint(j.title, j.location),
-      last_seen_at: new Date().toISOString(),
+      last_seen_at: nowIso,
       // first_seen_at uses default on insert; on conflict we don't touch it.
       // closed_at: null'd if this row was previously closed but reappeared.
       closed_at: null,
     };
+    // Only write description fields when the provider actually returned a
+    // description — otherwise we'd clobber a row that was previously
+    // populated by the description-pass fetcher (e.g. SmartRecruiters).
+    // The jobs_invalidate_embedding_on_description_change DB trigger nulls
+    // the embedding when (and only when) the description text actually
+    // changes, so we can safely send the same description on every scan
+    // without burning re-embedding cost.
+    if (j.description != null) {
+      row.description = j.description;
+      row.description_fetched_at = nowIso;
+    }
+    return row;
   });
 
   let upserted = [];
@@ -233,6 +253,111 @@ async function worker() {
 await Promise.all(Array.from({ length: WORKER_POOL }, () => worker()));
 await flushProbeResults(true);
 
+// ── description fetch pass ─────────────────────────────────────────
+// For providers whose listing doesn't carry descriptions (SmartRecruiters),
+// pull descriptions per-job for up to DESCRIPTION_FETCH_CAP rows per run.
+// The cap keeps the scan within its time budget; the backlog drains over
+// successive scans. For the initial bulk catch-up across the whole table,
+// run `npm run backfill-descriptions` once.
+//
+// Non-fatal: a row whose description fetch fails is just left null and will
+// be retried on the next scan.
+let descStats = { attempted: 0, ok: 0, failed: 0 };
+try {
+  // Only consider providers that have a per-job fetcher; the others get
+  // their descriptions filled in by the listing parser on the next scan,
+  // so candidates from them would just waste slots in this pass.
+  const fetchableAts = PROVIDER_NAMES.filter(hasDescriptionFetcher);
+  if (fetchableAts.length === 0) {
+    console.log('No providers need per-job description fetches');
+  } else {
+    // Bounded query — we explicitly want at most DESCRIPTION_FETCH_CAP rows
+    // (not selectAll's "paginate until empty"). PostgREST tops out at 1000
+    // rows per request, which comfortably covers our cap.
+    const candidates = await select('jobs', {
+      description: 'is.null',
+      closed_at: 'is.null',
+      limit: String(DESCRIPTION_FETCH_CAP),
+      select: 'id,external_id,companies!inner(id,ats,slug)',
+      'companies.ats': `in.(${fetchableAts.join(',')})`,
+    });
+    if (candidates.length) {
+      console.log(`Fetching descriptions for up to ${candidates.length} jobs (cap=${DESCRIPTION_FETCH_CAP})`);
+      // Shuffle so we spread across providers, same reasoning as the probe shuffle.
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      // Sequential per-job: the rate limiter is the throughput governor, not
+      // worker count. Going wider here would just stack waiters on the same
+      // per-provider semaphore.
+      for (const row of candidates) {
+        const ats = row.companies?.ats;
+        const slug = row.companies?.slug;
+        if (!ats || !slug) continue;
+        descStats.attempted++;
+        try {
+          const res = await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
+          if (!res.ok) {
+            descStats.failed++;
+            continue;
+          }
+          // null description from a provider that "succeeded" still counts
+          // as an attempt — write description_fetched_at so we don't keep
+          // retrying forever. Actual text remains null.
+          await update(
+            'jobs',
+            { id: `eq.${row.id}` },
+            { description: res.description ?? null, description_fetched_at: new Date().toISOString() },
+            { returning: 'minimal' },
+          );
+          descStats.ok++;
+        } catch (e) {
+          descStats.failed++;
+          console.error(`description fetch failed for ${ats}/${slug}/${row.external_id}: ${e.message}`);
+        }
+      }
+      console.log(`  description pass: ${descStats.ok} ok, ${descStats.failed} failed (of ${descStats.attempted})`);
+    } else {
+      console.log('No jobs needing per-job description fetch');
+    }
+  }
+} catch (e) {
+  console.error(`description pass failed (non-fatal): ${e.message}`);
+}
+
+// ── embedding pass ─────────────────────────────────────────────────
+// After all probes complete, embed any active jobs that don't yet have an
+// embedding vector. Skipped silently if OPENAI_API_KEY isn't set so existing
+// deployments keep working until the key is added.
+//
+// Non-fatal: failures here don't affect scan status. Next scan will pick up
+// whatever was missed.
+let embedStats = null;
+if (embeddingsEnabled()) {
+  try {
+    const missing = await selectAll('jobs', {
+      embedding: 'is.null',
+      closed_at: 'is.null',
+      select: 'id,title,department,location,description',
+    });
+    if (missing.length) {
+      console.log(`Embedding ${missing.length} active jobs lacking vectors`);
+      embedStats = await embedAndPersistJobs(missing);
+      console.log(
+        `  embedded=${embedStats.embedded} failed=${embedStats.failed} ` +
+        `(~$${embedStats.costEstimateUsd.toFixed(4)})`,
+      );
+    } else {
+      console.log('No jobs to embed');
+    }
+  } catch (e) {
+    console.error(`embedding pass failed (non-fatal): ${e.message}`);
+  }
+} else {
+  console.log('Skipping embedding pass (OPENAI_API_KEY not set)');
+}
+
 // Compute the post-scan active-jobs count for the dashboard's anomaly detector.
 let active_jobs_after = null;
 try {
@@ -263,10 +388,17 @@ const sourceNotes = Object.entries(rateSnapshot)
   .map(([ats, s]) => `${ats}: ${s.ok}/${s.ok + s.block + s.error} ok, ${s.block_rate_pct}% blocked, conc=${s.concurrency}`)
   .join(' | ');
 
+const descNote = descStats.attempted
+  ? ` || desc: ${descStats.ok}/${descStats.attempted} ok`
+  : '';
+const embedNote = embedStats
+  ? ` || embed: ${embedStats.embedded} ok, ${embedStats.failed} failed (~$${embedStats.costEstimateUsd.toFixed(4)})`
+  : '';
+
 await closeScan(SCAN_ID, 'ok', {
   ...totals,
   active_jobs_after,
-  notes: sourceNotes,
+  notes: sourceNotes + descNote + embedNote,
 });
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
 console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
