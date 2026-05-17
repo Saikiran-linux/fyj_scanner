@@ -71,6 +71,42 @@ A first scan takes ~30s for 500 companies and seeds the `jobs` table with whatev
 
 After this, the cron at `17 0,6,12,18 * * *` UTC (every 6h, offset off the top of the hour to dodge GitHub's busy scheduler windows) runs automatically.
 
+## Resume matching & natural-language search — setup
+
+This is the feature track that lets users find jobs by uploading a resume or asking in natural language. See the full plan in [Notion](https://www.notion.so/363c8c921ee381b68015ea8ef655dca8). Phase 0/1 setup below; the scanner and edge-function code changes ship in later phases.
+
+### Phase 0 — Dashboard prerequisites (one-time, manual)
+
+These can't be done from SQL — click through them in Supabase Studio before applying the Phase 1 schema changes.
+
+1. **Enable Auth providers** — Authentication → Providers
+   - Turn on **Email** (magic link is fine; disable signups until launch if you want to gate access)
+   - Turn on **Google** — needs a Google OAuth client (Console → APIs & Services → Credentials → OAuth client ID, type "Web application"). Authorized redirect URI is shown on the Supabase provider page.
+
+2. **Create the `resumes` Storage bucket** — Storage → New bucket
+   - Name: `resumes`
+   - Public: **off** (private)
+   - File size limit: 5 MB is plenty for a PDF resume
+   - Allowed MIME types: `application/pdf`
+   - The RLS policies for this bucket are created automatically by `schema.sql` — no manual policy work in the UI.
+
+3. **Add `OPENAI_API_KEY`** in two places:
+   - GitHub Actions: Settings → Secrets and variables → Actions → New repository secret. Used by the scanner to embed jobs on insert.
+   - Supabase Edge Functions: Project Settings → Edge Functions → Secrets. Used by the `process-resume` function (Phase 3).
+
+### Phase 1 — Apply the schema changes
+
+Re-run `supabase/schema.sql` in the SQL Editor. It's idempotent, so existing tables are untouched; the new bits are:
+
+- `vector` extension enabled (provides `pgvector` for similarity search)
+- `jobs.embedding`, `jobs.embedding_model`, `jobs.embedded_at` columns + IVFFlat index
+- `user_profiles` table (one row per `auth.users` user) with RLS policies — users can only ever read/write their own row
+- Storage RLS policies for the `resumes` bucket — users can only read/write files under their own `{user_id}/` folder
+
+If `create extension vector` fails with a permissions error, enable pgvector first via Database → Extensions → search "vector" → Enable.
+
+After this, you're ready for Phase 2 (job embedding pipeline — changes to `src/scan.mjs` + a backfill script).
+
 ## Dashboard
 
 Open [`supabase/dashboard-queries.sql`](supabase/dashboard-queries.sql) in Supabase Studio → SQL Editor. Each query is independently runnable; save the useful ones as snippets.
