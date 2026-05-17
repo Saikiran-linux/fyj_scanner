@@ -34,15 +34,22 @@ export async function pgSelect(path, query = {}) {
 
 /**
  * Range-based paginated select. Uses the PostgREST `Range` header so we
- * also get an exact count back via `Content-Range`. Returns { rows, total }.
+ * also get a count back via `Content-Range`. Returns { rows, total }.
+ *
+ * `count` controls the PostgREST count strategy:
+ *   - 'exact'     (default) — Postgres COUNT(*). Accurate but O(N), times
+ *                             out around ~50k filtered rows under our SLA.
+ *   - 'planned'   — planner row-count estimate. Effectively free, can drift
+ *                   after large insert/delete bursts; good for big tables.
+ *   - 'estimated' — exact when small, planned when large (PostgREST decides).
  */
-export async function pgSelectRange(path, query = {}, { from = 0, to = 49 } = {}) {
+export async function pgSelectRange(path, query = {}, { from = 0, to = 49, count = 'exact' } = {}) {
   const url = env('SUPABASE_URL');
   const qs = new URLSearchParams(query).toString();
   const res = await fetch(`${url}/rest/v1/${path}${qs ? `?${qs}` : ''}`, {
     headers: {
       ...headers(),
-      Prefer: 'count=exact',
+      Prefer: `count=${count}`,
       Range: `${from}-${to}`,
       'Range-Unit': 'items',
     },
