@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const PAGE_SIZE = 50;
-const ATS_OPTIONS = ['', 'greenhouse', 'ashby', 'lever', 'smartrecruiters'];
+const ATS_OPTIONS = ['', 'greenhouse', 'ashby', 'lever', 'smartrecruiters', 'workatastartup'];
 
 export default async function JobsPage({ searchParams }) {
   const sp = (await searchParams) || {};
@@ -39,7 +39,10 @@ export default async function JobsPage({ searchParams }) {
   let total = 0;
   let error = null;
   try {
-    const r = await pgSelectRange('jobs', query, { from, to });
+    // Planner-estimated count: a precise count over 70k+ filtered rows hits
+    // the 8s statement_timeout. The estimate is within a few % and only
+    // drives "X total / page N of M" — accuracy isn't critical here.
+    const r = await pgSelectRange('jobs', query, { from, to, count: 'planned' });
     rows = r.rows;
     total = r.total;
     // ats filter on embedded resource doesn't drop parent rows by default;

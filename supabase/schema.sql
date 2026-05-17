@@ -63,6 +63,10 @@ create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at des
 create index if not exists jobs_active_idx on public.jobs (company_id, last_seen_at desc) where closed_at is null;
 create index if not exists jobs_title_trgm_idx on public.jobs using gin (title gin_trgm_ops);
 create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fingerprint) where closed_at is null;
+-- Drives the Jobs page "active, newest first" listing. The general
+-- jobs_first_seen_idx above can't skip closed rows so the planner ends up
+-- scanning thousands of closed rows to fill a 50-row LIMIT.
+create index if not exists jobs_active_first_seen_idx on public.jobs (first_seen_at desc) where closed_at is null;
 
 -- ── job descriptions ───────────────────────────────────────────────
 -- Plain-text job description, populated by the scanner (for providers where
