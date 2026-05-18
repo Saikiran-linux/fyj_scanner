@@ -32,11 +32,13 @@ console.log('Loading active jobs without embeddings...');
 const startedAt = Date.now();
 
 // selectAll paginates past PostgREST's 1k limit. We only need the columns
-// the embedder reads.
+// the embedder reads — kept in sync with buildJobText() in src/embeddings.mjs.
 const rows = await selectAll('jobs', {
   embedding: 'is.null',
   closed_at: 'is.null',
-  select: 'id,title,department,location,description',
+  select: 'id,title,department,location,description,'
+    + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
+    + 'remote,employment_type',
 });
 
 console.log(`Found ${rows.length} jobs to embed`);

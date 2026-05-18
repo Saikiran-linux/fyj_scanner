@@ -426,7 +426,12 @@ if (embeddingsEnabled()) {
     const missing = await selectAll('jobs', {
       embedding: 'is.null',
       closed_at: 'is.null',
-      select: 'id,title,department,location,description',
+      // Keep in sync with buildJobText() in src/embeddings.mjs — any new
+      // signal the embedder reads has to be in this select list or it'll
+      // silently get embedded as null.
+      select: 'id,title,department,location,description,'
+        + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
+        + 'remote,employment_type',
     });
     if (missing.length) {
       console.log(`Embedding ${missing.length} active jobs lacking vectors`);
