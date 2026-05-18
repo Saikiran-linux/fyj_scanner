@@ -4,12 +4,20 @@
  * structure. This handles the cases that show up in practice across
  * Greenhouse / Ashby / Lever / SmartRecruiters payloads:
  *
+ *   - Double-entity-encoded HTML (Greenhouse ships `&lt;div&gt;` as the
+ *     JSON string contents, not `<div>`). We decode entities *before*
+ *     stripping tags so the tag-stripper actually sees them.
  *   - <script>/<style> blocks → dropped entirely (script payloads
  *     polluting embeddings is a real risk on some careers sites).
  *   - <br> and block-level closers → newline.
  *   - All other tags → removed; their text content is kept.
- *   - Numeric and named HTML entities → decoded.
- *   - Whitespace collapsed; max 2 consecutive newlines preserved.
+ *   - Numeric and named HTML entities → decoded (run twice: once at the
+ *     start to unwrap encoded markup, once at the end to catch entities
+ *     that lived as visible text inside tags).
+ *   - Whitespace collapsed; max one blank line preserved between paragraphs.
+ *   - Stray markdown image refs (`[https://…png]`) — Ashby's descriptionPlain
+ *     ships these as text rather than as image tags — stripped, since they're
+ *     pure noise for the embedder.
  */
 
 const NAMED_ENTITIES = {
@@ -42,12 +50,12 @@ export function htmlToText(input) {
   if (input == null) return '';
   let s = String(input);
 
-  // Greenhouse's boards-api ships `content` with the markup *entity-encoded*
-  // (e.g. `&lt;p&gt;…&lt;/p&gt;`) rather than as raw tags. If we strip tags
-  // first, the regex matches nothing and entity-decoding later re-introduces
-  // the tags into the "plain text" output. Decode entities *up front* so the
-  // tag stripper sees real `<…>` and can remove them. We then decode again at
-  // the end to catch entities that lived inside text content (e.g. `&amp;`).
+  // Pre-decode pass. Greenhouse's /jobs?content=true ships its content
+  // field with HTML entities encoded (the JSON string literally contains
+  // `&lt;div&gt;`, not `<div>`). Without this step the tag-stripper below
+  // finds no real tags and the markup ends up as visible text in the
+  // output. For providers that ship raw HTML (Ashby HTML form, Lever
+  // description, SR section text) this pre-pass is a no-op.
   s = decodeEntities(s);
 
   // Drop script/style blocks before any other processing so their text
@@ -61,13 +69,57 @@ export function htmlToText(input) {
   // Strip everything else.
   s = s.replace(/<[^>]+>/g, '');
 
+  // Second decode pass — catches entities that lived as visible text
+  // inside tags (e.g. `<p>Cadwell&rsquo;s</p>` → `Cadwell&rsquo;s` after
+  // tag-stripping → `Cadwell’s` after this pass).
   s = decodeEntities(s);
 
-  // Collapse whitespace: spaces/tabs → single space, but preserve up to
-  // two newlines so list / paragraph structure survives.
+  return normaliseWhitespace(s);
+}
+
+/**
+ * Whitespace + stray-markup tidier. Public because the backfill script
+ * runs it directly on already-stored descriptions (where the HTML has
+ * already been stripped but we still want consistent whitespace and
+ * to drop noise we used to keep).
+ *
+ * Rules:
+ *   - Stray markdown-style image refs (`[https://…]`, `[image: …]`) →
+ *     dropped. These show up in Ashby's `descriptionPlain` and are pure
+ *     noise for the embedder.
+ *   - Zero-width / non-printable Unicode (ZWSP, ZWNJ, BOM) → dropped.
+ *   - Non-breaking space (U+00A0) → regular space (htmlToText decodes
+ *     `&nbsp;` to U+00A0; the embedder's tokenizer can handle either,
+ *     but plain space keeps `length()` comparisons predictable).
+ *   - Tabs / runs of spaces → single space.
+ *   - Trim each line; drop blank-only lines beyond one in a row.
+ *   - Final trim.
+ *
+ * The result is "one sentence per line at most, one blank line between
+ * paragraphs" — compact for storage and friendly for downstream display.
+ */
+export function normaliseWhitespace(input) {
+  if (input == null) return '';
+  let s = String(input);
+
+  // Strip noise patterns. Order matters: do these before whitespace collapse
+  // so they leave clean gaps rather than awkward "  " sequences.
+  s = s.replace(/\[image:[^\]]*\]/gi, ' ');
+  s = s.replace(/\[https?:\/\/[^\]]+\]/g, ' ');
+
+  // Normalise unusual whitespace. NBSP → regular space; zero-width
+  // joiners and BOM → dropped (they break word boundaries silently).
+  s = s.replace(/ /g, ' ');
+  s = s.replace(/[​-‍﻿]/g, '');
+
+  // Normalise line endings.
+  s = s.replace(/\r\n?/g, '\n');
+
+  // Collapse intra-line whitespace.
   s = s.replace(/[ \t]+/g, ' ');
-  s = s.replace(/\n[ \t]+/g, '\n');
-  s = s.replace(/[ \t]+\n/g, '\n');
+  // Trim each line.
+  s = s.split('\n').map((line) => line.trim()).join('\n');
+  // Cap consecutive blank lines at one.
   s = s.replace(/\n{3,}/g, '\n\n');
 
   return s.trim();

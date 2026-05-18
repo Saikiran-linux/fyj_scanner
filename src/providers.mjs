@@ -31,7 +31,7 @@
  * thrown error, and useful viability signal (inactive tenant).
  */
 
-import { htmlToText } from './html-to-text.mjs';
+import { htmlToText, normaliseWhitespace } from './html-to-text.mjs';
 
 // ── shared helpers for the optional comp/remote/timestamp fields ───────
 //
@@ -256,7 +256,11 @@ export const PROVIDERS = {
           employment_type: j.employmentType || null,
           // Ashby includes descriptionPlain in the public posting API. Fall
           // back to stripping HTML if only the HTML form is present.
-          description: j.descriptionPlain || (j.descriptionHtml ? htmlToText(j.descriptionHtml) : null),
+          // descriptionPlain skips htmlToText (no HTML to strip) but still
+          // needs the whitespace + stray-image-ref tidier.
+          description: j.descriptionPlain
+            ? normaliseWhitespace(j.descriptionPlain)
+            : (j.descriptionHtml ? htmlToText(j.descriptionHtml) : null),
           comp_min: Number.isFinite(value.minValue) ? value.minValue : null,
           comp_max: Number.isFinite(value.maxValue) ? value.maxValue : null,
           comp_currency: value.unit || value.currencyCode || null,
@@ -282,8 +286,13 @@ export const PROVIDERS = {
       return json.map((j) => {
         // Lever's posting has descriptionPlain (already stripped) plus a
         // `lists` array (responsibilities, requirements, …). Concatenate
-        // them for a more complete embedding input.
-        const desc = [j.descriptionPlain || (j.description ? htmlToText(j.description) : '')];
+        // them for a more complete embedding input. descriptionPlain still
+        // goes through normaliseWhitespace to drop nbsp/image-refs.
+        const desc = [
+          j.descriptionPlain
+            ? normaliseWhitespace(j.descriptionPlain)
+            : (j.description ? htmlToText(j.description) : ''),
+        ];
         if (Array.isArray(j.lists)) {
           for (const list of j.lists) {
             if (list?.text) desc.push(htmlToText(list.text));
