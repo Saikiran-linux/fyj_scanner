@@ -21,6 +21,7 @@
  * Or via npm:  npm run backfill-descriptions
  */
 
+import { createHash } from 'node:crypto';
 import { select, update } from '../src/supabase-client.mjs';
 import {
   fetchJobDescription,
@@ -28,6 +29,11 @@ import {
   PROVIDER_NAMES,
 } from '../src/providers.mjs';
 import { RateLimiter } from '../src/rate-limiter.mjs';
+
+function describeHash(text) {
+  if (text == null || text === '') return null;
+  return createHash('md5').update(text).digest('hex');
+}
 
 const TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS || 15_000);
 const PAGE_SIZE = 500;
@@ -78,7 +84,11 @@ while (true) {
       await update(
         'jobs',
         { id: `eq.${row.id}` },
-        { description: res.description ?? null, description_fetched_at: new Date().toISOString() },
+        {
+          description: res.description ?? null,
+          description_hash: describeHash(res.description ?? null),
+          description_fetched_at: new Date().toISOString(),
+        },
         { returning: 'minimal' },
       );
       totalOk++;

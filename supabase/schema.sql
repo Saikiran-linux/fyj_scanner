@@ -79,6 +79,12 @@ create index if not exists jobs_active_first_seen_idx on public.jobs (first_seen
 
 alter table public.jobs add column if not exists description text;
 alter table public.jobs add column if not exists description_fetched_at timestamptz;
+-- md5 of the description text. The scanner pre-fetches this with every active
+-- job at scan-start and skips the `description` field in its per-company
+-- upsert when the incoming text hashes to the same value. Avoids re-sending
+-- multi-KB description bodies on every scan when nothing changed — that was
+-- the dominant write-volume cost on the jobs table.
+alter table public.jobs add column if not exists description_hash text;
 
 -- Lets the backfill / scan-time description pass find candidates fast.
 create index if not exists jobs_description_pending_idx

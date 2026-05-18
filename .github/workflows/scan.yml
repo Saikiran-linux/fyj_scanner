@@ -40,7 +40,14 @@ jobs:
           # resume matching + NL search. Scanner skips embeddings silently
           # if this secret isn't set.
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SCAN_CONCURRENCY: '20'
+          # Worker count. The prior SCAN_CONCURRENCY name was unused — the
+          # code reads SCAN_WORKER_POOL — so the scan was silently running
+          # at the default 25. Lowered to 10 because the choke point is the
+          # Supabase pooler, not the ATS-side HTTP, and 25 concurrent
+          # writers was pushing PostgREST into 504/statement-timeout
+          # cascades. The rate limiter still caps per-provider concurrency
+          # separately for the ATS HTTP calls.
+          SCAN_WORKER_POOL: '10'
         run: node src/scan.mjs
 
       - name: Upload logs (always)
