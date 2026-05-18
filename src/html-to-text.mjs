@@ -42,6 +42,14 @@ export function htmlToText(input) {
   if (input == null) return '';
   let s = String(input);
 
+  // Greenhouse's boards-api ships `content` with the markup *entity-encoded*
+  // (e.g. `&lt;p&gt;…&lt;/p&gt;`) rather than as raw tags. If we strip tags
+  // first, the regex matches nothing and entity-decoding later re-introduces
+  // the tags into the "plain text" output. Decode entities *up front* so the
+  // tag stripper sees real `<…>` and can remove them. We then decode again at
+  // the end to catch entities that lived inside text content (e.g. `&amp;`).
+  s = decodeEntities(s);
+
   // Drop script/style blocks before any other processing so their text
   // content doesn't end up in the output.
   s = s.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ');
