@@ -22,16 +22,37 @@ const HEADERS = () => ({
   'Content-Type': 'application/json',
 });
 
+// Hard ceiling on a single Supabase HTTP call. Without this, a hung PostgREST
+// request (we've observed pooler 504s after sustained write load) keeps the
+// caller's worker tied up indefinitely — one stalled request cascades into
+// the rest of the worker pool sitting idle. 20s comfortably covers the
+// slowest legitimate call we make (the active-jobs snapshot pagination); raise
+// via SUPABASE_FETCH_TIMEOUT_MS if you start seeing spurious aborts.
+const FETCH_TIMEOUT_MS = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS || 20_000);
+
 async function request(method, path, { body, prefer, query } = {}) {
   const qs = query ? '?' + new URLSearchParams(query).toString() : '';
   const url = `${BASE()}${path}${qs}`;
   const headers = { ...HEADERS() };
   if (prefer) headers.Prefer = prefer;
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error(`Supabase ${method} ${path} → timeout after ${FETCH_TIMEOUT_MS}ms`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await res.text();
   if (!res.ok) {
     throw new Error(`Supabase ${method} ${path} → ${res.status}: ${text.slice(0, 400)}`);
