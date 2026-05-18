@@ -19,7 +19,13 @@ export default async function JobsPage({ searchParams }) {
 
   // We need company info per row. PostgREST embedded-resource syntax:
   //   select=...,company:companies(ats,slug)
-  const select = 'id,title,location,url,first_seen_at,last_seen_at,closed_at,company:companies(ats,slug)';
+  const select = 'id,title,location,url,first_seen_at,last_seen_at,closed_at,'
+    + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
+    + 'remote,source_updated_at,source_published_at,'
+    + 'company:companies(ats,slug)';
+
+  const remoteFilter = ['remote', 'hybrid', 'onsite'].includes(sp.remote) ? sp.remote : '';
+  const compOnly = sp.comp === '1';
 
   // Build filters.
   const query = { select, order: 'first_seen_at.desc' };
@@ -33,6 +39,11 @@ export default async function JobsPage({ searchParams }) {
     query['companies.ats'] = `eq.${ats}`;
     // Tell PostgREST to inner-join so non-matching rows are dropped.
     query.company = 'not.is.null';
+  }
+  if (remoteFilter) query.remote = `eq.${remoteFilter}`;
+  if (compOnly) {
+    // "has any comp signal" — either structured or free-text.
+    query.or = '(comp_min.not.is.null,comp_text.not.is.null)';
   }
 
   let rows = [];
@@ -77,6 +88,20 @@ export default async function JobsPage({ searchParams }) {
           <input type="checkbox" name="active" value="1" defaultChecked={activeOnly}
             className="w-4 h-4 accent-sky-500" />
         </Field>
+        <Field label="Remote">
+          <select name="remote" defaultValue={remoteFilter}
+            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-sky-500">
+            <option value="">any</option>
+            <option value="remote">remote</option>
+            <option value="hybrid">hybrid</option>
+            <option value="onsite">onsite</option>
+          </select>
+        </Field>
+        <Field label="Comp listed">
+          <input type="hidden" name="comp" value="0" />
+          <input type="checkbox" name="comp" value="1" defaultChecked={compOnly}
+            className="w-4 h-4 accent-sky-500" />
+        </Field>
         <div className="flex-1" />
         <button type="submit" className="bg-sky-600 hover:bg-sky-500 text-white text-sm px-3 py-1.5 rounded">Apply</button>
         <Link href="/jobs" className="text-zinc-400 hover:text-zinc-100 text-sm px-3 py-1.5">Reset</Link>
@@ -96,6 +121,9 @@ export default async function JobsPage({ searchParams }) {
               <Th>company</Th>
               <Th>ats</Th>
               <Th>location</Th>
+              <Th>remote</Th>
+              <Th>comp</Th>
+              <Th>posted</Th>
               <Th>first seen</Th>
               <Th>status</Th>
               <Th></Th>
@@ -103,34 +131,48 @@ export default async function JobsPage({ searchParams }) {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <Empty cols={7}>no jobs match</Empty>
+              <Empty cols={10}>no jobs match</Empty>
             ) : (
-              rows.map((j) => (
-                <tr key={j.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
-                  <Td className="max-w-xl">
-                    <span className="text-zinc-100">{j.title}</span>
-                  </Td>
-                  <Td>
-                    {j.company?.slug && (
-                      <Link href={`/jobs?q=&ats=${j.company.ats}&company=${j.company.slug}`}
-                            className="text-sky-300 hover:underline">{j.company.slug}</Link>
-                    )}
-                  </Td>
-                  <Td><Badge tone="zinc">{j.company?.ats || '—'}</Badge></Td>
-                  <Td className="text-zinc-400 max-w-[180px] truncate" title={j.location}>{j.location || '—'}</Td>
-                  <Td className="text-zinc-400 text-xs whitespace-nowrap">{fmtTs(j.first_seen_at)}</Td>
-                  <Td>
-                    {j.closed_at
-                      ? <Badge tone="red">closed</Badge>
-                      : <Badge tone="green">active</Badge>}
-                  </Td>
-                  <Td>
-                    {j.url && (
-                      <a href={j.url} target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:underline text-xs">open ↗</a>
-                    )}
-                  </Td>
-                </tr>
-              ))
+              rows.map((j) => {
+                const comp = formatComp(j);
+                // Prefer the provider's own publish stamp; fall back to our
+                // first-seen so the column is never blank.
+                const postedIso = j.source_published_at || j.first_seen_at;
+                return (
+                  <tr key={j.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
+                    <Td className="max-w-xl">
+                      <span className="text-zinc-100">{j.title}</span>
+                    </Td>
+                    <Td>
+                      {j.company?.slug && (
+                        <Link href={`/jobs?q=&ats=${j.company.ats}&company=${j.company.slug}`}
+                              className="text-sky-300 hover:underline">{j.company.slug}</Link>
+                      )}
+                    </Td>
+                    <Td><Badge tone="zinc">{j.company?.ats || '—'}</Badge></Td>
+                    <Td className="text-zinc-400 max-w-[180px] truncate" title={j.location}>{j.location || '—'}</Td>
+                    <Td>{j.remote ? <Badge tone={remoteTone(j.remote)}>{j.remote}</Badge> : <span className="text-zinc-600 text-xs">—</span>}</Td>
+                    <Td className="text-zinc-300 text-xs whitespace-nowrap" title={j.comp_text || ''}>
+                      {comp || <span className="text-zinc-600">—</span>}
+                    </Td>
+                    <Td className="text-zinc-400 text-xs whitespace-nowrap" title={j.source_published_at ? `provider: ${fmtTs(j.source_published_at)}` : 'no provider timestamp — using first-seen'}>
+                      {fmtTs(postedIso)}
+                      {!j.source_published_at && <span className="text-zinc-700 ml-1">~</span>}
+                    </Td>
+                    <Td className="text-zinc-400 text-xs whitespace-nowrap">{fmtTs(j.first_seen_at)}</Td>
+                    <Td>
+                      {j.closed_at
+                        ? <Badge tone="red">closed</Badge>
+                        : <Badge tone="green">active</Badge>}
+                    </Td>
+                    <Td>
+                      {j.url && (
+                        <a href={j.url} target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:underline text-xs">open ↗</a>
+                      )}
+                    </Td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -141,7 +183,7 @@ export default async function JobsPage({ searchParams }) {
         page={page}
         pageSize={PAGE_SIZE}
         total={total}
-        params={{ q, ats, active: activeOnly ? '' : '0' }}
+        params={{ q, ats, active: activeOnly ? '' : '0', remote: remoteFilter, comp: compOnly ? '1' : '' }}
       />
     </main>
   );
@@ -154,4 +196,40 @@ function Field({ label, children }) {
       {children}
     </label>
   );
+}
+
+// Compact "$160K – $220K" / "$160K /yr" / "USD 160,000 – 220,000" string.
+// Falls back to comp_text (the provider's own free-text summary) when we
+// failed to parse structured min/max. Returns '' for "no comp info" so the
+// caller can render an em-dash placeholder.
+function formatComp(j) {
+  const hasStructured = j.comp_min != null || j.comp_max != null;
+  if (!hasStructured) return j.comp_text || '';
+
+  const fmt = (n) => {
+    if (n == null) return '';
+    if (n >= 1000) return `${Math.round(n / 1000)}K`;
+    // Hourly rates and similar small values — show full.
+    return String(Math.round(n));
+  };
+  const range = j.comp_min != null && j.comp_max != null && j.comp_min !== j.comp_max
+    ? `${fmt(j.comp_min)} – ${fmt(j.comp_max)}`
+    : fmt(j.comp_min ?? j.comp_max);
+
+  // Currency symbol when we know it, else 3-letter code prefix.
+  const symbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  const sym = symbols[j.comp_currency] || '';
+  const prefix = sym || (j.comp_currency ? `${j.comp_currency} ` : '');
+
+  const intervalSuffix = j.comp_interval && j.comp_interval !== 'year'
+    ? ` /${j.comp_interval.slice(0, 2)}`
+    : '';
+
+  return `${prefix}${range}${intervalSuffix}`;
+}
+
+function remoteTone(remote) {
+  if (remote === 'remote') return 'green';
+  if (remote === 'hybrid') return 'blue';
+  return 'zinc';
 }

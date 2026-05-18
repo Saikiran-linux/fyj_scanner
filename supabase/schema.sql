@@ -91,6 +91,32 @@ create index if not exists jobs_description_pending_idx
   on public.jobs (company_id)
   where description is null and closed_at is null;
 
+-- ── compensation / remote / source timestamps ──────────────────────
+-- Structured fields the providers expose but we weren't capturing. The
+-- intent is twofold: surface them in the UI today, and feed them into the
+-- embedding text in a later pass so resume-matching has more signal than
+-- just title + location.
+--
+-- comp_min/max/currency/interval are populated when the provider ships
+-- structured comp (Ashby compensationTiers, Lever salaryRange). comp_text
+-- always holds whatever free-text summary the provider shipped, so the UI
+-- can fall back to it when the structured fields are null.
+--
+-- remote is normalised to {'remote','hybrid','onsite'} from each provider's
+-- own flag (Lever workplaceType, Ashby isRemote, etc.).
+--
+-- source_* timestamps are the provider's own published/updated stamps —
+-- distinct from our first_seen_at/last_seen_at (which track *our*
+-- observation cadence).
+alter table public.jobs add column if not exists comp_min            numeric;
+alter table public.jobs add column if not exists comp_max            numeric;
+alter table public.jobs add column if not exists comp_currency       text;
+alter table public.jobs add column if not exists comp_interval       text;
+alter table public.jobs add column if not exists comp_text           text;
+alter table public.jobs add column if not exists remote              text;
+alter table public.jobs add column if not exists source_updated_at   timestamptz;
+alter table public.jobs add column if not exists source_published_at timestamptz;
+
 -- ── job embeddings ─────────────────────────────────────────────────
 -- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches

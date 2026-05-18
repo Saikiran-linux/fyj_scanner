@@ -4,7 +4,13 @@
  * Each provider exports:
  *   - probeUrl(slug)  → string
  *   - careersUrl(slug) → string
- *   - parse(json) → [{ external_id, title, location, url, department, employment_type, description }]
+ *   - parse(json) → [{ external_id, title, location, url, department,
+ *                      employment_type, description,
+ *                      comp_min, comp_max, comp_currency, comp_interval, comp_text,
+ *                      remote, source_updated_at, source_published_at }]
+ *     The comp_*, remote, and source_* fields are best-effort — providers vary
+ *     in what they expose. Always include the keys; set to null when missing
+ *     so the scanner's upsert clears stale data on row reappearance.
  *   - fallbackUrl(slug) → string | null   (used on a 404 from probeUrl)
  *
  * Optional:
@@ -26,6 +32,135 @@
  */
 
 import { htmlToText } from './html-to-text.mjs';
+
+// ── shared helpers for the optional comp/remote/timestamp fields ───────
+//
+// These keep each provider's parse() free of normalisation boilerplate.
+
+const REMOTE_VALUES = new Set(['remote', 'hybrid', 'onsite']);
+
+/**
+ * Normalise a provider's "where can this be done" signal to one of
+ * 'remote' | 'hybrid' | 'onsite' | null. Pass any combination of:
+ *   - explicit: provider's structured flag (lever workplaceType, ashby isRemote, …)
+ *   - locationStr: the free-text location, used as a fallback heuristic.
+ *
+ * The heuristic is intentionally narrow ("remote" / "hybrid" tokens in the
+ * location string) — we'd rather return null than mislabel.
+ */
+function normaliseRemote({ explicit, locationStr } = {}) {
+  if (explicit) {
+    const s = String(explicit).toLowerCase().replace(/[-_\s]+/g, '');
+    if (REMOTE_VALUES.has(s)) return s;
+    if (s === 'onsite' || s === 'inoffice' || s === 'inperson') return 'onsite';
+    if (s === 'true') return 'remote';
+    if (s === 'false') return null;
+  }
+  if (locationStr) {
+    const l = String(locationStr).toLowerCase();
+    if (/\bremote\b/.test(l)) return 'remote';
+    if (/\bhybrid\b/.test(l)) return 'hybrid';
+  }
+  return null;
+}
+
+/**
+ * Normalise an interval string from any of {Lever "per-year-salary",
+ * Ashby "1 YEAR", "1 HOUR", "MONTHLY"} to {'year','month','week','day','hour'}.
+ */
+function normaliseInterval(raw) {
+  if (!raw) return null;
+  const s = String(raw).toLowerCase();
+  if (s.includes('year') || s.includes('annual')) return 'year';
+  if (s.includes('month')) return 'month';
+  if (s.includes('week')) return 'week';
+  if (s.includes('day') || s.includes('daily')) return 'day';
+  if (s.includes('hour') || s.includes('hourly')) return 'hour';
+  return null;
+}
+
+/**
+ * Parse a free-text salary range like "$120K - $180K", "$50/hour", "€90K – €120K"
+ * into { min, max, currency, interval, text }. Anything we can't parse goes
+ * into `text` only — the structured fields stay null.
+ *
+ * Used by WaaS (whose salaryRange ships as a string). Greenhouse/SR custom
+ * metadata fields could route through here too if we ever wire them up.
+ */
+function parseSalaryString(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const text = raw.trim();
+  if (!text) return null;
+
+  // Currency: explicit symbol wins, fallback to 3-letter code, else null.
+  const symbolMap = { '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY' };
+  let currency = null;
+  for (const sym of Object.keys(symbolMap)) {
+    if (text.includes(sym)) { currency = symbolMap[sym]; break; }
+  }
+  if (!currency) {
+    const code = text.match(/\b(USD|EUR|GBP|CAD|AUD|JPY|INR|SGD|CHF|SEK|NOK|DKK)\b/i);
+    if (code) currency = code[1].toUpperCase();
+  }
+
+  // Interval hints embedded in the string ("/hr", "per hour", "annual").
+  let interval = null;
+  if (/\/\s*hr|\bper\s+hour|\bhourly\b/i.test(text)) interval = 'hour';
+  else if (/\bper\s+year|\bannual|\b\/\s*yr/i.test(text)) interval = 'year';
+
+  // Pull all "$120K" / "120,000" / "1.2M" numbers out and use the first
+  // two as min/max. Range separators we accept: -, –, —, to.
+  const tokenRe = /(\d[\d,.]*)\s*([KkMm])?/g;
+  const numbers = [];
+  let m;
+  while ((m = tokenRe.exec(text)) !== null) {
+    const base = Number(m[1].replace(/,/g, ''));
+    if (!Number.isFinite(base)) continue;
+    const mult = m[2] ? (m[2].toLowerCase() === 'k' ? 1_000 : 1_000_000) : 1;
+    numbers.push(base * mult);
+  }
+  // Heuristic for hourly: if values are tiny (< 1000) and we have no K/M
+  // suffix, treat as hourly even without an explicit hint.
+  if (!interval && numbers.length && numbers.every((n) => n < 1000)) {
+    interval = 'hour';
+  }
+
+  const min = numbers[0] ?? null;
+  const max = numbers[1] ?? numbers[0] ?? null;
+  // Guard against junk like "10+ years experience" being read as comp.
+  if (min !== null && max !== null && min > max * 2) return { min: null, max: null, currency, interval, text };
+
+  return { min, max, currency, interval, text };
+}
+
+/**
+ * Coerce a timestamp value (ISO string, epoch ms, epoch s, or null) to an
+ * ISO string. Providers are inconsistent: Greenhouse uses ISO, WaaS sometimes
+ * ships epoch seconds.
+ */
+function toIso(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') {
+    // Heuristic: 10-digit = seconds, 13-digit = ms.
+    const ms = v < 1e12 ? v * 1000 : v;
+    const d = new Date(ms);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+  }
+  const d = new Date(v);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+}
+
+/** Shape returned by every parse(). Use to default missing keys to null. */
+const EMPTY_OPTIONAL_FIELDS = {
+  comp_min: null,
+  comp_max: null,
+  comp_currency: null,
+  comp_interval: null,
+  comp_text: null,
+  remote: null,
+  source_updated_at: null,
+  source_published_at: null,
+};
 
 // Per-job description fetches need a real-looking UA for the same reason
 // the listing fetches do (Ashby/SmartRecruiters block blank/curl UAs).
@@ -73,15 +208,25 @@ export const PROVIDERS = {
     // returns 404, the scanner retries with this URL once.
     fallbackUrl: (slug) => `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`,
     parse(json) {
-      return (json?.jobs || []).map((j) => ({
-        external_id: String(j.id),
-        title: j.title || '',
-        location: j.location?.name || '',
-        url: j.absolute_url || '',
-        department: (j.departments?.[0]?.name) || null,
-        employment_type: null,
-        description: j.content ? htmlToText(j.content) : null,
-      }));
+      return (json?.jobs || []).map((j) => {
+        const location = j.location?.name || '';
+        return {
+          ...EMPTY_OPTIONAL_FIELDS,
+          external_id: String(j.id),
+          title: j.title || '',
+          location,
+          url: j.absolute_url || '',
+          department: (j.departments?.[0]?.name) || null,
+          employment_type: null,
+          description: j.content ? htmlToText(j.content) : null,
+          // No structured comp in the Greenhouse listing — pay ranges live
+          // inside the tenant-specific `metadata` array and aren't worth
+          // guessing at. Remote is a location-string heuristic only.
+          remote: normaliseRemote({ locationStr: location }),
+          source_updated_at: toIso(j.updated_at),
+          source_published_at: toIso(j.first_published),
+        };
+      });
     },
   },
 
@@ -90,17 +235,41 @@ export const PROVIDERS = {
     careersUrl: (slug) => `https://jobs.ashbyhq.com/${slug}`,
     fallbackUrl: () => null,
     parse(json) {
-      return (json?.jobs || []).map((j) => ({
-        external_id: String(j.id),
-        title: j.title || '',
-        location: j.location || '',
-        url: j.jobUrl || '',
-        department: j.department || null,
-        employment_type: j.employmentType || null,
-        // Ashby includes descriptionPlain in the public posting API. Fall
-        // back to stripping HTML if only the HTML form is present.
-        description: j.descriptionPlain || (j.descriptionHtml ? htmlToText(j.descriptionHtml) : null),
-      }));
+      return (json?.jobs || []).map((j) => {
+        // Compensation: prefer the first tier's first Salary-typed component
+        // (Ashby tiers cover regions/levels; tier[0] is the canonical one in
+        // ~all cases we've seen). Fall back to the human-readable summary.
+        const tier = j.compensation?.compensationTiers?.[0];
+        const salaryComp = tier?.components?.find((c) => /salary/i.test(c?.compensationType || ''));
+        const value = salaryComp?.value || {};
+        const comp_text = j.compensation?.compensationTierSummary
+          || tier?.tierSummary
+          || salaryComp?.summary
+          || null;
+        return {
+          ...EMPTY_OPTIONAL_FIELDS,
+          external_id: String(j.id),
+          title: j.title || '',
+          location: j.location || '',
+          url: j.jobUrl || '',
+          department: j.department || null,
+          employment_type: j.employmentType || null,
+          // Ashby includes descriptionPlain in the public posting API. Fall
+          // back to stripping HTML if only the HTML form is present.
+          description: j.descriptionPlain || (j.descriptionHtml ? htmlToText(j.descriptionHtml) : null),
+          comp_min: Number.isFinite(value.minValue) ? value.minValue : null,
+          comp_max: Number.isFinite(value.maxValue) ? value.maxValue : null,
+          comp_currency: value.unit || value.currencyCode || null,
+          comp_interval: normaliseInterval(salaryComp?.interval),
+          comp_text,
+          remote: normaliseRemote({
+            explicit: j.isRemote === true ? 'remote' : (j.isRemote === false ? null : undefined),
+            locationStr: j.location,
+          }),
+          source_updated_at: toIso(j.updatedAt),
+          source_published_at: toIso(j.publishedAt || j.publishedDate),
+        };
+      });
     },
   },
 
@@ -122,7 +291,14 @@ export const PROVIDERS = {
           }
         }
         const description = desc.filter(Boolean).join('\n\n') || null;
+        const salary = j.salaryRange || {};
+        const comp_min = Number.isFinite(salary.min) ? salary.min : null;
+        const comp_max = Number.isFinite(salary.max) ? salary.max : null;
+        const comp_text = comp_min != null || comp_max != null
+          ? [comp_min, comp_max].filter((v) => v != null).map((v) => v.toLocaleString()).join(' – ')
+          : null;
         return {
+          ...EMPTY_OPTIONAL_FIELDS,
           external_id: String(j.id || j.lever_id || ''),
           title: j.text || '',
           location: j.categories?.location || '',
@@ -130,6 +306,17 @@ export const PROVIDERS = {
           department: j.categories?.department || null,
           employment_type: j.categories?.commitment || null,
           description,
+          comp_min,
+          comp_max,
+          comp_currency: salary.currency || null,
+          comp_interval: normaliseInterval(salary.interval),
+          comp_text,
+          remote: normaliseRemote({
+            explicit: j.workplaceType,
+            locationStr: j.categories?.location,
+          }),
+          // Lever exposes createdAt; no public updated stamp.
+          source_published_at: toIso(j.createdAt),
         };
       });
     },
@@ -140,17 +327,29 @@ export const PROVIDERS = {
     careersUrl: (slug) => `https://careers.smartrecruiters.com/${slug}`,
     fallbackUrl: () => null,
     parse(json) {
-      return (json?.content || []).map((j) => ({
-        external_id: String(j.id || j.uuid || ''),
-        title: j.name || '',
-        location: [j.location?.city, j.location?.country].filter(Boolean).join(', '),
-        url: j.ref || `https://careers.smartrecruiters.com/${j.companyName}/${j.id}`,
-        department: j.department?.label || null,
-        employment_type: j.typeOfEmployment?.label || null,
-        // The listing endpoint has summaries only; the description pass
-        // calls fetchDescription() below for each row.
-        description: null,
-      }));
+      return (json?.content || []).map((j) => {
+        const location = [j.location?.city, j.location?.country].filter(Boolean).join(', ');
+        return {
+          ...EMPTY_OPTIONAL_FIELDS,
+          external_id: String(j.id || j.uuid || ''),
+          title: j.name || '',
+          location,
+          url: j.ref || `https://careers.smartrecruiters.com/${j.companyName}/${j.id}`,
+          department: j.department?.label || null,
+          employment_type: j.typeOfEmployment?.label || null,
+          // The listing endpoint has summaries only; the description pass
+          // calls fetchDescription() below for each row.
+          description: null,
+          // SR has no structured comp in the public listing (it's in
+          // tenant-specific customField[]). Remote comes from location.remote
+          // when present, else heuristic on the joined location string.
+          remote: normaliseRemote({
+            explicit: j.location?.remote === true ? 'remote' : (j.location?.remote === false ? null : undefined),
+            locationStr: location,
+          }),
+          source_published_at: toIso(j.releasedDate),
+        };
+      });
     },
     // Per-job fetch: hits /v1/companies/{slug}/postings/{id} and pulls the
     // jobAd.sections.* blocks (jobDescription, qualifications, responsibilities,
@@ -208,15 +407,32 @@ export const PROVIDERS = {
       // description is on the per-job page in `props.job.descriptionHtml`,
       // which fetchDescription() below pulls. Verified empirically across
       // multiple companies via scripts/inspect-waas.mjs.
-      return jobs.map((j) => ({
-        external_id: String(j.id),
-        title: j.title || '',
-        location: j.location || '',
-        url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : '',
-        department: null,
-        employment_type: j.jobType || null,
-        description: null,
-      }));
+      return jobs.map((j) => {
+        // WaaS ships salaryRange/equityRange as free-text strings like
+        // "$120K - $180K" / "0.1% - 1.0%". Parse what we can; always keep
+        // the raw text in comp_text so the UI has something to show even
+        // when the regex fails on edge formats.
+        const salary = parseSalaryString(j.salaryRange);
+        return {
+          ...EMPTY_OPTIONAL_FIELDS,
+          external_id: String(j.id),
+          title: j.title || '',
+          location: j.location || '',
+          url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : '',
+          department: null,
+          employment_type: j.jobType || null,
+          description: null,
+          comp_min: salary?.min ?? null,
+          comp_max: salary?.max ?? null,
+          comp_currency: salary?.currency ?? null,
+          comp_interval: salary?.interval ?? null,
+          comp_text: salary?.text || (j.salaryRange || null),
+          remote: normaliseRemote({
+            explicit: j.remote === true ? 'remote' : (j.remote === false ? null : undefined),
+            locationStr: j.location,
+          }),
+        };
+      });
     },
     // Per-job fetch: hit /jobs/{id}, which is another Inertia-rendered page
     // with the same data-page-attribute pattern. The job description lives
