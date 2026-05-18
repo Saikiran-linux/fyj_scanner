@@ -326,14 +326,21 @@ $$;
 
 -- Lifetime + trailing-window totals per source. One row per ats, even if the
 -- ats has zero jobs (left join from companies).
+--
+-- count(j.id) — NOT count(j.*) — because count(record) forces Postgres to
+-- materialise every column of the row (including TOASTed description text)
+-- to evaluate "is the record null". On a 75k-row, 240MB-TOAST jobs table
+-- that pushed the view past the 8s statement_timeout. count(j.id) only
+-- touches the PK column. j.id is null only when the left join misses, so
+-- the semantics are identical.
 create or replace view public.v_jobs_totals_by_source as
 select
   c.ats as source,
-  count(j.*)                                                                 as total_jobs,
-  count(j.*) filter (where j.closed_at is null)                              as active_jobs,
-  count(j.*) filter (where j.first_seen_at > now() - interval '24 hours')    as new_24h,
-  count(j.*) filter (where j.first_seen_at > now() - interval '7 days')      as new_7d,
-  count(j.*) filter (where j.first_seen_at > now() - interval '30 days')     as new_30d
+  count(j.id)                                                                as total_jobs,
+  count(j.id) filter (where j.closed_at is null)                             as active_jobs,
+  count(j.id) filter (where j.first_seen_at > now() - interval '24 hours')   as new_24h,
+  count(j.id) filter (where j.first_seen_at > now() - interval '7 days')     as new_7d,
+  count(j.id) filter (where j.first_seen_at > now() - interval '30 days')    as new_30d
 from public.companies c
 left join public.jobs j on j.company_id = c.id
 group by c.ats
