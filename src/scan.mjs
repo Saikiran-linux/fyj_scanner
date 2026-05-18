@@ -15,11 +15,21 @@
  * Per-company failures are normal and counted, not crashes.
  */
 
+import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update } from './supabase-client.mjs';
 import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
+
+// md5 hex of the description text. Postgres' md5() emits the same encoding,
+// so a hash computed here can be compared bit-for-bit against the value
+// stored in `jobs.description_hash`. Returns null for null/empty input so
+// rows that legitimately have no description don't churn a synthetic hash.
+function describeHash(text) {
+  if (text == null || text === '') return null;
+  return createHash('md5').update(text).digest('hex');
+}
 
 // How many per-job description fetches the scanner is willing to do in one
 // run. Caps the time spent on providers like SmartRecruiters whose listing
@@ -64,6 +74,38 @@ if (companies.length === 0) {
   await closeScan(SCAN_ID, 'ok', { notes: 'no companies enabled' });
   process.exit(0);
 }
+
+// Pre-fetch every currently-open job once. Per-company probes used to issue
+// their own SELECT for the close-sweep — at SCAN_WORKER_POOL=10 across 3k
+// companies that's 3k small queries hammering the pooler, which is what
+// pushed scans into 504/statement-timeout territory. One paginated read up
+// front (a few seconds) replaces all of them, and the same map lets us
+// skip re-sending unchanged descriptions in the upsert.
+//
+// Snapshot semantics: rows inserted/closed between this read and a probe
+// are handled by the upsert's unique-constraint resolution and the close
+// sweep's "external_id not in current listing" check, respectively. We
+// don't need a consistent snapshot — we just need a recent one.
+console.log('Pre-fetching active job snapshot...');
+const snapshotStart = Date.now();
+const activeRows = await selectAll('jobs', {
+  closed_at: 'is.null',
+  select: 'company_id,external_id,description_hash',
+});
+/** @type {Map<string, Map<string, {description_hash: string|null}>>} */
+const activeByCompany = new Map();
+for (const row of activeRows) {
+  let m = activeByCompany.get(row.company_id);
+  if (!m) {
+    m = new Map();
+    activeByCompany.set(row.company_id, m);
+  }
+  m.set(row.external_id, { description_hash: row.description_hash });
+}
+console.log(
+  `  loaded ${activeRows.length} active jobs across ${activeByCompany.size} companies ` +
+  `in ${((Date.now() - snapshotStart) / 1000).toFixed(1)}s`,
+);
 
 // totals (mutated by worker pool)
 const totals = {
@@ -122,6 +164,10 @@ async function probeOne(company) {
   totals.companies_ok++;
   const seenExternalIds = new Set();
   const nowIso = new Date().toISOString();
+  // Snapshot of currently-open rows for this company (taken once at
+  // scan-start). Used for both the description-hash skip and the close-sweep.
+  // Missing entry means "no open jobs for this company yet" — treat as empty.
+  const existing = activeByCompany.get(company.id) || new Map();
   const jobRows = result.jobs.map((j) => {
     seenExternalIds.add(j.external_id);
     const row = {
@@ -138,25 +184,37 @@ async function probeOne(company) {
       // closed_at: null'd if this row was previously closed but reappeared.
       closed_at: null,
     };
-    // Only write description fields when the provider actually returned a
-    // description — otherwise we'd clobber a row that was previously
-    // populated by the description-pass fetcher (e.g. SmartRecruiters).
-    // The jobs_invalidate_embedding_on_description_change DB trigger nulls
-    // the embedding when (and only when) the description text actually
-    // changes, so we can safely send the same description on every scan
-    // without burning re-embedding cost.
+    // Description handling: provider may return text or null. We only send
+    // description over the wire when it has *changed*; comparing md5 hashes
+    // against the snapshot lets us cut out the dominant write-volume cost
+    // (a Greenhouse description can be 5–10 KB and 95% of rows are
+    // unchanged between consecutive scans). Cases:
+    //   - provider returned null → don't touch description (preserves rows
+    //     populated by a separate per-job fetch, e.g. SmartRecruiters).
+    //   - row is new to us (not in `existing`) → always write.
+    //   - hash matches stored hash → skip (no-op write avoided).
+    //   - hash differs → write description + description_hash + fetched_at;
+    //     the invalidate-embedding trigger nulls the embedding so the
+    //     embedding pass picks it up.
     if (j.description != null) {
-      row.description = j.description;
-      row.description_fetched_at = nowIso;
+      const newHash = describeHash(j.description);
+      const prevHash = existing.get(j.external_id)?.description_hash ?? null;
+      if (newHash !== prevHash) {
+        row.description = j.description;
+        row.description_hash = newHash;
+        row.description_fetched_at = nowIso;
+      }
     }
     return row;
   });
 
-  let upserted = [];
   if (jobRows.length) {
     try {
-      // Returning representation lets us count how many were truly new.
-      upserted = await upsert('jobs', jobRows, 'company_id,external_id');
+      // Use return=minimal — we don't need the rows back. Returning
+      // representation was costing us a full row payload per upsert, which
+      // added up across 3k companies. We re-derive "new vs reopened" from
+      // the snapshot we already have.
+      await upsert('jobs', jobRows, 'company_id,external_id', { returning: 'minimal' });
     } catch (e) {
       // Record as success of probe but failure of write — surface in notes.
       await recordProbe(company, {
@@ -170,32 +228,42 @@ async function probeOne(company) {
     }
   }
 
-  // first_seen_at == last_seen_at (within ~5s) on this run means it's new.
-  const nowMs = Date.now();
-  const newCount = upserted.filter((row) => {
-    const first = new Date(row.first_seen_at).getTime();
-    return Math.abs(first - nowMs) < 5_000;
-  }).length;
+  // "New" = appeared in the listing but not in the pre-scan active snapshot.
+  // (A reopened row — previously closed, now back — also counts as new here,
+  // matching the prior heuristic of "first_seen_at == last_seen_at" within
+  // a tolerance window.)
+  let newCount = 0;
+  for (const ext of seenExternalIds) {
+    if (!existing.has(ext)) newCount++;
+  }
   totals.new_jobs += newCount;
 
   // Close jobs previously active for this company but absent from this scan.
-  // We only do this on a successful scan — never on a partial/error response.
+  // Derived from the snapshot — no extra round-trip. We only do this on a
+  // successful scan — never on a partial/error response. Race note: a row
+  // inserted between snapshot and probe won't appear in `existing`, so it
+  // won't get incorrectly closed.
   let closedThisCompany = 0;
-  try {
-    const stale = await select('jobs', {
-      company_id: `eq.${company.id}`,
-      closed_at: 'is.null',
-      select: 'id,external_id',
-    });
-    const toClose = stale.filter((row) => !seenExternalIds.has(row.external_id));
-    if (toClose.length) {
-      const idsCsv = toClose.map((r) => r.id).join(',');
-      await update('jobs', { id: `in.(${idsCsv})` }, { closed_at: new Date().toISOString() }, { returning: 'minimal' });
-      closedThisCompany = toClose.length;
+  const toCloseExtIds = [];
+  for (const ext of existing.keys()) {
+    if (!seenExternalIds.has(ext)) toCloseExtIds.push(ext);
+  }
+  if (toCloseExtIds.length) {
+    try {
+      // Filter by (company_id, external_id) so we don't need to have
+      // fetched primary-key ids in the snapshot.
+      const extList = toCloseExtIds.map((e) => `"${e.replace(/"/g, '""')}"`).join(',');
+      await update(
+        'jobs',
+        { company_id: `eq.${company.id}`, external_id: `in.(${extList})`, closed_at: 'is.null' },
+        { closed_at: new Date().toISOString() },
+        { returning: 'minimal' },
+      );
+      closedThisCompany = toCloseExtIds.length;
       totals.closed_jobs += closedThisCompany;
+    } catch (e) {
+      console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
     }
-  } catch (e) {
-    console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
 
   await recordProbe(company, {
@@ -304,11 +372,17 @@ try {
           }
           // null description from a provider that "succeeded" still counts
           // as an attempt — write description_fetched_at so we don't keep
-          // retrying forever. Actual text remains null.
+          // retrying forever. Actual text remains null. We also write
+          // description_hash so the next scan's hash-compare sees a match
+          // and doesn't re-PATCH the same row.
           await update(
             'jobs',
             { id: `eq.${row.id}` },
-            { description: res.description ?? null, description_fetched_at: new Date().toISOString() },
+            {
+              description: res.description ?? null,
+              description_hash: describeHash(res.description ?? null),
+              description_fetched_at: new Date().toISOString(),
+            },
             { returning: 'minimal' },
           );
           descStats.ok++;
