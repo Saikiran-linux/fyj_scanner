@@ -4,6 +4,36 @@
 create extension if not exists "pgcrypto";
 create extension if not exists vector;
 
+-- ── pgrst_watch: auto-reload PostgREST schema cache on DDL ─────────
+-- PostgREST caches the table/column/function list in memory on startup.
+-- When a column is added via raw `alter table` (which every migration
+-- below does), the cache stays stale and PostgREST SILENTLY DROPS the
+-- unknown column from incoming JSON bodies — upserts return 200 but the
+-- new field never persists. We've been bitten by this twice (the
+-- comp/remote columns and the description_summary columns).
+--
+-- This event trigger fires `NOTIFY pgrst, 'reload schema'` after every
+-- DDL command, which PostgREST listens for and uses to invalidate its
+-- cache. Standard PostgREST-recommended pattern ("the pgrst_watch
+-- trigger" in their docs). Microsecond overhead per DDL, zero overhead
+-- at query time.
+--
+-- DEFINED FIRST so that all subsequent `alter table` / `create function`
+-- statements in this file already have an active watcher.
+create or replace function public.pgrst_watch_ddl() returns event_trigger
+language plpgsql
+as $$
+begin
+  notify pgrst, 'reload schema';
+end;
+$$;
+
+-- Event triggers don't support OR REPLACE, hence the drop-then-create.
+drop event trigger if exists pgrst_watch;
+create event trigger pgrst_watch
+  on ddl_command_end
+  execute procedure public.pgrst_watch_ddl();
+
 -- ── companies ──────────────────────────────────────────────────────
 -- One row per ATS tenant we scan. Slug + ats together are the natural key.
 -- enabled=false means the scanner skips it (manual disable, or auto after
