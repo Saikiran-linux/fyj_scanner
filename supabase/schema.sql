@@ -180,12 +180,20 @@ alter table public.jobs add column if not exists embedding vector(1536);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
 
--- IVFFlat for cosine similarity. lists ≈ sqrt(rows); start at 100 and retune
--- once jobs > 100k. Build *after* the backfill — building empty is fine but
--- the planner picks better lists with real data.
-create index if not exists jobs_embedding_idx
-  on public.jobs using ivfflat (embedding vector_cosine_ops)
-  with (lists = 100);
+-- HNSW for cosine similarity. Picked over IVFFlat because:
+--   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
+--   - Latency: p99 ~5-20ms vs IVFFlat's ~30-100ms
+--   - No retuning as the table grows. IVFFlat's `lists` parameter
+--     wants to be ~sqrt(rows) — we'd have to REINDEX every time the
+--     row count doubled. HNSW has no equivalent knob to drift.
+--   - Same query syntax (`embedding <=> vector`); zero code change.
+--
+-- m=16 / ef_construction=64 are pgvector defaults — well-tuned for
+-- 1536-dim OpenAI embeddings at our scale. Bump them if recall ever
+-- looks low; they cost build time but not query time.
+create index if not exists jobs_embedding_hnsw_idx
+  on public.jobs using hnsw (embedding vector_cosine_ops)
+  with (m = 16, ef_construction = 64);
 
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
