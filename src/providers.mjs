@@ -203,22 +203,66 @@ export const PROVIDERS = {
     parse(json) {
       const jobs = json?.props?.company?.jobs;
       if (!Array.isArray(jobs)) return [];
-      // The company page bundles each job with its full description (markdown
-      // or HTML depending on how the founder wrote it). Field names vary —
-      // `description`, `description_html`, `details` — so we try the common
-      // ones in order. htmlToText() is safe to call on plain markdown too.
-      return jobs.map((j) => {
-        const raw = j.description_html || j.descriptionHtml || j.description || j.details || j.body || null;
+      // The company page lists only summary fields per job (title, location,
+      // jobType, salaryRange, etc.) — no description text. The actual
+      // description is on the per-job page in `props.job.descriptionHtml`,
+      // which fetchDescription() below pulls. Verified empirically across
+      // multiple companies via scripts/inspect-waas.mjs.
+      return jobs.map((j) => ({
+        external_id: String(j.id),
+        title: j.title || '',
+        location: j.location || '',
+        url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : '',
+        department: null,
+        employment_type: j.jobType || null,
+        description: null,
+      }));
+    },
+    // Per-job fetch: hit /jobs/{id}, which is another Inertia-rendered page
+    // with the same data-page-attribute pattern. The job description lives
+    // at props.job.descriptionHtml. We deliberately don't include
+    // interviewProcessHtml — it's usually generic boilerplate that dilutes
+    // the role-specific signal in the embedding.
+    async fetchDescription(slug, externalId, { timeoutMs = 15_000 } = {}) {
+      const url = `https://www.workatastartup.com/jobs/${externalId}`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const startedAt = Date.now();
+      try {
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: 'text/html',
+            'User-Agent': 'Mozilla/5.0 (compatible; fyj-scanner/0.2; +https://github.com/Saikiran-linux/fyj_scanner)',
+            'Accept-Encoding': 'gzip, deflate, br',
+          },
+        });
+        const latency_ms = Date.now() - startedAt;
+        if (!res.ok) return { ok: false, http_status: res.status, latency_ms, error: `HTTP ${res.status}` };
+        const text = await res.text();
+        let json;
+        try {
+          json = this.extract(text); // reuse the data-page decoder
+        } catch (e) {
+          return { ok: false, http_status: res.status, latency_ms, error: `extract: ${e.message}` };
+        }
+        const html = json?.props?.job?.descriptionHtml;
         return {
-          external_id: String(j.id),
-          title: j.title || '',
-          location: j.location || '',
-          url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : '',
-          department: null,
-          employment_type: j.jobType || null,
-          description: raw ? htmlToText(raw) : null,
+          ok: true,
+          http_status: res.status,
+          latency_ms,
+          description: html ? htmlToText(html) : null,
         };
-      });
+      } catch (e) {
+        return {
+          ok: false,
+          http_status: null,
+          latency_ms: Date.now() - startedAt,
+          error: e.name === 'AbortError' ? 'timeout' : e.message,
+        };
+      } finally {
+        clearTimeout(timer);
+      }
     },
   },
 };
