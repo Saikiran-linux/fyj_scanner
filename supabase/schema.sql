@@ -205,6 +205,103 @@ create trigger jobs_invalidate_embedding_on_description_change
   before update on public.jobs
   for each row execute function public.invalidate_embedding_on_description_change();
 
+-- ── clean_description: SQL mirror of src/html-to-text.mjs ──────────
+-- One-shot backfill primitive used to scrub HTML / entity / whitespace
+-- residue from already-stored descriptions. Doing it server-side beats
+-- pulling 75k rows over the wire: a single `UPDATE jobs SET description =
+-- clean_description(description) WHERE ...` finishes in batches of a few
+-- seconds vs. a multi-hour PATCH loop.
+--
+-- The authoritative implementation is src/html-to-text.mjs (htmlToText +
+-- normaliseWhitespace). This function mirrors the same steps so backfilled
+-- rows look identical to freshly-scanned ones:
+--   1. Pre-decode HTML entities (Greenhouse double-encodes its content
+--      field — without this step the tag stripper finds nothing).
+--   2. Drop script/style blocks.
+--   3. Block-level closing tags → newline.
+--   4. Strip remaining tags.
+--   5. Second-pass entity decode (catches entities that were *inside* tags).
+--   6. Strip numeric entities, markdown image refs (Ashby ships
+--      `[https://...png]` as text), nbsp, ZW spaces, tabs.
+--   7. Collapse whitespace: max one blank line, trim each line.
+--
+-- IMMUTABLE so the planner can use it inside WHERE clauses without
+-- re-evaluating per row. The function is the source of truth for the
+-- backfill; future writes always go through the JS path via the scanner.
+create or replace function public.clean_description(input text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  s text;
+begin
+  if input is null then return null; end if;
+  s := input;
+
+  -- pre-decode pass — &amp; LAST so `&amp;lt;` correctly resolves to `<`
+  -- on the second pass below.
+  s := replace(s, '&lt;',     '<');
+  s := replace(s, '&gt;',     '>');
+  s := replace(s, '&quot;',   '"');
+  s := replace(s, '&apos;',   '''');
+  s := replace(s, '&nbsp;',   ' ');
+  s := replace(s, '&mdash;',  '—');
+  s := replace(s, '&ndash;',  '–');
+  s := replace(s, '&hellip;', '…');
+  s := replace(s, '&rsquo;',  '’');
+  s := replace(s, '&lsquo;',  '‘');
+  s := replace(s, '&rdquo;',  '”');
+  s := replace(s, '&ldquo;',  '“');
+  s := replace(s, '&trade;',  '™');
+  s := replace(s, '&copy;',   '©');
+  s := replace(s, '&reg;',    '®');
+  s := replace(s, '&amp;',    '&');
+
+  s := regexp_replace(s, '<(script|style)[^>]*>.*?</\1>', ' ', 'gis');
+  s := regexp_replace(s, '<\s*br\s*/?\s*>', E'\n', 'gi');
+  s := regexp_replace(s, '</\s*(p|div|li|h[1-6]|tr|td|th|section|article)\s*>', E'\n', 'gi');
+  s := regexp_replace(s, '<[^>]+>', '', 'g');
+
+  -- second decode (entities that lived as visible text inside tags)
+  s := replace(s, '&lt;',     '<');
+  s := replace(s, '&gt;',     '>');
+  s := replace(s, '&quot;',   '"');
+  s := replace(s, '&apos;',   '''');
+  s := replace(s, '&nbsp;',   ' ');
+  s := replace(s, '&mdash;',  '—');
+  s := replace(s, '&ndash;',  '–');
+  s := replace(s, '&hellip;', '…');
+  s := replace(s, '&rsquo;',  '’');
+  s := replace(s, '&lsquo;',  '‘');
+  s := replace(s, '&rdquo;',  '”');
+  s := replace(s, '&ldquo;',  '“');
+  s := replace(s, '&trade;',  '™');
+  s := replace(s, '&copy;',   '©');
+  s := replace(s, '&reg;',    '®');
+  s := replace(s, '&amp;',    '&');
+
+  -- Numeric entities — drop. Evaluating each match would need a plpgsql
+  -- loop; the JS path on next-scan write handles these correctly.
+  s := regexp_replace(s, '&#x[0-9a-fA-F]+;', ' ', 'g');
+  s := regexp_replace(s, '&#[0-9]+;',        ' ', 'g');
+
+  -- Stray markdown image refs (Ashby ships `[https://…png]` as text).
+  s := regexp_replace(s, '\[image:[^\]]*\]',      ' ', 'gi');
+  s := regexp_replace(s, '\[https?://[^\]]+\]',   ' ', 'g');
+
+  -- Whitespace normalisation. nbsp (U+00A0) → regular space.
+  s := replace(s, chr(160), ' ');
+  s := regexp_replace(s, E'\r\n?', E'\n', 'g');
+  s := regexp_replace(s, '[ \t]+', ' ', 'g');
+  s := regexp_replace(s, E'[ \t]+\n', E'\n', 'g');
+  s := regexp_replace(s, E'\n[ \t]+', E'\n', 'g');
+  s := regexp_replace(s, E'\n{3,}', E'\n\n', 'g');
+
+  return trim(both E' \t\n\r' from s);
+end;
+$$;
+
 -- ── views ──────────────────────────────────────────────────────────
 
 create or replace view public.v_company_health as
