@@ -137,6 +137,19 @@ async function probeOne(company) {
       // first_seen_at uses default on insert; on conflict we don't touch it.
       // closed_at: null'd if this row was previously closed but reappeared.
       closed_at: null,
+      // Optional comp/remote/source-timestamp fields. Each provider's
+      // parse() always sets these (to null when missing) so we don't need
+      // a ?? null guard here — but spelling them out explicitly makes the
+      // upsert payload self-documenting and survives a future provider
+      // that forgets to populate one.
+      comp_min: j.comp_min ?? null,
+      comp_max: j.comp_max ?? null,
+      comp_currency: j.comp_currency ?? null,
+      comp_interval: j.comp_interval ?? null,
+      comp_text: j.comp_text ?? null,
+      remote: j.remote ?? null,
+      source_updated_at: j.source_updated_at ?? null,
+      source_published_at: j.source_published_at ?? null,
     };
     // Only write description fields when the provider actually returned a
     // description — otherwise we'd clobber a row that was previously
