@@ -8,7 +8,8 @@
  *   3. Probe each (bounded parallelism), upsert jobs, record probe_results.
  *   4. After all probes complete: close jobs that were previously active but
  *      didn't appear in this run's response *for a company whose scan succeeded*.
- *   5. Update consecutive_errors / last_success_at / auto-disable threshold.
+ *   5. Update consecutive_errors / last_success_at / auto-disable threshold
+ *      (success path is batched into a single PATCH after all probes finish).
  *   6. Close the scans row with totals (status=ok or failed).
  *
  * Exits non-zero only on catastrophic errors (e.g. can't reach Supabase).
@@ -117,6 +118,13 @@ const totals = {
 };
 
 const probeResultBuffer = [];
+
+// IDs of companies whose probe succeeded this scan. After the worker pool
+// drains we issue a single batched PATCH to reset their error counters and
+// refresh last_success_at — replacing one PATCH per successful company
+// (previously ~3,000 round trips per scan, a major contributor to the pooler
+// 504/statement-timeout cascade we hit at the ~5min mark).
+const successfulCompanyIds = [];
 
 async function flushProbeResults(force = false) {
   if (probeResultBuffer.length === 0) return;
@@ -286,17 +294,9 @@ async function probeOne(company) {
     job_count: jobRows.length,
   });
 
-  // Reset error counters on success.
-  await update(
-    'companies',
-    { id: `eq.${company.id}` },
-    {
-      consecutive_errors: 0,
-      last_success_at: new Date().toISOString(),
-      last_error: null,
-    },
-    { returning: 'minimal' },
-  );
+  // Defer the "reset error counters" PATCH to a single batched call after
+  // the worker pool drains — see flushSuccessfulCompanies().
+  successfulCompanyIds.push(company.id);
 }
 
 async function recordProbe(company, fields) {
@@ -333,6 +333,36 @@ async function worker() {
 
 await Promise.all(Array.from({ length: WORKER_POOL }, () => worker()));
 await flushProbeResults(true);
+await flushSuccessfulCompanies();
+
+// Single batched PATCH to reset error counters on every company whose probe
+// succeeded this run. PostgREST applies the same body to all rows matching
+// the `id=in.(...)` filter, so this is one round trip regardless of N.
+// Chunked to keep the URL under PostgREST's request-line ceiling (~16 KB);
+// a UUID is 36 chars + comma, so 300 IDs ≈ 11 KB with headroom.
+async function flushSuccessfulCompanies() {
+  if (successfulCompanyIds.length === 0) return;
+  const nowIso = new Date().toISOString();
+  const CHUNK = 300;
+  for (let i = 0; i < successfulCompanyIds.length; i += CHUNK) {
+    const chunk = successfulCompanyIds.slice(i, i + CHUNK);
+    const idList = chunk.join(',');
+    try {
+      await update(
+        'companies',
+        { id: `in.(${idList})` },
+        {
+          consecutive_errors: 0,
+          last_success_at: nowIso,
+          last_error: null,
+        },
+        { returning: 'minimal' },
+      );
+    } catch (e) {
+      console.error(`batch companies-reset failed (${chunk.length} ids): ${e.message}`);
+    }
+  }
+}
 
 // ── description fetch pass ─────────────────────────────────────────
 // For providers whose listing doesn't carry descriptions (SmartRecruiters),
