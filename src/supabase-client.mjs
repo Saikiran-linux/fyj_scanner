@@ -30,7 +30,62 @@ const HEADERS = () => ({
 // via SUPABASE_FETCH_TIMEOUT_MS if you start seeing spurious aborts.
 const FETCH_TIMEOUT_MS = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS || 20_000);
 
-async function request(method, path, { body, prefer, query } = {}) {
+// Retry policy for transient PostgREST / pooler errors. The motivating case is
+// PGRST002 ("schema cache not loaded — retrying") on the very first request
+// after the Supabase project wakes up: a single 503 there crashed the entire
+// scan workflow before any work started. We also retry 502/504 (pooler hiccup)
+// and AbortError/network errors (transient connection loss). 4xx are never
+// retried — those are caller bugs and a retry won't help.
+const MAX_ATTEMPTS = Number(process.env.SUPABASE_MAX_ATTEMPTS || 4);
+const RETRY_BASE_MS = Number(process.env.SUPABASE_RETRY_BASE_MS || 500);
+
+function isRetriableStatus(status) {
+  // 5xx in general — Postgres / PostgREST / pooler all surface transient
+  // problems this way. 501 is excluded (genuinely "not implemented").
+  return status >= 500 && status !== 501;
+}
+
+function isRetriableError(err) {
+  if (!err) return false;
+  // AbortError comes from our own timeout wrapper.
+  if (err.name === 'AbortError') return true;
+  // Node's undici fetch wraps connection errors in a TypeError("fetch failed")
+  // with the real cause on .cause (ECONNRESET, ENOTFOUND, UND_ERR_SOCKET, …).
+  if (err.name === 'TypeError') return true;
+  const code = err.code || err.cause?.code;
+  if (code && /^(ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|EPIPE|UND_ERR_SOCKET)$/.test(code)) {
+    return true;
+  }
+  return false;
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function request(method, path, opts = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await requestOnce(method, path, opts);
+    } catch (e) {
+      lastErr = e;
+      // Parse "→ NNN:" out of the message thrown by requestOnce for HTTP errors.
+      const m = /→ (\d{3}):/.exec(e.message || '');
+      const status = m ? Number(m[1]) : null;
+      const retriable = (status != null && isRetriableStatus(status)) || isRetriableError(e) || /→ timeout after/.test(e.message || '');
+      if (!retriable || attempt === MAX_ATTEMPTS) throw e;
+      // Exponential backoff with full jitter: 0..base, 0..2*base, 0..4*base, …
+      const cap = RETRY_BASE_MS * 2 ** (attempt - 1);
+      const delay = Math.floor(Math.random() * cap);
+      console.warn(`Supabase ${method} ${path} attempt ${attempt}/${MAX_ATTEMPTS} failed (${e.message.slice(0, 120)}); retrying in ${delay}ms`);
+      await sleep(delay);
+    }
+  }
+  throw lastErr;
+}
+
+async function requestOnce(method, path, { body, prefer, query } = {}) {
   const qs = query ? '?' + new URLSearchParams(query).toString() : '';
   const url = `${BASE()}${path}${qs}`;
   const headers = { ...HEADERS() };
