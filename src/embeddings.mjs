@@ -73,7 +73,18 @@ export function buildJobText(job) {
   if (job.location) signals.push(`Location: ${job.location}`);
   if (signals.length) parts.push(signals.join('\n'));
 
-  if (job.description) {
+  // Prefer the LLM-extracted summary when present — it's a dense
+  // 4-line Role/Skills/Experience/Industry blob that embeds far better
+  // than the raw description's "About Us / mission / responsibilities"
+  // prose. Fall back to the truncated raw description for rows the
+  // summarisation pass hasn't reached yet. See src/summarize.mjs and
+  // the description_summary column in supabase/schema.sql.
+  if (job.description_summary) {
+    // Summaries are already short (~250 chars) and structured; no need
+    // to truncate. Embedding them verbatim preserves the labelled
+    // structure the prompt produced.
+    parts.push(job.description_summary);
+  } else if (job.description) {
     const trimmed = job.description.length > DESCRIPTION_CHAR_LIMIT
       ? job.description.slice(0, DESCRIPTION_CHAR_LIMIT) + '…'
       : job.description;

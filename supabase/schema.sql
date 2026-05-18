@@ -117,6 +117,30 @@ alter table public.jobs add column if not exists remote              text;
 alter table public.jobs add column if not exists source_updated_at   timestamptz;
 alter table public.jobs add column if not exists source_published_at timestamptz;
 
+-- ── description_summary ────────────────────────────────────────────
+-- LLM-extracted structured precis of the job posting, populated by
+-- src/summarize.mjs (gpt-4o-mini). The raw description is ~5KB of mostly
+-- "About Us / mission / EEO" prose for the first ~500 chars; embedding
+-- it directly meant the 1500-char window often missed the actual role
+-- details. The summary is a 4-line `Role / Skills / Experience /
+-- Industry` blob — dense signal optimised for resume matching.
+--
+-- buildJobText() reads description_summary in preference to description
+-- when present, so once a row is summarised the embedding sees the
+-- structured precis instead of the raw prose.
+--
+-- Per-scan generation is capped (SCAN_SUMMARY_CAP, default 1000) to
+-- bound API spend; one-shot backfill via scripts/backfill-summaries.mjs.
+alter table public.jobs add column if not exists description_summary       text;
+alter table public.jobs add column if not exists description_summary_model text;
+alter table public.jobs add column if not exists description_summary_at    timestamptz;
+
+create index if not exists jobs_description_summary_pending_idx
+  on public.jobs (company_id)
+  where description_summary is null
+    and description is not null
+    and closed_at is null;
+
 -- ── job embeddings ─────────────────────────────────────────────────
 -- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
@@ -191,10 +215,18 @@ create trigger companies_updated_at before update on public.companies
 create or replace function public.invalidate_embedding_on_description_change()
 returns trigger as $$
 begin
+  -- When the description text changes, every derivative artifact has to
+  -- be regenerated: the LLM-extracted summary (so it reflects the new
+  -- description) AND the embedding (which would otherwise embed the
+  -- stale summary). Done in one trigger to keep the invariant atomic —
+  -- nothing else nulls these fields.
   if old.description is distinct from new.description then
     new.embedding := null;
     new.embedding_model := null;
     new.embedded_at := null;
+    new.description_summary := null;
+    new.description_summary_model := null;
+    new.description_summary_at := null;
   end if;
   return new;
 end;
