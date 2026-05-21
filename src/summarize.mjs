@@ -1,17 +1,25 @@
 /**
- * LLM-extracted job-description summary, for the resume-matching pipeline.
+ * LLM-extracted job-description summary, for the resume-matching pipeline
+ * and natural-language search.
  *
  * Why this exists: raw job descriptions are ~3-8KB of mostly company
  * marketing, mission statements, and EEO boilerplate. Embedding them
  * directly via text-embedding-3-small means the 1500-char window we
  * reserve for description gets eaten by "About Us" and clips before
  * the actual role specifics. This module asks gpt-4o-mini to extract
- * a ~250-char structured precis (Role / Skills / Experience / Industry)
- * which then becomes the input to the embedder.
+ * a multi-field structured precis covering role, level, experience,
+ * required + preferred skills, team, industry, company stage, location,
+ * remote policy, compensation, benefits, visa, and schedule — every
+ * dimension a user might phrase a natural-language query around.
+ *
+ * The expanded field set vs. the original 4-line schema (Role/Skills/
+ * Experience/Industry) trades ~$0.0001 per posting for much broader
+ * query coverage: "remote senior backend at a fintech startup with equity
+ * and visa sponsorship" now has token-level matches against every clause.
  *
  * Cost: gpt-4o-mini at $0.15/M input + $0.60/M output tokens. A typical
- * posting is ~600 input tokens, ~80 output tokens → ~$0.00014/job.
- * 46k backfill ≈ $6.50; recurring scan cost ≈ $0.14 per 1000 new postings.
+ * posting is ~750 input tokens, ~200 output tokens → ~$0.00023/job.
+ * 46k backfill ≈ $10.50; recurring scan cost ≈ $0.23 per 1000 new postings.
  *
  * Failures are non-fatal — the caller writes `description_summary_at`
  * with whatever we got (text or null) and moves on. The embedder falls
@@ -24,10 +32,11 @@ import { update } from './supabase-client.mjs';
 export const SUMMARY_MODEL = 'gpt-4o-mini';
 
 // How long a description we'll feed to the model. gpt-4o-mini's context
-// is 128k tokens; we cap at 8000 chars (~2000 tokens) to keep cost
-// predictable and skip the tail of unusually long postings, which is
-// almost always benefits / company values / EEO and adds no signal.
-const DESCRIPTION_INPUT_CAP = 8000;
+// is 128k tokens; we cap at 10000 chars (~2500 tokens) to keep cost
+// predictable. Slightly wider than the original 8000 because benefits /
+// visa / schedule sections often live in the back half of the posting,
+// and missing them shows up directly as "unknown" fields in the summary.
+const DESCRIPTION_INPUT_CAP = 10000;
 
 // Parallel chat-completions are the throughput knob (chat completions
 // have no batch endpoint like embeddings do). OpenAI's per-org limits
@@ -39,20 +48,37 @@ const SUMMARIZE_CONCURRENCY = 10;
 // change the prompt we should also bump a version marker and re-run
 // the backfill; today that's a manual operation.
 //
-// Format choice: four `Key: value` lines so each fact becomes its own
-// dense token group that the embedder can associate cleanly. Avoids
-// prose, which the embedder weights less efficiently per token than
-// short labeled phrases.
-const SYSTEM_PROMPT = `You extract job-matching summaries from postings.
-Reply with EXACTLY these four lines, no preamble, no markdown, no blank lines:
+// Format choice: `Key: value` lines, one per dimension. Each fact becomes
+// its own dense token group that the embedder associates cleanly —
+// short labeled phrases embed more efficiently than prose. Field set
+// is intentionally broad so natural-language queries like "remote senior
+// backend at a fintech startup with equity and visa sponsorship" have
+// token-level matches against every clause.
+//
+// What's NOT here: numeric comp filters (use jobs.comp_min/comp_max
+// columns — embeddings are bad at numeric ranges). The Compensation
+// field captures qualitative signal — equity, bonus, stated ranges —
+// only to help free-text queries like "jobs with equity."
+const SYSTEM_PROMPT = `You extract structured, search-friendly summaries from job postings.
+Reply with EXACTLY these labeled lines, in this order, no preamble, no markdown, no blank lines:
 
 Role: <one sentence on the actual day-to-day work>
-Skills: <8-15 comma-separated keywords — technologies, tools, languages, frameworks, methodologies>
-Experience: <years required and seniority/specialization>
-Industry: <product domain or industry vertical>
+Level: <intern / junior / mid / senior / staff / principal / lead / manager / director / vp; note IC vs manager track if clear>
+Experience: <years of experience required, e.g. "5+ years"; "unknown" if not stated>
+Required skills: <8-15 comma-separated keywords — must-have technologies, languages, frameworks, tools, methodologies>
+Preferred skills: <comma-separated keywords for "nice to have" / "bonus" items; "unknown" if not stated>
+Team: <engineering / design / product / data / sales / marketing / operations / finance / legal / etc., plus team or function focus if mentioned>
+Industry: <product domain or vertical — e.g. fintech, healthcare, dev tools, AI/ML, e-commerce, climate, security, gaming, biotech>
+Company stage: <early-stage startup / scale-up / late-stage / public / enterprise / agency / unknown>
+Location: <primary city or region named in the posting; "remote" if no city is given>
+Remote policy: <remote / hybrid / onsite, plus geographic restrictions if stated (e.g. "US only", "EMEA timezone")>
+Compensation: <qualitative notes: explicit ranges if stated, equity, bonus, signing; "unknown" if absent>
+Benefits: <distinguishing perks worth searching for — equity, 401k match, healthcare, unlimited PTO, learning budget, parental leave, relocation, etc.; "unknown" if none mentioned>
+Visa: <sponsorship policy if stated — e.g. "sponsors H1B", "no sponsorship", "EU work auth required"; "unknown" if absent>
+Schedule: <full-time / part-time / contract / internship; default to "full-time" if not specified>
 
-Skip company marketing, mission statements, benefits, perks, and EEO language.
-If any field cannot be determined from the posting, write "unknown" for that line's value.`;
+Skip company marketing, mission statements, "about us" prose, and EEO/diversity boilerplate.
+If any field cannot be determined from the posting, write "unknown" for that value — never invent.`;
 
 export function isEnabled() {
   return Boolean(process.env.OPENAI_API_KEY);
@@ -82,7 +108,11 @@ export async function summarizeText(description) {
       body: JSON.stringify({
         model: SUMMARY_MODEL,
         temperature: 0,
-        max_tokens: 200,
+        // 14 labeled lines at ~20-30 tokens each = ~300-400 output tokens.
+        // 500 leaves headroom for long Skills lines without truncation;
+        // we'd rather pay a fraction of a cent more than ship summaries
+        // that cut off mid-keyword-list.
+        max_tokens: 500,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: trimmed },
@@ -156,9 +186,12 @@ export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
     if (onProgress) onProgress({ ok, failed, total: jobs.length });
   }
 
-  // gpt-4o-mini: ~$0.15 per 1M input tokens. ~chars/4 for token estimate;
-  // ignore output cost (~$0.60/M but only ~80 tokens per call, so the
-  // input dominates by ~7x for our typical posting size).
-  const costEstimateUsd = (inputCharsSeen / 4 / 1_000_000) * 0.15;
+  // gpt-4o-mini: $0.15/M input + $0.60/M output. ~chars/4 for input token
+  // estimate; output is ~300 tokens per successful call with the expanded
+  // 14-field schema, so we add a per-success output term. Approximate but
+  // good enough for the log line ("how much did this run cost me").
+  const inputCostUsd = (inputCharsSeen / 4 / 1_000_000) * 0.15;
+  const outputCostUsd = (ok * 300 / 1_000_000) * 0.60;
+  const costEstimateUsd = inputCostUsd + outputCostUsd;
   return { ok, failed, inputCharsSeen, costEstimateUsd };
 }

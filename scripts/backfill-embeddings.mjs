@@ -36,7 +36,7 @@ const startedAt = Date.now();
 const rows = await selectAll('jobs', {
   embedding: 'is.null',
   closed_at: 'is.null',
-  select: 'id,title,department,location,description,'
+  select: 'id,title,department,location,description,description_summary,'
     + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
     + 'remote,employment_type',
 });
