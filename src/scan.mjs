@@ -22,6 +22,7 @@ import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES }
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
+import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
 
 // md5 hex of the description text. Postgres' md5() emits the same encoding,
 // so a hash computed here can be compared bit-for-bit against the value
@@ -37,6 +38,13 @@ function describeHash(text) {
 // doesn't include descriptions. The backlog drains over many scans; for the
 // initial bulk catch-up use `npm run backfill-descriptions` instead.
 const DESCRIPTION_FETCH_CAP = Number(process.env.DESCRIPTION_FETCH_CAP || 500);
+
+// How many job descriptions the scanner will pass through gpt-4o-mini per
+// run to produce embedding-friendly summaries. Each call is ~$0.0001, so
+// 1000/scan ≈ $0.10 per scan, $0.40/day at the 6-hour cadence. Bump
+// SCAN_SUMMARY_CAP if you want to drain a backlog faster; bulk catch-up
+// is faster via `npm run backfill-summaries`.
+const SCAN_SUMMARY_CAP = Number(process.env.SCAN_SUMMARY_CAP || 1000);
 
 // Outer-loop concurrency is a ceiling — actual per-provider concurrency comes
 // from the rate limiter, which throttles down on 403/429 bursts. Setting this
@@ -443,6 +451,41 @@ try {
   console.error(`description pass failed (non-fatal): ${e.message}`);
 }
 
+// ── summarisation pass ─────────────────────────────────────────────
+// After descriptions are filled in, run any rows that have a description
+// but no summary through gpt-4o-mini. The summary becomes the input to
+// the embedder (buildJobText prefers description_summary over the raw
+// description), so this pass MUST run before the embedding pass — otherwise
+// the embedder uses stale or absent summaries.
+//
+// Capped per run by SCAN_SUMMARY_CAP. Skipped if OPENAI_API_KEY isn't set.
+let summaryStats = null;
+if (summariesEnabled()) {
+  try {
+    const candidates = await select('jobs', {
+      description_summary: 'is.null',
+      description: 'not.is.null',
+      closed_at: 'is.null',
+      limit: String(SCAN_SUMMARY_CAP),
+      select: 'id,description',
+    });
+    if (candidates.length) {
+      console.log(`Summarising ${candidates.length} descriptions (cap=${SCAN_SUMMARY_CAP})`);
+      summaryStats = await summarizeAndPersistJobs(candidates);
+      console.log(
+        `  summary pass: ${summaryStats.ok} ok, ${summaryStats.failed} failed ` +
+        `(~$${summaryStats.costEstimateUsd.toFixed(4)})`,
+      );
+    } else {
+      console.log('No descriptions need summarisation');
+    }
+  } catch (e) {
+    console.error(`summarisation pass failed (non-fatal): ${e.message}`);
+  }
+} else {
+  console.log('Skipping summarisation pass (OPENAI_API_KEY not set)');
+}
+
 // ── embedding pass ─────────────────────────────────────────────────
 // After all probes complete, embed any active jobs that don't yet have an
 // embedding vector. Skipped silently if OPENAI_API_KEY isn't set so existing
@@ -456,7 +499,12 @@ if (embeddingsEnabled()) {
     const missing = await selectAll('jobs', {
       embedding: 'is.null',
       closed_at: 'is.null',
-      select: 'id,title,department,location,description',
+      // Keep in sync with buildJobText() in src/embeddings.mjs — any new
+      // signal the embedder reads has to be in this select list or it'll
+      // silently get embedded as null.
+      select: 'id,title,department,location,description,description_summary,'
+        + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
+        + 'remote,employment_type',
     });
     if (missing.length) {
       console.log(`Embedding ${missing.length} active jobs lacking vectors`);
@@ -508,6 +556,9 @@ const sourceNotes = Object.entries(rateSnapshot)
 const descNote = descStats.attempted
   ? ` || desc: ${descStats.ok}/${descStats.attempted} ok`
   : '';
+const summaryNote = summaryStats
+  ? ` || summary: ${summaryStats.ok} ok, ${summaryStats.failed} failed (~$${summaryStats.costEstimateUsd.toFixed(4)})`
+  : '';
 const embedNote = embedStats
   ? ` || embed: ${embedStats.embedded} ok, ${embedStats.failed} failed (~$${embedStats.costEstimateUsd.toFixed(4)})`
   : '';
@@ -515,7 +566,7 @@ const embedNote = embedStats
 await closeScan(SCAN_ID, 'ok', {
   ...totals,
   active_jobs_after,
-  notes: sourceNotes + descNote + embedNote,
+  notes: sourceNotes + descNote + summaryNote + embedNote,
 });
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
 console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);

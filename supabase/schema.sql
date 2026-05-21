@@ -4,6 +4,36 @@
 create extension if not exists "pgcrypto";
 create extension if not exists vector;
 
+-- ── pgrst_watch: auto-reload PostgREST schema cache on DDL ─────────
+-- PostgREST caches the table/column/function list in memory on startup.
+-- When a column is added via raw `alter table` (which every migration
+-- below does), the cache stays stale and PostgREST SILENTLY DROPS the
+-- unknown column from incoming JSON bodies — upserts return 200 but the
+-- new field never persists. We've been bitten by this twice (the
+-- comp/remote columns and the description_summary columns).
+--
+-- This event trigger fires `NOTIFY pgrst, 'reload schema'` after every
+-- DDL command, which PostgREST listens for and uses to invalidate its
+-- cache. Standard PostgREST-recommended pattern ("the pgrst_watch
+-- trigger" in their docs). Microsecond overhead per DDL, zero overhead
+-- at query time.
+--
+-- DEFINED FIRST so that all subsequent `alter table` / `create function`
+-- statements in this file already have an active watcher.
+create or replace function public.pgrst_watch_ddl() returns event_trigger
+language plpgsql
+as $$
+begin
+  notify pgrst, 'reload schema';
+end;
+$$;
+
+-- Event triggers don't support OR REPLACE, hence the drop-then-create.
+drop event trigger if exists pgrst_watch;
+create event trigger pgrst_watch
+  on ddl_command_end
+  execute procedure public.pgrst_watch_ddl();
+
 -- ── companies ──────────────────────────────────────────────────────
 -- One row per ATS tenant we scan. Slug + ats together are the natural key.
 -- enabled=false means the scanner skips it (manual disable, or auto after
@@ -117,6 +147,30 @@ alter table public.jobs add column if not exists remote              text;
 alter table public.jobs add column if not exists source_updated_at   timestamptz;
 alter table public.jobs add column if not exists source_published_at timestamptz;
 
+-- ── description_summary ────────────────────────────────────────────
+-- LLM-extracted structured precis of the job posting, populated by
+-- src/summarize.mjs (gpt-4o-mini). The raw description is ~5KB of mostly
+-- "About Us / mission / EEO" prose for the first ~500 chars; embedding
+-- it directly meant the 1500-char window often missed the actual role
+-- details. The summary is a 4-line `Role / Skills / Experience /
+-- Industry` blob — dense signal optimised for resume matching.
+--
+-- buildJobText() reads description_summary in preference to description
+-- when present, so once a row is summarised the embedding sees the
+-- structured precis instead of the raw prose.
+--
+-- Per-scan generation is capped (SCAN_SUMMARY_CAP, default 1000) to
+-- bound API spend; one-shot backfill via scripts/backfill-summaries.mjs.
+alter table public.jobs add column if not exists description_summary       text;
+alter table public.jobs add column if not exists description_summary_model text;
+alter table public.jobs add column if not exists description_summary_at    timestamptz;
+
+create index if not exists jobs_description_summary_pending_idx
+  on public.jobs (company_id)
+  where description_summary is null
+    and description is not null
+    and closed_at is null;
+
 -- ── job embeddings ─────────────────────────────────────────────────
 -- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
@@ -126,12 +180,20 @@ alter table public.jobs add column if not exists embedding vector(1536);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
 
--- IVFFlat for cosine similarity. lists ≈ sqrt(rows); start at 100 and retune
--- once jobs > 100k. Build *after* the backfill — building empty is fine but
--- the planner picks better lists with real data.
-create index if not exists jobs_embedding_idx
-  on public.jobs using ivfflat (embedding vector_cosine_ops)
-  with (lists = 100);
+-- HNSW for cosine similarity. Picked over IVFFlat because:
+--   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
+--   - Latency: p99 ~5-20ms vs IVFFlat's ~30-100ms
+--   - No retuning as the table grows. IVFFlat's `lists` parameter
+--     wants to be ~sqrt(rows) — we'd have to REINDEX every time the
+--     row count doubled. HNSW has no equivalent knob to drift.
+--   - Same query syntax (`embedding <=> vector`); zero code change.
+--
+-- m=16 / ef_construction=64 are pgvector defaults — well-tuned for
+-- 1536-dim OpenAI embeddings at our scale. Bump them if recall ever
+-- looks low; they cost build time but not query time.
+create index if not exists jobs_embedding_hnsw_idx
+  on public.jobs using hnsw (embedding vector_cosine_ops)
+  with (m = 16, ef_construction = 64);
 
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
@@ -191,10 +253,18 @@ create trigger companies_updated_at before update on public.companies
 create or replace function public.invalidate_embedding_on_description_change()
 returns trigger as $$
 begin
+  -- When the description text changes, every derivative artifact has to
+  -- be regenerated: the LLM-extracted summary (so it reflects the new
+  -- description) AND the embedding (which would otherwise embed the
+  -- stale summary). Done in one trigger to keep the invariant atomic —
+  -- nothing else nulls these fields.
   if old.description is distinct from new.description then
     new.embedding := null;
     new.embedding_model := null;
     new.embedded_at := null;
+    new.description_summary := null;
+    new.description_summary_model := null;
+    new.description_summary_at := null;
   end if;
   return new;
 end;
