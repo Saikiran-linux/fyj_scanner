@@ -535,7 +535,10 @@ $$;
 -- Refresh cadence: driven by the scanner. scan.mjs calls
 -- f_refresh_totals_by_source() after each successful run, which is the
 -- only time the numbers actually change. No pg_cron dependency.
-create materialized view public.mv_jobs_totals_by_source as
+-- `if not exists` so the whole file is safe to re-run against an env
+-- where the MV was already created (Postgres 9.5+; we're on 17). Updates
+-- to the MV definition itself go via a migration that drops and recreates.
+create materialized view if not exists public.mv_jobs_totals_by_source as
 select
   c.ats as source,
   count(j.id)                                                                as total_jobs,
