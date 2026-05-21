@@ -17,7 +17,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { select, selectAll, insert, upsert, update } from './supabase-client.mjs';
+import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
 import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
@@ -520,6 +520,17 @@ await closeScan(SCAN_ID, 'ok', {
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
 console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
 console.log(`Per-source: ${sourceNotes}`);
+
+// Refresh the per-source totals MV that backs the dashboard. The live
+// aggregate over jobs is too slow for the authenticator's 8s timeout on a
+// cold cache, so we pre-compute. Totals only change when a scan finishes,
+// so this is the right cadence. Best-effort: a refresh failure here just
+// means the dashboard shows last scan's totals — not worth failing the run.
+try {
+  await rpc('f_refresh_totals_by_source');
+} catch (e) {
+  console.warn(`Totals refresh failed (non-fatal): ${e.message}`);
+}
 
 // ── helpers ────────────────────────────────────────────────────────
 

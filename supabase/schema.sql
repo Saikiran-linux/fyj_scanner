@@ -456,13 +456,16 @@ $$;
 -- Lifetime + trailing-window totals per source. One row per ats, even if the
 -- ats has zero jobs (left join from companies).
 --
--- count(j.id) — NOT count(j.*) — because count(record) forces Postgres to
--- materialise every column of the row (including TOASTed description text)
--- to evaluate "is the record null". On a 75k-row, 240MB-TOAST jobs table
--- that pushed the view past the 8s statement_timeout. count(j.id) only
--- touches the PK column. j.id is null only when the left join misses, so
--- the semantics are identical.
-create or replace view public.v_jobs_totals_by_source as
+-- Previously a plain view, but the live aggregate reads the full jobs heap
+-- (44MB / 76k rows) on cold cache, which exceeds authenticator's 8s
+-- statement_timeout after a DB restart and trips the dashboard with a 500
+-- (Postgres 57014). Pre-aggregating into a materialized view drops reads
+-- from ~700ms hot / >8s cold to ~0.1ms.
+--
+-- Refresh cadence: driven by the scanner. scan.mjs calls
+-- f_refresh_totals_by_source() after each successful run, which is the
+-- only time the numbers actually change. No pg_cron dependency.
+create materialized view public.mv_jobs_totals_by_source as
 select
   c.ats as source,
   count(j.id)                                                                as total_jobs,
@@ -474,6 +477,34 @@ from public.companies c
 left join public.jobs j on j.company_id = c.id
 group by c.ats
 order by c.ats;
+
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY requires a unique index.
+-- Concurrent refresh avoids the AccessExclusive lock that would block the
+-- dashboard mid-refresh.
+create unique index if not exists mv_jobs_totals_by_source_source_idx
+  on public.mv_jobs_totals_by_source (source);
+
+-- Thin alias so existing callers (status page, scripts) need no change.
+create or replace view public.v_jobs_totals_by_source as
+  select * from public.mv_jobs_totals_by_source;
+
+-- Refresh helper called from the scanner. Owner-run (security definer) with
+-- an inflated statement_timeout — REFRESH on a cold cache can take 5–10s,
+-- which exceeds authenticator's 8s default.
+create or replace function public.f_refresh_totals_by_source()
+returns void
+language plpgsql
+security definer
+set search_path = public
+set statement_timeout = '5min'
+as $$
+begin
+  refresh materialized view concurrently public.mv_jobs_totals_by_source;
+end
+$$;
+
+grant select on public.mv_jobs_totals_by_source to anon, authenticated, service_role;
+grant execute on function public.f_refresh_totals_by_source() to service_role;
 
 create or replace view public.v_active_jobs as
 select
