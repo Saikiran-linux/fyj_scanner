@@ -1,0 +1,197 @@
+/**
+ * LLM-extracted job-description summary, for the resume-matching pipeline
+ * and natural-language search.
+ *
+ * Why this exists: raw job descriptions are ~3-8KB of mostly company
+ * marketing, mission statements, and EEO boilerplate. Embedding them
+ * directly via text-embedding-3-small means the 1500-char window we
+ * reserve for description gets eaten by "About Us" and clips before
+ * the actual role specifics. This module asks gpt-4o-mini to extract
+ * a multi-field structured precis covering role, level, experience,
+ * required + preferred skills, team, industry, company stage, location,
+ * remote policy, compensation, benefits, visa, and schedule — every
+ * dimension a user might phrase a natural-language query around.
+ *
+ * The expanded field set vs. the original 4-line schema (Role/Skills/
+ * Experience/Industry) trades ~$0.0001 per posting for much broader
+ * query coverage: "remote senior backend at a fintech startup with equity
+ * and visa sponsorship" now has token-level matches against every clause.
+ *
+ * Cost: gpt-4o-mini at $0.15/M input + $0.60/M output tokens. A typical
+ * posting is ~750 input tokens, ~200 output tokens → ~$0.00023/job.
+ * 46k backfill ≈ $10.50; recurring scan cost ≈ $0.23 per 1000 new postings.
+ *
+ * Failures are non-fatal — the caller writes `description_summary_at`
+ * with whatever we got (text or null) and moves on. The embedder falls
+ * back to the raw description when summary is null, so coverage gaps
+ * just slightly degrade rather than break matching.
+ */
+
+import { update } from './supabase-client.mjs';
+
+export const SUMMARY_MODEL = 'gpt-4o-mini';
+
+// How long a description we'll feed to the model. gpt-4o-mini's context
+// is 128k tokens; we cap at 10000 chars (~2500 tokens) to keep cost
+// predictable. Slightly wider than the original 8000 because benefits /
+// visa / schedule sections often live in the back half of the posting,
+// and missing them shows up directly as "unknown" fields in the summary.
+const DESCRIPTION_INPUT_CAP = 10000;
+
+// Parallel chat-completions are the throughput knob (chat completions
+// have no batch endpoint like embeddings do). OpenAI's per-org limits
+// for gpt-4o-mini are generous — 10 in flight is well under tier-1.
+const SUMMARIZE_CONCURRENCY = 10;
+
+// Prompt is fixed and kept here (not in env) so the same input
+// deterministically produces the same summary across deploys. If we
+// change the prompt we should also bump a version marker and re-run
+// the backfill; today that's a manual operation.
+//
+// Format choice: `Key: value` lines, one per dimension. Each fact becomes
+// its own dense token group that the embedder associates cleanly —
+// short labeled phrases embed more efficiently than prose. Field set
+// is intentionally broad so natural-language queries like "remote senior
+// backend at a fintech startup with equity and visa sponsorship" have
+// token-level matches against every clause.
+//
+// What's NOT here: numeric comp filters (use jobs.comp_min/comp_max
+// columns — embeddings are bad at numeric ranges). The Compensation
+// field captures qualitative signal — equity, bonus, stated ranges —
+// only to help free-text queries like "jobs with equity."
+const SYSTEM_PROMPT = `You extract structured, search-friendly summaries from job postings.
+Reply with EXACTLY these labeled lines, in this order, no preamble, no markdown, no blank lines:
+
+Role: <one sentence on the actual day-to-day work>
+Level: <intern / junior / mid / senior / staff / principal / lead / manager / director / vp; note IC vs manager track if clear>
+Experience: <years of experience required, e.g. "5+ years"; "unknown" if not stated>
+Required skills: <8-15 comma-separated keywords — must-have technologies, languages, frameworks, tools, methodologies>
+Preferred skills: <comma-separated keywords for "nice to have" / "bonus" items; "unknown" if not stated>
+Team: <engineering / design / product / data / sales / marketing / operations / finance / legal / etc., plus team or function focus if mentioned>
+Industry: <product domain or vertical — e.g. fintech, healthcare, dev tools, AI/ML, e-commerce, climate, security, gaming, biotech>
+Company stage: <early-stage startup / scale-up / late-stage / public / enterprise / agency / unknown>
+Location: <primary city or region named in the posting; "remote" if no city is given>
+Remote policy: <remote / hybrid / onsite, plus geographic restrictions if stated (e.g. "US only", "EMEA timezone")>
+Compensation: <qualitative notes: explicit ranges if stated, equity, bonus, signing; "unknown" if absent>
+Benefits: <distinguishing perks worth searching for — equity, 401k match, healthcare, unlimited PTO, learning budget, parental leave, relocation, etc.; "unknown" if none mentioned>
+Visa: <sponsorship policy if stated — e.g. "sponsors H1B", "no sponsorship", "EU work auth required"; "unknown" if absent>
+Schedule: <full-time / part-time / contract / internship; default to "full-time" if not specified>
+
+Skip company marketing, mission statements, "about us" prose, and EEO/diversity boilerplate.
+If any field cannot be determined from the posting, write "unknown" for that value — never invent.`;
+
+export function isEnabled() {
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
+/**
+ * Summarise one description. Returns the summary text on success, null
+ * on any failure (rate-limit, parse error, content-filter). Always
+ * resolves — never throws.
+ *
+ * Caller is responsible for writing the result back; this function is
+ * pure aside from its OpenAI fetch.
+ */
+export async function summarizeText(description) {
+  if (!description) return null;
+  const trimmed = description.length > DESCRIPTION_INPUT_CAP
+    ? description.slice(0, DESCRIPTION_INPUT_CAP)
+    : description;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: SUMMARY_MODEL,
+        temperature: 0,
+        // 14 labeled lines at ~20-30 tokens each = ~300-400 output tokens.
+        // 500 leaves headroom for long Skills lines without truncation;
+        // we'd rather pay a fraction of a cent more than ship summaries
+        // that cut off mid-keyword-list.
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: trimmed },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`summarize ${res.status}: ${body.slice(0, 200)}`);
+      return null;
+    }
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content?.trim();
+    if (!text) return null;
+    // Sanity check: the model occasionally adds markdown fences or a
+    // preamble despite the system prompt. Strip leading ``` or whitespace.
+    return text.replace(/^```[a-z]*\n?|\n?```$/gi, '').trim() || null;
+  } catch (e) {
+    console.error(`summarize fetch error: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Summarise + persist a list of job rows. Each row needs { id, description }.
+ * Writes description_summary, description_summary_model, description_summary_at.
+ * Returns counts for logging.
+ *
+ * Concurrency: a fixed in-flight cap; rows finish in any order. PostgREST
+ * handles the parallel PATCHes fine. Failure of one row never blocks
+ * the rest of the batch.
+ */
+export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
+  let ok = 0;
+  let failed = 0;
+  let inputCharsSeen = 0;
+
+  // Simple sliding-window concurrency. We process jobs in chunks of
+  // SUMMARIZE_CONCURRENCY, awaiting each chunk before starting the
+  // next. Good enough for the scan-pass and backfill scenarios — the
+  // bottleneck is OpenAI latency, not Node scheduling.
+  for (let i = 0; i < jobs.length; i += SUMMARIZE_CONCURRENCY) {
+    const slice = jobs.slice(i, i + SUMMARIZE_CONCURRENCY);
+    await Promise.all(
+      slice.map(async (row) => {
+        inputCharsSeen += row.description?.length || 0;
+        const summary = await summarizeText(row.description);
+        const now = new Date().toISOString();
+        try {
+          // Always write description_summary_at so a permanently failing
+          // row doesn't keep getting picked as a candidate forever (the
+          // next-attempt logic in the backfill / scan pass relies on this).
+          await update(
+            'jobs',
+            { id: `eq.${row.id}` },
+            {
+              description_summary: summary,
+              description_summary_model: summary ? SUMMARY_MODEL : null,
+              description_summary_at: now,
+            },
+            { returning: 'minimal' },
+          );
+          if (summary) ok++;
+          else failed++;
+        } catch (e) {
+          console.error(`summary write failed for job ${row.id}: ${e.message}`);
+          failed++;
+        }
+      }),
+    );
+    if (onProgress) onProgress({ ok, failed, total: jobs.length });
+  }
+
+  // gpt-4o-mini: $0.15/M input + $0.60/M output. ~chars/4 for input token
+  // estimate; output is ~300 tokens per successful call with the expanded
+  // 14-field schema, so we add a per-success output term. Approximate but
+  // good enough for the log line ("how much did this run cost me").
+  const inputCostUsd = (inputCharsSeen / 4 / 1_000_000) * 0.15;
+  const outputCostUsd = (ok * 300 / 1_000_000) * 0.60;
+  const costEstimateUsd = inputCostUsd + outputCostUsd;
+  return { ok, failed, inputCharsSeen, costEstimateUsd };
+}

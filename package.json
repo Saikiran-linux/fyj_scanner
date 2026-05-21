@@ -10,7 +10,8 @@
     "load-companies": "node --env-file=.env src/seed-companies.mjs",
     "scan": "node --env-file=.env src/scan.mjs",
     "embed-backfill": "node --env-file=.env scripts/backfill-embeddings.mjs",
-    "backfill-descriptions": "node --env-file=.env scripts/backfill-descriptions.mjs"
+    "backfill-descriptions": "node --env-file=.env scripts/backfill-descriptions.mjs",
+    "backfill-summaries": "node --env-file=.env scripts/backfill-summaries.mjs"
   },
   "engines": {
     "node": ">=20.6"

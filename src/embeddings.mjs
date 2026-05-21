@@ -36,18 +36,127 @@ const DESCRIPTION_CHAR_LIMIT = 1500;
  * Build the text we embed for a job row. Kept deterministic so the same
  * row always produces the same input — important if we ever want to detect
  * "content changed, re-embed."
+ *
+ * Layout: title, then a single block of `Key: value` lines for the
+ * structured signals (seniority, workplace, compensation, employment
+ * type, department, location), then the description. Putting the
+ * structured signals BEFORE the truncated description matters — they're
+ * the most filter-relevant signals for resume matching, and the
+ * first-1500-chars cap on description often clips before hitting
+ * "Responsibilities" anyway.
+ *
+ * Why bother embedding fields we also filter on in SQL?
+ *   - A pure semantic search would miss "remote senior $200K backend" if
+ *     none of those tokens appear in title+description.
+ *   - Combining hard filters AND in-vector signal makes the ranking
+ *     within filtered results sharper (the embedding can prefer the
+ *     "actually remote remote" job over the "remote OK but office
+ *     preferred" one when both pass the boolean filter).
+ *   - It costs us nothing — these fields are ~50 tokens combined, well
+ *     within the budget the description truncation reserves.
  */
 export function buildJobText(job) {
   const parts = [job.title || ''];
-  if (job.department) parts.push(`Department: ${job.department}`);
-  if (job.location) parts.push(`Location: ${job.location}`);
-  if (job.description) {
+
+  // Structured-signal block. Each line is `Key: value` so the embedder
+  // can associate the label with the value (vs. a bare value floating
+  // in the text). Skip any field that's null/empty — the line itself
+  // would otherwise add a token without information.
+  const signals = [];
+  const seniority = extractSeniorityFromTitle(job.title);
+  if (seniority) signals.push(`Seniority: ${seniority}`);
+  if (job.remote) signals.push(`Workplace: ${job.remote}`);
+  const comp = formatCompForEmbedding(job);
+  if (comp) signals.push(`Compensation: ${comp}`);
+  if (job.employment_type) signals.push(`Employment type: ${job.employment_type}`);
+  if (job.department) signals.push(`Department: ${job.department}`);
+  if (job.location) signals.push(`Location: ${job.location}`);
+  if (signals.length) parts.push(signals.join('\n'));
+
+  // Prefer the LLM-extracted summary when present — it's a dense,
+  // structured 14-line precis (Role / Level / Experience / Required
+  // skills / Preferred skills / Team / Industry / Company stage /
+  // Location / Remote policy / Compensation / Benefits / Visa / Schedule)
+  // that embeds far better than the raw description's "About Us /
+  // mission / responsibilities" prose. Fall back to the truncated raw
+  // description for rows the summarisation pass hasn't reached yet.
+  // See src/summarize.mjs and the description_summary column in
+  // supabase/schema.sql.
+  if (job.description_summary) {
+    // Summaries are already short (~600-800 chars) and structured; no
+    // need to truncate. Embedding them verbatim preserves the labelled
+    // Key: value structure the prompt produced, which the embedder picks
+    // up on for query-side phrase matching.
+    parts.push(job.description_summary);
+  } else if (job.description) {
     const trimmed = job.description.length > DESCRIPTION_CHAR_LIMIT
       ? job.description.slice(0, DESCRIPTION_CHAR_LIMIT) + '…'
       : job.description;
     parts.push(trimmed);
   }
   return parts.join('\n\n');
+}
+
+/**
+ * Pull a seniority label out of a job title when one is obvious. Returns
+ * one of {'intern','junior','mid','senior','staff','principal','lead',
+ * 'director','vp'} or null. We only match standalone words to avoid
+ * false positives — "Junior Penetration Tester" hits, "Junior College
+ * Tutor" hits too but that's fine; "Major Account Executive" does NOT
+ * match "senior" just because "senior" appears in some account terms.
+ *
+ * Order matters: more-specific labels first (staff/principal beat
+ * senior; intern beats everything because intern roles often have
+ * "Engineer" too).
+ */
+export function extractSeniorityFromTitle(title) {
+  if (!title) return null;
+  const t = ` ${title.toLowerCase()} `;
+  if (/\b(intern|internship)\b/.test(t)) return 'intern';
+  if (/\b(vp|vice president)\b/.test(t)) return 'vp';
+  if (/\bdirector\b/.test(t)) return 'director';
+  if (/\bprincipal\b/.test(t)) return 'principal';
+  if (/\bstaff\b/.test(t)) return 'staff';
+  if (/\b(senior|sr\.?|snr\.?)\b/.test(t)) return 'senior';
+  if (/\blead\b/.test(t)) return 'lead';
+  if (/\b(junior|jr\.?)\b/.test(t)) return 'junior';
+  // "Mid-level" / "II" / "III" — leave alone; too noisy to infer reliably.
+  return null;
+}
+
+/**
+ * Format a compensation summary for the embedding. Prefer the structured
+ * min/max (which we can normalise across providers) but fall back to the
+ * raw text the provider shipped (`comp_text`) when min/max are missing —
+ * the model can still glean "around 150K" from "$140-160K total comp".
+ *
+ * Returns null when there's nothing useful to say. Keeps the format
+ * close to how a human would write it ("$160K – $220K /year") rather
+ * than a machine code dump, because the embedder is trained on prose.
+ */
+export function formatCompForEmbedding(job) {
+  const hasStructured = job.comp_min != null || job.comp_max != null;
+  if (!hasStructured) return job.comp_text || null;
+
+  const symbols = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  const sym = symbols[job.comp_currency] || '';
+  // For currencies we don't have a symbol for, prefix the 3-letter code
+  // once at the front instead of repeating it on each number.
+  const codePrefix = sym ? '' : (job.comp_currency ? `${job.comp_currency} ` : '');
+  const fmt = (n) => {
+    if (n == null) return '';
+    const num = n >= 1000 ? `${Math.round(n / 1000)}K` : String(Math.round(n));
+    // Symbol attaches to each number ("$180K – $240K" reads naturally);
+    // the 3-letter code is hoisted to a single prefix above.
+    return `${sym}${num}`;
+  };
+  const range = job.comp_min != null && job.comp_max != null && job.comp_min !== job.comp_max
+    ? `${fmt(job.comp_min)} – ${fmt(job.comp_max)}`
+    : fmt(job.comp_min ?? job.comp_max);
+
+  const intervalSuffix = job.comp_interval ? ` /${job.comp_interval}` : '';
+
+  return `${codePrefix}${range}${intervalSuffix}`;
 }
 
 /**
