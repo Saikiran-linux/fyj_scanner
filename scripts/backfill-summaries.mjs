@@ -13,8 +13,17 @@
  *
  * Or via npm:  npm run backfill-summaries
  *
- * Cost: ~$6.50 and ~30 minutes for 46k jobs (gpt-4o-mini, ~600 input
- * tokens per call, SUMMARIZE_CONCURRENCY=10 in flight at a time).
+ * Partial backfill (e.g. test on the latest 20k first):
+ *   BACKFILL_LIMIT=20000 npm run backfill-summaries
+ *
+ * Rows are processed newest-first (first_seen_at desc). A later unlimited
+ * run picks up everything that's still description_summary_at IS NULL, so
+ * cap-then-full-run is safe and resumable.
+ *
+ * Cost: ~$10.50 and ~30 minutes for 46k jobs at the expanded 14-field
+ * prompt (gpt-4o-mini, ~750 input + ~300 output tokens per call,
+ * SUMMARIZE_CONCURRENCY=10 in flight). Linear in row count, so the
+ * 20k smoke run is ~$4.50.
  *
  * After this completes you'll want to also re-run embeddings since the
  * embedding input (buildJobText) now reads description_summary in
@@ -29,7 +38,7 @@
  * change. The explicit reset just makes the upgrade happen immediately.
  */
 
-import { selectAll } from '../src/supabase-client.mjs';
+import { select } from '../src/supabase-client.mjs';
 import {
   isEnabled as summariesEnabled,
   summarizeAndPersistJobs,
@@ -40,21 +49,55 @@ if (!summariesEnabled()) {
   process.exit(1);
 }
 
-console.log('Loading active jobs without summaries...');
+// Optional cap for staged rollouts. Unset = pull every eligible row.
+const BACKFILL_LIMIT = process.env.BACKFILL_LIMIT
+  ? Number(process.env.BACKFILL_LIMIT)
+  : null;
+if (BACKFILL_LIMIT != null && (!Number.isFinite(BACKFILL_LIMIT) || BACKFILL_LIMIT <= 0)) {
+  console.error(`BACKFILL_LIMIT must be a positive integer, got ${process.env.BACKFILL_LIMIT}`);
+  process.exit(1);
+}
+
+console.log(
+  BACKFILL_LIMIT
+    ? `Loading up to ${BACKFILL_LIMIT.toLocaleString()} newest active jobs without summaries...`
+    : 'Loading active jobs without summaries...',
+);
 const startedAt = Date.now();
 
-// selectAll paginates past PostgREST's 1k limit. We only need id +
-// description; the writer fills in the rest.
-const rows = await selectAll('jobs', {
+// Hand-paginated so we can stop exactly at BACKFILL_LIMIT. selectAll
+// would fetch the entire result set before letting us cap it — wasteful
+// when prod has 46k candidates and we want a 20k smoke run. Ordered
+// first_seen_at desc so the cap picks the *newest* postings (most
+// relevant for matching real users right now). A later unlimited run
+// covers the rest, since description_summary_at stays null for every
+// untouched row.
+const PAGE_SIZE = 1000;
+const rows = [];
+const baseQuery = {
   description_summary: 'is.null',
   description: 'not.is.null',
   closed_at: 'is.null',
-  // Avoid re-attempting rows we already tried in a prior run that
-  // failed (the model returned nothing usable). Without this guard,
-  // each rerun would burn cost on the same permanently-failing rows.
+  // Skip rows the prior run already tried and failed on — without this,
+  // permanently-failing rows would keep burning API cost on every rerun.
   description_summary_at: 'is.null',
   select: 'id,description',
-});
+  order: 'first_seen_at.desc',
+};
+
+while (true) {
+  const remaining = BACKFILL_LIMIT == null ? PAGE_SIZE : BACKFILL_LIMIT - rows.length;
+  if (remaining <= 0) break;
+  const pageSize = Math.min(PAGE_SIZE, remaining);
+  const page = await select('jobs', {
+    ...baseQuery,
+    limit: String(pageSize),
+    offset: String(rows.length),
+  });
+  if (!Array.isArray(page) || page.length === 0) break;
+  rows.push(...page);
+  if (page.length < pageSize) break;
+}
 
 console.log(`Found ${rows.length} jobs to summarise`);
 if (rows.length === 0) {
