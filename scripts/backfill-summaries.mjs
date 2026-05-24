@@ -107,25 +107,41 @@ if (rows.length === 0) {
 
 let lastLog = 0;
 const stats = await summarizeAndPersistJobs(rows, {
-  onProgress: ({ ok, failed, total }) => {
+  onProgress: ({ ok, failed, transient, total }) => {
     const now = Date.now();
-    if (now - lastLog < 5_000 && ok + failed < total) return;
+    const done = ok + failed + transient;
+    if (now - lastLog < 5_000 && done < total) return;
     lastLog = now;
-    const pct = (((ok + failed) / total) * 100).toFixed(1);
+    const pct = ((done / total) * 100).toFixed(1);
     const elapsed = ((now - startedAt) / 1000).toFixed(0);
-    console.log(`  ${ok + failed}/${total} (${pct}%) — ${ok} ok, ${failed} failed, ${elapsed}s`);
+    console.log(
+      `  ${done}/${total} (${pct}%) — ${ok} ok, ${failed} perm fail, ` +
+      `${transient} transient (will retry), ${elapsed}s`,
+    );
   },
 });
 
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
 console.log('');
 console.log(`Done in ${elapsed}s`);
-console.log(`  Summarised: ${stats.ok}`);
-console.log(`  Failed:     ${stats.failed}`);
-console.log(`  Est cost:   $${stats.costEstimateUsd.toFixed(4)}`);
+console.log(`  Summarised:        ${stats.ok}`);
+console.log(`  Permanent fail:    ${stats.failed}`);
+console.log(`  Transient (retry): ${stats.transient}`);
+console.log(`  Est cost:          $${stats.costEstimateUsd.toFixed(4)}`);
 
+if (stats.transient > 0) {
+  console.log('');
+  console.log(
+    `${stats.transient} rows hit rate-limit / transient errors and were left ` +
+    `un-marked — rerun the script to retry them. Lower SUMMARIZE_CONCURRENCY ` +
+    `(currently uses default 5) if this keeps happening.`,
+  );
+  process.exit(2);
+}
 if (stats.failed > 0) {
   console.log('');
-  console.log('Some rows failed — rerun the script to retry them.');
-  process.exit(2);
+  console.log(
+    `${stats.failed} rows hit permanent failures (content filter, malformed ` +
+    `response). They've been marked done and will not be retried.`,
+  );
 }

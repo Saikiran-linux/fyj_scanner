@@ -14,6 +14,12 @@
  *
  * Or via npm:  npm run embed-backfill
  *
+ * Limit to rows that have an LLM summary (skip "never-embedded raw-only"
+ * jobs — useful for testing the summary-based embedding pipeline on a
+ * subset before committing to the full backfill):
+ *
+ *   EMBED_SUMMARIZED_ONLY=1 npm run embed-backfill
+ *
  * Costs ~$0.50 and takes ~10 minutes for ~30k jobs.
  */
 
@@ -28,18 +34,31 @@ if (!embeddingsEnabled()) {
   process.exit(1);
 }
 
-console.log('Loading active jobs without embeddings...');
+const SUMMARIZED_ONLY = /^(1|true|yes)$/i.test(process.env.EMBED_SUMMARIZED_ONLY || '');
+
+console.log(
+  SUMMARIZED_ONLY
+    ? 'Loading active jobs with a summary but no embedding...'
+    : 'Loading active jobs without embeddings...',
+);
 const startedAt = Date.now();
 
 // selectAll paginates past PostgREST's 1k limit. We only need the columns
 // the embedder reads — kept in sync with buildJobText() in src/embeddings.mjs.
-const rows = await selectAll('jobs', {
+const query = {
   embedding: 'is.null',
   closed_at: 'is.null',
   select: 'id,title,department,location,description,description_summary,'
     + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
     + 'remote,employment_type',
-});
+};
+if (SUMMARIZED_ONLY) {
+  // Excludes the ~60k rows that have never been touched by the summary
+  // pass yet — they'd otherwise be embedded with the raw-description
+  // fallback, which is fine but pollutes the eval comparison.
+  query.description_summary = 'not.is.null';
+}
+const rows = await selectAll('jobs', query);
 
 console.log(`Found ${rows.length} jobs to embed`);
 if (rows.length === 0) {

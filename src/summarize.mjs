@@ -39,9 +39,26 @@ export const SUMMARY_MODEL = 'gpt-4o-mini';
 const DESCRIPTION_INPUT_CAP = 10000;
 
 // Parallel chat-completions are the throughput knob (chat completions
-// have no batch endpoint like embeddings do). OpenAI's per-org limits
-// for gpt-4o-mini are generous — 10 in flight is well under tier-1.
-const SUMMARIZE_CONCURRENCY = 10;
+// have no batch endpoint like embeddings do). Default 5 is conservative
+// for tier-1 (500 RPM / 200k TPM on gpt-4o-mini); bump via env on higher
+// tiers. 10 was the previous default and bit us with 429s on a 20k
+// backfill — better to be slow than to retry storms.
+const SUMMARIZE_CONCURRENCY = Number(process.env.SUMMARIZE_CONCURRENCY || 5);
+
+// Retry policy for transient OpenAI failures (429 rate-limited, 5xx,
+// network blip). Each retry waits at least RETRY_BASE_MS * 2^attempt
+// with full jitter, OR `Retry-After` from the response, whichever is
+// longer. Permanent failures (4xx other than 429, content-filter) skip
+// retry and surface immediately so callers can mark the row "permanent
+// fail" and stop wasting API spend on it.
+const SUMMARIZE_MAX_ATTEMPTS = Number(process.env.SUMMARIZE_MAX_ATTEMPTS || 5);
+const SUMMARIZE_RETRY_BASE_MS = Number(process.env.SUMMARIZE_RETRY_BASE_MS || 1_000);
+
+// Returned from summarizeText to distinguish "tried and definitively
+// failed, mark the row as done so we don't try again" from "transient
+// error, leave description_summary_at null so the next run retries."
+export const TRANSIENT_FAILURE = Symbol('summarize.transient');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Prompt is fixed and kept here (not in env) so the same input
 // deterministically produces the same summary across deploys. If we
@@ -85,12 +102,16 @@ export function isEnabled() {
 }
 
 /**
- * Summarise one description. Returns the summary text on success, null
- * on any failure (rate-limit, parse error, content-filter). Always
- * resolves — never throws.
+ * Summarise one description. Returns:
+ *   string             — success, the summary text
+ *   null               — permanent failure (4xx other than 429, content
+ *                        filter, empty response). Caller should record
+ *                        the attempt so this row isn't retried forever.
+ *   TRANSIENT_FAILURE  — exhausted retries on transient errors (429,
+ *                        5xx, network). Caller should leave the row
+ *                        un-marked so the next run picks it up.
  *
- * Caller is responsible for writing the result back; this function is
- * pure aside from its OpenAI fetch.
+ * Always resolves — never throws.
  */
 export async function summarizeText(description) {
   if (!description) return null;
@@ -98,42 +119,85 @@ export async function summarizeText(description) {
     ? description.slice(0, DESCRIPTION_INPUT_CAP)
     : description;
 
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: SUMMARY_MODEL,
-        temperature: 0,
-        // 14 labeled lines at ~20-30 tokens each = ~300-400 output tokens.
-        // 500 leaves headroom for long Skills lines without truncation;
-        // we'd rather pay a fraction of a cent more than ship summaries
-        // that cut off mid-keyword-list.
-        max_tokens: 500,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: trimmed },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`summarize ${res.status}: ${body.slice(0, 200)}`);
-      return null;
+  let lastTransient = null;
+  for (let attempt = 1; attempt <= SUMMARIZE_MAX_ATTEMPTS; attempt++) {
+    let res;
+    try {
+      res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: SUMMARY_MODEL,
+          temperature: 0,
+          // 14 labeled lines at ~20-30 tokens each = ~300-400 output tokens.
+          // 500 leaves headroom for long Skills lines without truncation;
+          // we'd rather pay a fraction of a cent more than ship summaries
+          // that cut off mid-keyword-list.
+          max_tokens: 500,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: trimmed },
+          ],
+        }),
+      });
+    } catch (e) {
+      // Network errors (DNS, TCP reset, our-side abort) are transient.
+      lastTransient = `fetch ${e.message}`;
+      await backoff(attempt);
+      continue;
     }
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
-    if (!text) return null;
-    // Sanity check: the model occasionally adds markdown fences or a
-    // preamble despite the system prompt. Strip leading ``` or whitespace.
-    return text.replace(/^```[a-z]*\n?|\n?```$/gi, '').trim() || null;
-  } catch (e) {
-    console.error(`summarize fetch error: ${e.message}`);
+
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content?.trim();
+      if (!text) return null; // permanent — model returned nothing usable
+      // Strip stray markdown fences the model sometimes emits despite
+      // the system prompt.
+      return text.replace(/^```[a-z]*\n?|\n?```$/gi, '').trim() || null;
+    }
+
+    const body = await res.text();
+    // 429 = rate-limited. 5xx = OpenAI hiccup. Both transient.
+    if (res.status === 429 || res.status >= 500) {
+      lastTransient = `${res.status}: ${body.slice(0, 120)}`;
+      // Honour Retry-After when OpenAI specifies it; otherwise back off
+      // exponentially. Whichever is larger wins.
+      const retryAfter = parseRetryAfter(res.headers.get('retry-after'));
+      await backoff(attempt, retryAfter);
+      continue;
+    }
+
+    // 4xx other than 429: bad request, auth, content filter. Not
+    // retriable — log and mark this row done so we stop spending on it.
+    console.error(`summarize ${res.status}: ${body.slice(0, 200)}`);
     return null;
   }
+
+  console.error(`summarize exhausted ${SUMMARIZE_MAX_ATTEMPTS} attempts (${lastTransient}); will retry on next run`);
+  return TRANSIENT_FAILURE;
+}
+
+// retry-after may be either seconds (an integer) or an HTTP-date.
+// OpenAI emits seconds. Return milliseconds or null.
+function parseRetryAfter(header) {
+  if (!header) return null;
+  const sec = Number(header);
+  if (Number.isFinite(sec) && sec >= 0) return Math.ceil(sec * 1000);
+  const epoch = Date.parse(header);
+  if (Number.isFinite(epoch)) return Math.max(0, epoch - Date.now());
+  return null;
+}
+
+async function backoff(attempt, minMs = 0) {
+  // Exponential with full jitter: 0..base, 0..2*base, 0..4*base, …
+  // capped so attempt 5 isn't waiting a full minute.
+  const cap = SUMMARIZE_RETRY_BASE_MS * 2 ** (attempt - 1);
+  const jittered = Math.floor(Math.random() * cap);
+  const delay = Math.max(jittered, minMs || 0);
+  if (delay > 0) await sleep(delay);
 }
 
 /**
@@ -147,7 +211,8 @@ export async function summarizeText(description) {
  */
 export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
   let ok = 0;
-  let failed = 0;
+  let failed = 0;       // permanent failures — row marked done, won't retry
+  let transient = 0;    // 429/5xx exhausted retries — row left unmarked
   let inputCharsSeen = 0;
 
   // Simple sliding-window concurrency. We process jobs in chunks of
@@ -160,11 +225,23 @@ export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
       slice.map(async (row) => {
         inputCharsSeen += row.description?.length || 0;
         const summary = await summarizeText(row.description);
+
+        // Transient failure: don't touch the row. description_summary_at
+        // stays null, so the next backfill / scan pass picks it up. This
+        // is the only branch that skips the UPDATE.
+        if (summary === TRANSIENT_FAILURE) {
+          transient++;
+          return;
+        }
+
+        const isPermanentFail = summary === null;
         const now = new Date().toISOString();
         try {
-          // Always write description_summary_at so a permanently failing
-          // row doesn't keep getting picked as a candidate forever (the
-          // next-attempt logic in the backfill / scan pass relies on this).
+          // Mark the attempt so permanent-failure rows (content filter,
+          // empty response, etc.) aren't retried indefinitely. Successful
+          // rows obviously get description_summary set; permanent fails
+          // get description_summary_at without the actual summary so the
+          // backfill query (description_summary_at IS NULL) skips them.
           await update(
             'jobs',
             { id: `eq.${row.id}` },
@@ -176,14 +253,14 @@ export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
             { returning: 'minimal' },
           );
           if (summary) ok++;
-          else failed++;
+          else if (isPermanentFail) failed++;
         } catch (e) {
           console.error(`summary write failed for job ${row.id}: ${e.message}`);
           failed++;
         }
       }),
     );
-    if (onProgress) onProgress({ ok, failed, total: jobs.length });
+    if (onProgress) onProgress({ ok, failed, transient, total: jobs.length });
   }
 
   // gpt-4o-mini: $0.15/M input + $0.60/M output. ~chars/4 for input token
@@ -193,5 +270,5 @@ export async function summarizeAndPersistJobs(jobs, { onProgress } = {}) {
   const inputCostUsd = (inputCharsSeen / 4 / 1_000_000) * 0.15;
   const outputCostUsd = (ok * 300 / 1_000_000) * 0.60;
   const costEstimateUsd = inputCostUsd + outputCostUsd;
-  return { ok, failed, inputCharsSeen, costEstimateUsd };
+  return { ok, failed, transient, inputCharsSeen, costEstimateUsd };
 }

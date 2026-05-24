@@ -36,10 +36,16 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Optional. Enables the post-scan embedding pass that powers
-          # resume matching + NL search. Scanner skips embeddings silently
-          # if this secret isn't set.
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Scheduled scans intentionally skip the gpt-4o-mini summary and
+          # text-embedding-3-small passes — they cost real money per new
+          # posting and we already have ~10k JDs summarised + embedded,
+          # which is enough corpus for matching / NL-search experiments.
+          # Re-enable by removing this flag (and adding OPENAI_API_KEY back
+          # to the env) once the matching pipeline is proven and we want
+          # fresh listings flowing into the embedding index again. Until
+          # then, catch-up runs are manual: `npm run backfill-summaries`
+          # and `npm run embed-backfill` locally with the key in env.
+          SKIP_LLM_PASSES: '1'
           # Worker count. The prior SCAN_CONCURRENCY name was unused — the
           # code reads SCAN_WORKER_POOL — so the scan was silently running
           # at the default 25. Lowered to 10 because the choke point is the
