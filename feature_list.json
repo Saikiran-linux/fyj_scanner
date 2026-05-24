@@ -1,0 +1,256 @@
+{
+  "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
+  "schema_version": 1,
+  "updated_at": "2026-05-23",
+  "phases": {
+    "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
+    "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
+    "phase-3": "Per-user matching pipeline + inbox + daily digest",
+    "phase-4": "On-demand Sonnet A–G deep eval + multi-agent CV-tailor + tracker",
+    "phase-5": "Billing + feedback loop + polish",
+    "phase-6": "Growth instrumentation"
+  },
+  "statuses": {
+    "shipped": "Code merged + verified-deployed; evidence present.",
+    "in_progress": "Work started; partial evidence.",
+    "planned": "Designed, queued, not started.",
+    "blocked": "Cannot proceed without an upstream decision or external dependency.",
+    "deferred": "Explicitly decided not to do; reason recorded so we don't relitigate."
+  },
+  "features": [
+    {
+      "id": "f-001",
+      "title": "Per-source adaptive rate limiter with block-rate defence",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": ["src/rate-limiter.mjs", "src/scan.mjs", "scans.notes snapshot persists per scan"],
+      "verify": "select notes from public.scans order by started_at desc limit 1;",
+      "notes": "GH 10·0ms · Ashby 3·200ms · Lever 5·100ms · SR 3·100ms. Halves conc on >5% rolling block-rate."
+    },
+    {
+      "id": "f-002",
+      "title": "Per-source observability view",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": ["v_source_health_24h", "f_source_health(interval)", "supabase/dashboard-queries.sql query 0a"]
+    },
+    {
+      "id": "f-003",
+      "title": "Within-company dedup (fingerprint + view)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": ["src/fingerprint.mjs", "v_unique_active_jobs", "94.3% dedup ratio as of 2026-05-23"]
+    },
+    {
+      "id": "f-004",
+      "title": "Lifecycle: first_seen / last_seen / closed_at + reopens",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": ["src/scan.mjs close-sweep", "jobs.closed_at column"]
+    },
+    {
+      "id": "f-005",
+      "title": "GitHub Actions cron + manual dispatch + concurrency group",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": [".github/workflows/scan.yml", "38 scans in last 7 days"]
+    },
+    {
+      "id": "f-006",
+      "title": "Description fetch pass (SmartRecruiters per-job, capped 500/scan)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "shipped",
+      "evidence": ["src/providers.mjs fetchDescription", "59,872 / 70,518 active jobs have descriptions"]
+    },
+    {
+      "id": "f-007",
+      "title": "LLM summary pass (gpt-4o-mini, 14-field schema)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "evidence": ["src/summarize.mjs", "10,582 / 70,518 active jobs summarised (15.0%)"],
+      "next": "Drain backlog via `npm run backfill-summaries` (~$14, 25 min). Cron has SKIP_LLM_PASSES=1.",
+      "verify": "select count(*) filter (where description_summary is not null) from jobs where closed_at is null;"
+    },
+    {
+      "id": "f-008",
+      "title": "Embedding pass (text-embedding-3-small, 1536d) + HNSW",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "evidence": ["src/embeddings.mjs", "jobs.embedding column", "11,197 / 70,518 active jobs embedded (15.9%)"],
+      "verify": "select count(*) filter (where embedding is not null) from jobs where closed_at is null;"
+    },
+    {
+      "id": "f-009",
+      "title": "Resume → 14-field summary → embedding → cosine match RPC",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["scripts/embed-resume.mjs", "scripts/call-match.mjs", "public.match_resume(vector,int) RPC"],
+      "notes": "Symmetric to the JD embedding path. Pulled 30 matches in the 0.74–0.80 cosine band on first run."
+    },
+    {
+      "id": "f-010",
+      "title": "Read-only status-page (Next.js admin dashboard)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["status-page/app/page.jsx", "status-page/app/scans/", "status-page/app/jobs/", "status-page/app/companies/", "status-page/app/charts/"]
+    },
+    {
+      "id": "f-011",
+      "title": "System architecture diagram",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["docs/architecture.excalidraw — sections A through G"]
+    },
+    {
+      "id": "f-012",
+      "title": "Adopt walking-labs harness layout",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["CLAUDE.md", "init.sh (9/9 pass)", "claude-progress.md", "feature_list.json (this file)", "docs/session-handoff.md", "docs/clean-state-checklist.md", "docs/evaluator-rubric.md", "docs/quality-document.md"]
+    },
+
+    {
+      "id": "f-101",
+      "title": "Greenhouse 404 recovery (slug-drift heuristic)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run because the slug drifted (e.g. `notion` → `notion-labs`).",
+      "scope": "Try 2–3 slug variants, rewrite companies row if a variant succeeds.",
+      "touches": ["src/recover-greenhouse-slugs.mjs (new)"]
+    },
+    {
+      "id": "f-102",
+      "title": "Expand slug pool beyond HN Algolia",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "current": "2,465 slugs (Greenhouse 883 · Lever 1217 · Ashby 350 · SR 15) + YC workatastartup added.",
+      "next": "GitHub raw README search; curated SmartRecruiters bootstrap list.",
+      "touches": ["seed/scrape-github.mjs (new)", "data/slugs-*.json"]
+    },
+    {
+      "id": "f-103",
+      "title": "Persist limiter snapshot to structured column",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Add scans.source_metrics jsonb, parse limiter output from notes once stable, graph block-rate over time.",
+      "touches": ["supabase/schema.sql", "src/scan.mjs"]
+    },
+    {
+      "id": "f-104",
+      "title": "Workday adapter",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Biggest unsupported ATS by enterprise share. JSON API at /wday/cxs/{tenant}/{site}/jobs but URL pattern isn't uniform — needs per-tenant config.",
+      "touches": ["src/providers.mjs", "new slug source"]
+    },
+    {
+      "id": "f-105",
+      "title": "Title filter at query time (views, not scan time)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "rationale": "Store everything; filter in SQL views so different users can apply different filters without re-scanning.",
+      "touches": ["supabase/schema.sql", "supabase/dashboard-queries.sql"]
+    },
+
+    {
+      "id": "f-201",
+      "title": "Auth + onboarding + aha moment",
+      "phase": "phase-2",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["Clerk account", "decision: Supabase Auth vs Clerk"],
+      "scope": "Sign in → CV upload (LLM extract) → targets (LLM expands) → sliders → live SQL filter shows 10 matches in <5 s. See HOSTED_PLATFORM_PLAN.md Phase 2."
+    },
+    {
+      "id": "f-301",
+      "title": "Per-user daily matching (SQL filter → Haiku triage → matches table → digest)",
+      "phase": "phase-3",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Inngest fan-out per user. ~$0.005/eval Haiku triage with cached system prompt. Resend daily digest at user-configured time."
+    },
+    {
+      "id": "f-401",
+      "title": "On-demand Sonnet A–G deep evaluation",
+      "phase": "phase-4",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "User clicks 'evaluate' → full A–G report (~$0.15 with prompt caching) → writes reports row."
+    },
+    {
+      "id": "f-402",
+      "title": "Multi-agent CV-tailor pipeline",
+      "phase": "phase-4",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Planner (Sonnet) → 4 parallel writers (Promise.all) → assembled draft → Haiku ATS audit → Sonnet polisher → markdown → Browserless PDF. 7 LLM calls · ~$0.08 per CV. See docs/architecture.excalidraw § D."
+    },
+    {
+      "id": "f-403",
+      "title": "Applications tracker (kanban)",
+      "phase": "phase-4",
+      "priority": "P2",
+      "status": "planned",
+      "scope": "applications table + Next.js /tracker page; statuses from templates/states.yml."
+    },
+    {
+      "id": "f-404",
+      "title": "Apply flow v1 (deep-link to ATS)",
+      "phase": "phase-4",
+      "priority": "P2",
+      "status": "planned",
+      "scope": "Mark applications.status='applied'; surface tailored PDF + cover for copy-paste."
+    },
+
+    {
+      "id": "f-901",
+      "title": "Cross-company dedup (parent/subsidiary)",
+      "phase": "phase-1",
+      "priority": "P2",
+      "status": "deferred",
+      "reason": "Needs entity resolution on company names + a company_group table. Defer until query 5 (top employers) actually shows obvious dupes in week-1 data."
+    },
+    {
+      "id": "f-902",
+      "title": "Workable adapter",
+      "phase": "phase-1",
+      "priority": "P2",
+      "status": "deferred",
+      "reason": "No public JSON API; needs Playwright HTML-scrape (fragile + dep). Viability test was 0/104 success. Revisit if high-value Workable companies become priority."
+    },
+    {
+      "id": "f-903",
+      "title": "Title filtering at scan time",
+      "phase": "phase-1",
+      "priority": "P2",
+      "status": "deferred",
+      "reason": "Would force everyone to share one filter and lose data. Filter at query time instead (see f-105)."
+    },
+    {
+      "id": "f-904",
+      "title": "Vacuum old probe_results",
+      "phase": "phase-1",
+      "priority": "P2",
+      "status": "planned",
+      "trigger": "probe_results > 500k rows. At 4 scans/day × 3k companies ≈ 12k/day = 4.4M/year if unbounded.",
+      "scope": "Keep last 90 days, archive the rest via SQL function."
+    }
+  ]
+}
