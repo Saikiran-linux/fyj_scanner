@@ -458,9 +458,15 @@ try {
 // description), so this pass MUST run before the embedding pass — otherwise
 // the embedder uses stale or absent summaries.
 //
-// Capped per run by SCAN_SUMMARY_CAP. Skipped if OPENAI_API_KEY isn't set.
+// Capped per run by SCAN_SUMMARY_CAP. Skipped if OPENAI_API_KEY isn't set,
+// or if SKIP_LLM_PASSES is truthy (workflow opt-out for cost reasons —
+// we already have ~10k summarised + embedded for the matching experiments,
+// so the scheduled cron only needs to track new/closed jobs; the LLM
+// catch-up can be run manually via the backfill scripts when needed).
 let summaryStats = null;
-if (summariesEnabled()) {
+if (process.env.SKIP_LLM_PASSES) {
+  console.log('Skipping summarisation pass (SKIP_LLM_PASSES set)');
+} else if (summariesEnabled()) {
   try {
     const candidates = await select('jobs', {
       description_summary: 'is.null',
@@ -494,7 +500,9 @@ if (summariesEnabled()) {
 // Non-fatal: failures here don't affect scan status. Next scan will pick up
 // whatever was missed.
 let embedStats = null;
-if (embeddingsEnabled()) {
+if (process.env.SKIP_LLM_PASSES) {
+  console.log('Skipping embedding pass (SKIP_LLM_PASSES set)');
+} else if (embeddingsEnabled()) {
   try {
     const missing = await selectAll('jobs', {
       embedding: 'is.null',
@@ -591,14 +599,25 @@ async function openScan() {
 }
 
 async function closeScan(id, status, fields) {
-  await update(
-    'scans',
-    { id: `eq.${id}` },
-    {
-      status,
-      ended_at: new Date().toISOString(),
-      ...fields,
-    },
-    { returning: 'minimal' },
-  );
+  // Best-effort: the scan work is already done by the time we reach here.
+  // If Supabase is mid-outage (we've seen sustained Cloudflare 521s), the
+  // request layer already retried 4x — crashing the workflow over the final
+  // status write just turns a transient infra blip into a red run for work
+  // that actually completed. Worst case if this write is lost: the row stays
+  // at status='running' until a manual cleanup or until the next scan, which
+  // is far less bad than failing the run.
+  try {
+    await update(
+      'scans',
+      { id: `eq.${id}` },
+      {
+        status,
+        ended_at: new Date().toISOString(),
+        ...fields,
+      },
+      { returning: 'minimal' },
+    );
+  } catch (e) {
+    console.warn(`closeScan failed (non-fatal): ${e.message}`);
+  }
 }

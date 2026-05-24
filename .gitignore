@@ -6,3 +6,7 @@ node_modules/
 .DS_Store
 data/probe-results.jsonl
 data/last-scan-state.json
+
+# Session-scratch artefacts (embedding dumps, match results, ad-hoc SQL).
+# Anything in scripts/ prefixed with _ is throwaway; named scripts are tracked.
+scripts/_*

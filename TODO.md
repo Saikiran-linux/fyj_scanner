@@ -1,5 +1,8 @@
 # fyj_scanner — TODO
 
+> ⚠️ **Superseded by [`feature_list.json`](feature_list.json) as of 2026-05-23.**
+> All items below have been migrated. Update `feature_list.json` instead — it's the structured source of truth the agent reads. This file will be deleted after one more session.
+
 Forward-looking work. Done items live in git history, not here.
 
 Format: `[priority] title — why · what it touches`
