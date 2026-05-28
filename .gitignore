@@ -10,3 +10,9 @@ data/last-scan-state.json
 # Session-scratch artefacts (embedding dumps, match results, ad-hoc SQL).
 # Anything in scripts/ prefixed with _ is throwaway; named scripts are tracked.
 scripts/_*
+
+# Tailor outputs and fixtures — generated resumes contain PII and per-job
+# drafts shouldn't churn the repo. Underscore-prefixed files are local
+# fixtures (master resumes, JD samples); the rest are generator outputs.
+output/tailored/
+output/rendered/
