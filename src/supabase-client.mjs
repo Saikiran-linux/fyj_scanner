@@ -130,19 +130,22 @@ export async function select(table, query = {}) {
  * a bare select() truncates silently. Pass `pageSize` to override the chunk
  * size; defaults to 1,000 which is the upstream cap.
  */
-export async function selectAll(table, query = {}, { pageSize = 1000 } = {}) {
+export async function selectAll(table, query = {}, { pageSize = 1000, maxRows = Infinity } = {}) {
   const all = [];
   let offset = 0;
   // PostgREST honours `limit` and `offset` query params; the server still
-  // applies its own max-rows ceiling per request, so we paginate.
-  while (true) {
+  // applies its own max-rows ceiling per request, so we paginate. A caller's
+  // own `limit` in `query` is ignored here (we own that param for paging) —
+  // use the `maxRows` option to cap the total number of rows returned.
+  while (all.length < maxRows) {
+    const want = Math.min(pageSize, maxRows - all.length);
     const page = await request('GET', `/${table}`, {
-      query: { ...query, limit: String(pageSize), offset: String(offset) },
+      query: { ...query, limit: String(want), offset: String(offset) },
     });
     if (!Array.isArray(page) || page.length === 0) break;
     all.push(...page);
-    if (page.length < pageSize) break;
-    offset += pageSize;
+    if (page.length < want) break;
+    offset += page.length;
   }
   return all;
 }

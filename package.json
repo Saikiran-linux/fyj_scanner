@@ -13,7 +13,8 @@
     "backfill-descriptions": "node --env-file=.env scripts/backfill-descriptions.mjs",
     "backfill-summaries": "node --env-file=.env scripts/backfill-summaries.mjs",
     "tailor": "node --env-file=.env scripts/tailor-resume.mjs",
-    "render": "node scripts/render-resume.mjs"
+    "render": "node scripts/render-resume.mjs",
+    "ab-test": "node --env-file=.env scripts/abembeddingtest.mjs"
   },
   "engines": {
     "node": ">=20.6"
