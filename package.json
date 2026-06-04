@@ -8,6 +8,7 @@
     "scrape-slugs": "node --env-file=.env seed/scrape-hn.mjs",
     "build-seeds": "node --env-file=.env seed/build-seeds.mjs",
     "load-companies": "node --env-file=.env src/seed-companies.mjs",
+    "recover-greenhouse": "node --env-file=.env src/recover-greenhouse-slugs.mjs",
     "scan": "node --env-file=.env src/scan.mjs",
     "embed-backfill": "node --env-file=.env scripts/backfill-embeddings.mjs",
     "backfill-descriptions": "node --env-file=.env scripts/backfill-descriptions.mjs",

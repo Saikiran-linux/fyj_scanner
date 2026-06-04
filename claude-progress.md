@@ -6,6 +6,22 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-04 · f-101 Greenhouse 404 recovery — coverage reclaim (cross-ATS + slug-drift)
+
+**Goal**: reclaim the 518 Greenhouse companies sitting `enabled=false` with a `404` last_error — coverage we already discovered but can no longer reach.
+
+**What changed**
+
+- New `src/recover-greenhouse-slugs.mjs` (+ `npm run recover-greenhouse`). Per disabled+404 Greenhouse company it tries, highest-confidence first: (1) re-verify the current slug → re-enable in place; (2) **cross-ATS** — probe Ashby/Lever/SR with the *same* slug (ATS migration) → rewrite `ats`+`slug`; (3) 2–3 same-ATS slug variants (suffix append/strip, hyphen collapse) → rewrite `slug`. First live, non-empty board wins. Never overwrites an `(ats,slug)` another row owns; supports `--dry-run`, `--limit`, `--include-all`, `--no-cross-ats`, `--no-variants`; writes `data/recover-greenhouse-report.json` for audit.
+
+**Key finding (empirical, live 40-row sample)**: the f-101 premise ("slug drift, e.g. `notion`→`notion-labs`") is **wrong for this pool** — `notion-labs` 404s too, and suffix-variants recovered **0/40**. The real recoverable pattern is **cross-ATS migration: 6/40 (15%)**, all Greenhouse→Ashby (Strava, Osmo, Mutiny, Fig, LatchBio, Benevity — live companies that switched ATS). Across 518 disabled rows that projects to ~75 companies / ~1k jobs reclaimed. The other ~85% are mostly dead/acquired companies — correctly left disabled rather than mis-pointed.
+
+**Verified**: candidate query returns 518 rows (`execute_sql` on prod `mwcpoaefmggapztkxakp`); cross-ATS recovery measured live (15%); variant generator + `resolved()` unit-checked; `node --check` clean. **NOT run end-to-end** — no `.env` creds in this session, so the assembled script (which reads/writes via `supabase-client.mjs`) hasn't been executed. It uses the same helpers + update shape as `src/scan.mjs`/`seed-companies.mjs`.
+
+**Next**: with `.env` set, `npm run recover-greenhouse -- --dry-run`, review the report JSON, then run live; re-scan to pull the reclaimed boards. Then continue f-102 (slug-pool expansion).
+
+---
+
 ## 2026-06-04 · Embedding-strategy A/B + reranker evaluation (test-only, nothing in prod path)
 
 **What changed**

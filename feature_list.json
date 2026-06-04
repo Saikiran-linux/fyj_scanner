@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-05-23",
+  "updated_at": "2026-06-04",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -123,13 +123,16 @@
 
     {
       "id": "f-101",
-      "title": "Greenhouse 404 recovery (slug-drift heuristic)",
+      "title": "Greenhouse 404 recovery (cross-ATS + slug-drift)",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "planned",
-      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run because the slug drifted (e.g. `notion` → `notion-labs`).",
-      "scope": "Try 2–3 slug variants, rewrite companies row if a variant succeeds.",
-      "touches": ["src/recover-greenhouse-slugs.mjs (new)"]
+      "status": "in_progress",
+      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run; 518 Greenhouse companies now sit disabled with a 404 last_error.",
+      "scope": "src/recover-greenhouse-slugs.mjs: re-verify base slug, probe Ashby/Lever/SR with the same slug (ATS migration), then 2–3 same-ATS slug variants; rewrite the companies row on the first live non-empty board. Never overwrites an (ats,slug) another row owns; writes data/recover-greenhouse-report.json.",
+      "touches": ["src/recover-greenhouse-slugs.mjs (new)", "package.json (recover-greenhouse script)"],
+      "finding": "Suffix slug-drift (notion→notion-labs) recovers ~0% of the aged disabled pool — notion-labs 404s too. Cross-ATS migration (same slug, Greenhouse→Ashby) recovers ~15% on a 40-row live sample (Strava, Osmo, Mutiny, Fig, LatchBio, Benevity). So the script leads with cross-ATS. Remaining ~85% are mostly dead/acquired companies, left disabled.",
+      "next": "Run `npm run recover-greenhouse -- --dry-run` against prod (needs .env), review data/recover-greenhouse-report.json, then run live. ~518 candidates; est. ~75 recoverable / ~1k jobs.",
+      "verify": "select count(*) from public.companies where ats='greenhouse' and enabled=false and last_error ilike '%404%';"
     },
     {
       "id": "f-102",
