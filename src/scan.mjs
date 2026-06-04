@@ -18,7 +18,7 @@
 
 import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
-import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES } from './providers.mjs';
+import { fetchJobs, fetchJobDescription, fetchJobPosting, hasDescriptionFetcher, hasDetailFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
@@ -431,7 +431,13 @@ try {
         if (!ats || !slug) continue;
         descStats.attempted++;
         try {
-          const res = await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
+          // Use the richer per-job fetch where available (SmartRecruiters): the
+          // same detail request that yields the description also carries comp /
+          // remote / department / employment_type, which the listing omits.
+          // Other providers fall back to the description-only path.
+          const res = hasDetailFetcher(ats)
+            ? await fetchJobPosting(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter })
+            : await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
           if (!res.ok) {
             descStats.failed++;
             continue;
@@ -440,15 +446,21 @@ try {
           // as an attempt — write description_fetched_at so we don't keep
           // retrying forever. Actual text remains null. We also write
           // description_hash so the next scan's hash-compare sees a match
-          // and doesn't re-PATCH the same row.
+          // and doesn't re-PATCH the same row. Structured detail fields (when
+          // present) are written alongside, but only when non-null so we never
+          // clobber good data with a null.
+          const patch = {
+            description: res.description ?? null,
+            description_hash: describeHash(res.description ?? null),
+            description_fetched_at: new Date().toISOString(),
+          };
+          for (const [k, v] of Object.entries(res.fields || {})) {
+            if (v != null) patch[k] = v;
+          }
           await update(
             'jobs',
             { id: `eq.${row.id}` },
-            {
-              description: res.description ?? null,
-              description_hash: describeHash(res.description ?? null),
-              description_fetched_at: new Date().toISOString(),
-            },
+            patch,
             { returning: 'minimal' },
           );
           descStats.ok++;
