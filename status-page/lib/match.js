@@ -18,6 +18,11 @@ const RERANK_MODEL = process.env.RERANK_MODEL || 'gpt-4o-mini';
 const CANDIDATES = Number(process.env.MATCH_CANDIDATES || 40);
 const TOPK = Number(process.env.MATCH_TOPK || 15);
 const RERANK_CONCURRENCY = Number(process.env.RERANK_CONCURRENCY || 6);
+// When a location filter is active we over-fetch a larger cosine pool and
+// filter in JS before reranking, so the final top-K are all in-scope without
+// pushing a WHERE into the (filtered-ANN-tricky) vector RPC.
+const RETRIEVE_POOL = Number(process.env.MATCH_RETRIEVE_POOL || 250);
+const REMOTE_VALUES = new Set(['remote', 'hybrid', 'onsite']);
 
 function openaiKey() {
   const k = process.env.OPENAI_API_KEY;
@@ -134,21 +139,45 @@ function toMatch(c) {
   };
 }
 
+// Normalise the optional location filter from the request.
+function cleanFilter({ remote, location } = {}) {
+  const r = REMOTE_VALUES.has(remote) ? remote : null;
+  const loc = typeof location === 'string' ? location.trim().slice(0, 80) : '';
+  return { remote: r, location: loc || null };
+}
+
+function passesFilter(job, filter) {
+  if (filter.remote && job.remote !== filter.remote) return false;
+  if (filter.location && !(job.location || '').toLowerCase().includes(filter.location.toLowerCase())) return false;
+  return true;
+}
+
 /**
- * Full pipeline: résumé text → JD precis → embed → cosine retrieve → rerank.
- * Returns { title, matches, reranked, retrieved, tookMs }.
+ * Full pipeline: résumé text → JD precis → embed → cosine retrieve → (filter) →
+ * rerank. `opts.remote` ∈ {remote,hybrid,onsite} and `opts.location` (substring,
+ * case-insensitive) are optional. Returns
+ * { title, matches, reranked, retrieved, filter, poolMatched, tookMs }.
  */
-export async function matchResume(resumeRaw) {
+export async function matchResume(resumeRaw, opts = {}) {
   if (!resumeRaw || resumeRaw.trim().length < 30) {
     throw new Error('Could not read enough résumé text. Try another file or paste the text.');
   }
+  const filter = cleanFilter(opts);
+  const hasFilter = Boolean(filter.remote || filter.location);
   const t0 = Date.now();
   const { jdText, title } = await resumeToJd(resumeRaw);
   const resumeVec = await embed(jdText);
 
-  // Stage 1 — cosine retrieve (HNSW). supabase pgRpc throws on PGRST002; the
-  // schema cache is warm in steady state so a one-off cold start is the only risk.
-  const candidates = await pgRpc('match_resume_candidates', { resume_vec: resumeVec, match_count: CANDIDATES });
+  // Stage 1 — cosine retrieve (HNSW). Over-fetch a wider pool when filtering so
+  // enough in-scope jobs survive to fill the rerank shortlist. pgRpc throws on
+  // PGRST002 (cold schema cache) — warm in steady state.
+  const retrieveCount = hasFilter ? RETRIEVE_POOL : CANDIDATES;
+  const retrieved = await pgRpc('match_resume_candidates', { resume_vec: resumeVec, match_count: retrieveCount });
+
+  // Apply the location filter, then keep the closest CANDIDATES for reranking
+  // (retrieved is already cosine-ordered, so slice preserves nearest-first).
+  const inScope = hasFilter ? retrieved.filter((j) => passesFilter(j, filter)) : retrieved;
+  const candidates = inScope.slice(0, CANDIDATES);
 
   // Stage 2 — rerank by LLM fit, sort desc, failures sink via cosine tiebreak.
   const scores = await mapPool(candidates, (j) => fitScore(jdText, j), RERANK_CONCURRENCY);
@@ -158,7 +187,9 @@ export async function matchResume(resumeRaw) {
   return {
     title,
     reranked: true,
-    retrieved: candidates.length,
+    retrieved: retrieved.length,
+    filter,
+    poolMatched: inScope.length, // how many of `retrieved` passed the filter
     tookMs: Date.now() - t0,
     matches: reranked.slice(0, TOPK).map(toMatch),
   };

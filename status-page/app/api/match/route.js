@@ -10,10 +10,14 @@ const MAX_BODY = 1_000_000; // 1 MB of résumé text is plenty
 
 export async function POST(req) {
   let resumeText = '';
+  let remote, location;
   try {
     const body = await req.text();
     if (body.length > MAX_BODY) return Response.json({ error: 'Payload too large' }, { status: 413 });
-    resumeText = (JSON.parse(body).resumeText || '').toString();
+    const parsed = JSON.parse(body);
+    resumeText = (parsed.resumeText || '').toString();
+    remote = parsed.remote;       // 'remote' | 'hybrid' | 'onsite' | undefined
+    location = parsed.location;   // free-text substring
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
@@ -24,7 +28,7 @@ export async function POST(req) {
     return Response.json({ error: 'Server missing OPENAI_API_KEY — set it to enable matching.' }, { status: 503 });
   }
   try {
-    const result = await matchResume(resumeText);
+    const result = await matchResume(resumeText, { remote, location });
     return Response.json(result);
   } catch (e) {
     console.error('match error:', e.message);
