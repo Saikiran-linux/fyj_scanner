@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-05-23",
+  "updated_at": "2026-06-04",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -123,13 +123,16 @@
 
     {
       "id": "f-101",
-      "title": "Greenhouse 404 recovery (slug-drift heuristic)",
+      "title": "Greenhouse 404 recovery (cross-ATS + slug-drift)",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "planned",
-      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run because the slug drifted (e.g. `notion` → `notion-labs`).",
-      "scope": "Try 2–3 slug variants, rewrite companies row if a variant succeeds.",
-      "touches": ["src/recover-greenhouse-slugs.mjs (new)"]
+      "status": "shipped",
+      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run; 518 Greenhouse companies sat disabled with a 404 last_error.",
+      "scope": "src/recover-greenhouse-slugs.mjs: re-verify base slug, probe Ashby/Lever/SR with the same slug (ATS migration), then 2–3 same-ATS slug variants; rewrite the companies row on the first live non-empty board. Never overwrites an (ats,slug) another row owns; writes data/recover-greenhouse-report.json.",
+      "touches": ["src/recover-greenhouse-slugs.mjs (new)", "package.json (recover-greenhouse script)", ".gitignore"],
+      "finding": "Suffix slug-drift (notion→notion-labs) recovered 0/518 — notion-labs 404s too. Cross-ATS migration (same slug, mostly Greenhouse→Ashby) is the real pattern: 65/518 (12.5%) reclaimed, ~807 jobs. Remaining 453 are mostly dead/acquired companies, left disabled.",
+      "evidence": ["Live run 2026-06-04: 65 companies re-enabled (58 ashby · 4 lever · 3 SR), 807 jobs. gh disabled-404 518→453. Collision guard left greenhouse/notion disabled (ashby/notion already covered)."],
+      "verify": "select count(*) from public.companies where ats='greenhouse' and enabled=false and last_error ilike '%404%';"
     },
     {
       "id": "f-102",
@@ -137,9 +140,10 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "current": "2,465 slugs (Greenhouse 883 · Lever 1217 · Ashby 350 · SR 15) + YC workatastartup added.",
-      "next": "GitHub raw README search; curated SmartRecruiters bootstrap list.",
-      "touches": ["seed/scrape-github.mjs (new)", "data/slugs-*.json"]
+      "current": "Slug files: Greenhouse 883 · Lever 1217 · Ashby 350 · SmartRecruiters 558 (was 15). DB SR tenants 18 → 561 enabled (companies total 4,622 → 5,165), loaded 2026-06-04.",
+      "finding": "SmartRecruiters has a public, unauthenticated job-search API (jobs.smartrecruiters.com/sr-jobs/search) returning company.identifier — the exact postings-API slug. Read SR's own index instead of a static curated list: 543 new slugs in 45s, all self-verifying (live postings today). Sample probe 24/25 live, 1.8k jobs, 0% block. Better than the planned 'curated bootstrap'. grep.app (auth-free GitHub index) is now behind a security checkpoint, and REST code-search needs a token — so the GitHub path is token-gated.",
+      "next": "Run scrape-github with a GITHUB_TOKEN to harvest GH/Lever/Ashby slugs from code-search (curated-raw mode runs token-free but is low-yield). Consider similar public-search discovery for other ATSes. Next scan folds the 543 new SR tenants (~tens of k jobs) into the index.",
+      "touches": ["seed/lib.mjs (new, shared extractors+merge)", "seed/scrape-smartrecruiters.mjs (new, run+loaded)", "seed/scrape-github.mjs (new, token-gated)", "package.json", "data/slugs-smartrecruiters.json"]
     },
     {
       "id": "f-103",

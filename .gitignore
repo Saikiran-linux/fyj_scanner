@@ -6,6 +6,9 @@ node_modules/
 .DS_Store
 data/probe-results.jsonl
 data/last-scan-state.json
+# Per-run audit artefact from src/recover-greenhouse-slugs.mjs (timestamped,
+# regenerated every run — like a log, not source data).
+data/recover-greenhouse-report.json
 
 # Session-scratch artefacts (embedding dumps, match results, ad-hoc SQL).
 # Anything in scripts/ prefixed with _ is throwaway; named scripts are tracked.
