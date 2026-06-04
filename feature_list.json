@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-05-23",
+  "updated_at": "2026-06-04",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -93,8 +93,8 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "shipped",
-      "evidence": ["scripts/embed-resume.mjs", "scripts/call-match.mjs", "public.match_resume(vector,int) RPC"],
-      "notes": "Symmetric to the JD embedding path. Pulled 30 matches in the 0.74–0.80 cosine band on first run."
+      "evidence": ["scripts/embed-resume.mjs", "scripts/call-match.mjs", "public.match_resume(vector,int) RPC", "src/match-resume.mjs", "public.match_resume_candidates RPC"],
+      "notes": "Symmetric to the JD embedding path. Pulled 30 matches in the 0.74–0.80 cosine band on first run. Cosine ranking is now the stage-1 recall layer beneath the two-stage reranker (f-302); match_resume_candidates returns id+description_summary for the reranker to score."
     },
     {
       "id": "f-010",
@@ -176,7 +176,35 @@
       "priority": "P1",
       "status": "planned",
       "depends_on": ["Clerk account", "decision: Supabase Auth vs Clerk"],
-      "scope": "Sign in → CV upload (LLM extract) → targets (LLM expands) → sliders → live SQL filter shows 10 matches in <5 s. See HOSTED_PLATFORM_PLAN.md Phase 2."
+      "scope": "Sign in → CV upload (LLM extract) → targets (LLM expands) → sliders → live SQL filter shows 10 matches in <5 s. See HOSTED_PLATFORM_PLAN.md Phase 2.",
+      "notes": "Early aha-moment slice (résumé upload → matches) already shipped without auth — see f-202. Remaining: auth, persisting CV/targets, sliders."
+    },
+    {
+      "id": "f-202",
+      "title": "Résumé-upload matching UI in the dashboard (/matches)",
+      "phase": "phase-2",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["status-page/app/matches/page.jsx", "status-page/components/ResumeMatcher.jsx", "status-page/app/api/match/route.js", "status-page/lib/match.js", "deployed: fyj-scanner.vercel.app/matches"],
+      "notes": "Drag-drop PDF résumé (parsed in-browser via pdf.js → only text sent) → résumé→JD precis → embed → two-stage matcher (f-302) → ranked results with fit score + apply links. Self-contained lib/match.js because the app deploys to Vercel with root=status-page (can't import repo src/ — keep in sync). Live-verified end-to-end. Early, auth-less slice of f-201."
+    },
+    {
+      "id": "f-203",
+      "title": "Location filter + smarter geo matching",
+      "phase": "phase-2",
+      "priority": "P2",
+      "status": "shipped",
+      "evidence": ["status-page/lib/geo.js (20-case unit test)", "status-page/lib/match.js over-fetch+filter", "migration match_resume_candidates_raise_ef_search"],
+      "notes": "Location-contains + workplace (remote/hybrid/onsite) controls on /matches. geo.js normalises state name⇄USPS abbrev, country synonyms, and country⇒its-states (so 'United States' matches 'Dallas, TX' / 'Remote (US)'); short tokens match on word boundaries. Filter over-fetches a ~250 cosine pool before rerank — required making match_resume_candidates plpgsql and raising hnsw.ef_search (default 40 silently capped limit 250)."
+    },
+    {
+      "id": "f-204",
+      "title": "Protect the public /api/match endpoint",
+      "phase": "phase-2",
+      "priority": "P1",
+      "status": "blocked",
+      "reason": "Open decision: shared-secret header vs Vercel Deployment Protection. /api/match spends OpenAI tokens per call and is currently unauthenticated.",
+      "touches": ["status-page/app/api/match/route.js"]
     },
     {
       "id": "f-301",
@@ -184,7 +212,27 @@
       "phase": "phase-3",
       "priority": "P1",
       "status": "planned",
-      "scope": "Inngest fan-out per user. ~$0.005/eval Haiku triage with cached system prompt. Resend daily digest at user-configured time."
+      "scope": "Inngest fan-out per user. ~$0.005/eval Haiku triage with cached system prompt. Resend daily digest at user-configured time.",
+      "notes": "The per-match ranker this phase needs is already built and validated — see f-302 (pointwise gpt-4o-mini rerank). Remaining: Inngest fan-out, matches table, Resend digest."
+    },
+    {
+      "id": "f-302",
+      "title": "Two-stage matcher: cosine retrieve → gpt-4o-mini pointwise rerank",
+      "phase": "phase-3",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["src/rerank.mjs", "src/match-resume.mjs", "public.match_resume_candidates RPC", "status-page/lib/match.js", "docs/matching-benchmark.md"],
+      "notes": "Bake-off winner (f-303). Over-fetch cosine candidates (40–50) then score each résumé↔job fit 0–100 with gpt-4o-mini and reorder. Non-fatal (falls back to cosine on failure / RERANK_ENABLED=0). vs raw cosine: +10.9 meanFit@10, +30 pts recall@10. ~$0.005/query, query-time only. Deployed live behind /matches.",
+      "verify": "POST fyj-scanner.vercel.app/api/match { resumeText } → reranked top-15"
+    },
+    {
+      "id": "f-303",
+      "title": "Match-quality baseline / method bake-off",
+      "phase": "phase-3",
+      "priority": "P1",
+      "status": "shipped",
+      "evidence": ["docs/matching-benchmark.md", "scripts/matching-bench.mjs", "scripts/embedding-experiments.mjs", "scripts/reranker-test.mjs"],
+      "notes": "HOSTED_PLATFORM_PLAN Phase 0.4. 10 methods × 3 resumes, graded by an independent gpt-5.1+gpt-5.2 ensemble oracle (inter-judge ρ=0.879). Pointwise LLM rerank wins; cheap gpt-4o-mini ties gpt-4.1; 3-large, field-chunking, and listwise rerank all underperform; lexical skill-overlap is the strongest non-LLM signal (→ candidate hybrid-retrieval feed, deferred). Also fixed a selectAll limit bug (~46× cost) found en route."
     },
     {
       "id": "f-401",
