@@ -11,6 +11,7 @@
  */
 
 import { pgRpc } from './supabase';
+import { locationMatches } from './geo';
 
 const EMBED_MODEL = 'text-embedding-3-small';
 const SUMMARY_MODEL = process.env.RESUME_JD_MODEL || 'gpt-4o-mini';
@@ -148,7 +149,7 @@ function cleanFilter({ remote, location } = {}) {
 
 function passesFilter(job, filter) {
   if (filter.remote && job.remote !== filter.remote) return false;
-  if (filter.location && !(job.location || '').toLowerCase().includes(filter.location.toLowerCase())) return false;
+  if (filter.location && !locationMatches(job.location, filter.location)) return false;
   return true;
 }
 
