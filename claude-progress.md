@@ -6,6 +6,31 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-04 · Job links + field enrichment (SR url fix, desc-cap fix, comp/remote/dept)
+
+Follow-on to the f-101/f-102 coverage work — making the newly-expanded SmartRecruiters rows actually usable.
+
+**Bugs fixed**
+
+- **SR job url pointed at the API, not the apply page** (`src/providers.mjs`). Listing's `ref` is `api.smartrecruiters.com/...` (renders as raw JSON). The listing has no applyUrl/postingUrl, so construct `jobs.smartrecruiters.com/{identifier}/{id}` (verified 200; the `careers.*` host 302s the bare id to the company landing page). Backfilled all **35,216** existing SR rows in prod; spot-checks resolve 200.
+- **Description pass looped forever** (`scripts/backfill-descriptions.mjs`, `src/scan.mjs`). Candidate query filtered `description is null` but not `description_fetched_at`, so postings the provider returns with no description text were re-selected every page — the backfill `while`-loop never terminated (74k "attempted" vs a 34k backlog, churning ~148 persistent-null rows for hours). Added `description_fetched_at is null`. Verified: backfill now exits in 2s once drained.
+- **Ashby comp_min/max always null** (`src/providers.mjs`). Read `salaryComp.value.*` but the numbers live directly on the component (`salaryComp.minValue/maxValue/currencyCode`); `comp_text` worked (tierSummary) so the gap was silent. Fixed; verified 109/111 on a live board.
+
+**Enhancements**
+
+- **Description-fetch cap** raised 500 → 3,000 default, env-configurable, `=0` unbounded, and now paginates via `selectAll` (a single `select` silently capped at 1,000). Fits the cron's 30-min budget. `scripts/backfill-descriptions.mjs` now uses a limiter-governed worker pool (~3× faster).
+- **SR detail extraction** (`src/providers.mjs`): `fetchDetail()` + limiter-aware `fetchJobPosting()` pull comp / remote (onsite·hybrid·remote) / department / employment_type / location from the per-job detail endpoint (the listing omits them). The scan's per-job pass now writes these for new detail-capable jobs (non-null only). `scripts/backfill-enrichment.mjs` (+ `npm run backfill-enrichment`) fills existing rows: `--ats=smartrecruiters` (detail, resumable via `remote is null`), `--ats=ashby|lever` (re-parse listing).
+
+**Verified state (prod)**
+
+- Ashby enrichment: **10,142 rows updated in 159s, 0 fail, 0% block** — comp_min now on **4,321 / 10,137** (rest publish none).
+- SR detail enrichment: **running** (~32k candidates, ~5–6/s, ETA ~100 min). First attempt was killed by a session/container boundary at row 8 (no code error) and **restarted**; resumable. Pre-run SR coverage: remote 2.7k, comp 5, dept 22.8k → expect remote ~100% (onsite fallback), comp ~18%, dept higher after the pass.
+- Data availability ceilings (honest): Greenhouse exposes neither comp nor employment_type structurally (skipped per decision); Lever comp only where the source provides it (~13%, already extracted).
+
+**Next**: confirm the SR enrichment finished (re-run `npm run backfill-enrichment -- --ats=smartrecruiters` if the container recycled — it resumes). Same service-role-key rotation reminder stands.
+
+---
+
 ## 2026-06-04 · f-102 slug-pool expansion — SmartRecruiters 18 → 561 tenants
 
 **Goal**: grow scan coverage by expanding the slug pool. SmartRecruiters was the badly under-seeded source (15 slugs).
