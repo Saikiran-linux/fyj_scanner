@@ -6,7 +6,7 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
-## 2026-06-04 · Embedding-strategy A/B + reranker evaluation (test-only, nothing in prod path)
+## 2026-06-04 · Matching bake-off → two-stage reranker → résumé-match UI + geo filter (shipped to prod)
 
 **What changed**
 
@@ -38,11 +38,16 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 **Location filter** (added to `/matches`): "Location contains" + Workplace (remote/hybrid/onsite) controls. Applied by over-fetching a wider cosine pool (≈250) and filtering in app code before rerank. Required fixing the **HNSW `ef_search` cap** — the index only explores `ef_search` (default 40) candidates, silently capping `limit 250` at 40, so `match_resume_candidates` is now plpgsql and raises `ef_search` to `match_count` via `set_config(...,is_local=true)` (migration `match_resume_candidates_raise_ef_search` + comp_min/max `::integer` cast fix). Verified: US filter over-fetches 241, returns US-only top-15.
 
+**Smarter geo** (`status-page/lib/geo.js`): the location filter no longer does a naïve substring. `locationMatches()` normalises the query — US-state full-name⇄USPS-abbrev ("Texas"⇄"TX"), country synonyms ("US"/"USA"/"United States"/"America"), and **country⇒its states** (so "United States" matches "Dallas, TX" and "Remote (US)"). Short tokens ("tx", "us", "uk") match on word boundaries so "us" can't hit "campus". Unit-tested (20 tricky cases incl. negatives like Indianapolis≠Indiana-abbrev, Toronto≠US); `next build` green.
+
+**Deployed to prod** (Vercel): the dashboard (with `/matches` + geo filter) is live at **fyj-scanner.vercel.app/matches**. Supabase RPC changes were already applied to prod earlier in the session; OpenAI key set in Vercel env. Verified live end-to-end against prod — résumé upload → reranked top-15, and the US/remote filters return in-scope results. ⚠️ `/api/match` is currently unauthenticated (spends OpenAI tokens per call) — relying on Vercel Deployment Protection unless we add a shared-secret guard (open question with the user).
+
 **Next**
 
-- Live smoke `npm run match` once a valid `OPENAI_API_KEY` is in `.env`.
+- Decide protection for the public token-spending `/api/match` endpoint (shared-secret header vs Vercel Deployment Protection).
+- Keep `status-page/lib/match.js` in sync with the canonical `src/` matcher (intentional duplication for the Vercel root=`status-page` deploy).
 - Optional: lexical/hybrid retrieval feed (rec. #2 in the benchmark doc) to raise stage-1 recall.
-- Rotate the Supabase service-role + OpenAI keys shared during this session (OpenAI one already appears rotated).
+- Rotate the Supabase service-role + OpenAI keys shared during this session.
 
 ---
 
