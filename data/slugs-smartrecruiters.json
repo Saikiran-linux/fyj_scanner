@@ -1,5 +1,2675 @@
 [
   {
+    "slug": "KIPP",
+    "hits": 912,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BoschGroup",
+    "hits": 383,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Expeditors",
+    "hits": 250,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UncommonSchools",
+    "hits": 173,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PTGoldenLogistikJayaindo",
+    "hits": 150,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Redcare-Pharmacy",
+    "hits": 140,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PilotCompany",
+    "hits": 132,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SampoernaSchoolsSystem",
+    "hits": 121,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UmdaschGroup",
+    "hits": 120,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Dominos",
+    "hits": 118,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Eurofins",
+    "hits": 115,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NielsenIQ",
+    "hits": 111,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EBreuningerGmbHCo",
+    "hits": 90,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AECOM2",
+    "hits": 84,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AccorHotel",
+    "hits": 82,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NorthwesternMedicine",
+    "hits": 79,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AlphabeInsightInc",
+    "hits": 76,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SGS",
+    "hits": 72,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PublicStorage",
+    "hits": 63,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TurnerTownsend",
+    "hits": 62,
+    "latestYear": 2026
+  },
+  {
+    "slug": "REXEL1",
+    "hits": 57,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Keenfinity",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheWarehouseGroup1",
+    "hits": 53,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeliveryHero",
+    "hits": 52,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Magellan",
+    "hits": 48,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VeoliaEnvironnementSA",
+    "hits": 46,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SikaAG",
+    "hits": 46,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Continental",
+    "hits": 45,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SopraSteria1",
+    "hits": 45,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RRDonnelley",
+    "hits": 45,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Catch22",
+    "hits": 45,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AlpadiaLanguageSchoolsSA",
+    "hits": 45,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Securitas",
+    "hits": 43,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ALTEN",
+    "hits": 36,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HRDpt",
+    "hits": 36,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LegalAndGeneral",
+    "hits": 35,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ASSYSTEM",
+    "hits": 35,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Aumovio",
+    "hits": 35,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JYSK",
+    "hits": 35,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SyncreonConsulting",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PortmanDentex",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AHRCNYC1",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HSMC1",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "COVEA1",
+    "hits": 33,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DPDGroupUK1",
+    "hits": 33,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheWonderfulCompany",
+    "hits": 33,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NBCUniversal3",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DOCO1",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GriffithUniversity",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sia",
+    "hits": 31,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Aspect2",
+    "hits": 31,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Auto1",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ThaliaBcherGmbH1",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Krombacher",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SchnelleckeLogistics",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Wiegel",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WAREMARenkhoffSE",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EgisGroup",
+    "hits": 26,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SmithsGroup2",
+    "hits": 25,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AdlerAllan1",
+    "hits": 25,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Talan",
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RenesasElectronics",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheWardLawGroupPL",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ServiceNow",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JobsForHumanity",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GhobashGroup",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InternationalSOSGovernmentMedicalServices",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LinkedIn3",
+    "hits": 21,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Evolution",
+    "hits": 21,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IQEQ",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ColliersInternationalEMEA",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WSHGroup",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ScalableGmbH",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PSICRO",
+    "hits": 19,
+    "latestYear": 2026
+  },
+  {
+    "slug": "METROMAKRO",
+    "hits": 19,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SWARCO",
+    "hits": 19,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Bosch-HomeComfort",
+    "hits": 18,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SonicAutomotive",
+    "hits": 18,
+    "latestYear": 2026
+  },
+  {
+    "slug": "QIMA",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KPMGNederland",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ramboll3",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HMGroup",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AllegisGlobalSolutions",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ChristianBrothersAutomotive",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheracareINC",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StandardBankGroup",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AveryDennison",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeAngeloContractingServices",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JobMobz1",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TBCBANK",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EVERIENCE",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Quadient1",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Experian",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SIXT",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Boulanger",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "smartrecruiters",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ForrestJohnson",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AlHudaInternationalSchool1",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CampCuriosity",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HearingAndSpeechCenterOfFlorida",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AntonPaar1",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ArtemedSE",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VitosgGmbH",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CipMarketingGmbH1",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "REWEInternationalDienstleistungsgesellschaftmbH",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IMSNanofabricationGmbH",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AIRCommunities",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BDO4",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NationalVision1",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SeniorLifestyle1",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AFRY",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MAZARS",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WellmarkInc",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IFS1",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MUFGInvestorServices",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GroupementMousquetaires",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GreeneKing",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KanadeviaInova",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KnobelsdorffEnterprises",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SyngentaGroup",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Artelia",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LouisDreyfusCompany",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AllCareTherapies",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FrasersGroup",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MinorInternational",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Dungarvin",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ALTEREA",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Miratech1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Endava",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Version1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SMABTP",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Equus",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Devoteam",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LEONI1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VTekisConsultingLLP",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Klick1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AubergeCollection",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StratasFoods",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CulinaGroup1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cielo2",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Trupanion1",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Socotec",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AllianceAnimalHealth",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GreencrossPetWellnessCompany",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MonarchCommunities",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GroupementMousquetaires3",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RelaisChateaux",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BESIX",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Rydge",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Konecranes",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Scalian",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "OceanaGold",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Inetum2",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Nexthink",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Wise",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Grab",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Wavestone1",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BarmeniaGothaerAG",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Dexterra",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InformaGroupPlc",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RHG",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WestgateResorts",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RTE1",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EnviriCorporation",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Coface",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LendiGroup1",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Vattenfall",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ergomed",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "OUTsurance",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AbacusTechnologyCorporation",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Covista",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Septeo",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SigmaSoftware2",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cint",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AccorCorpo",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CapTechConsulting",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Rituals1",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Versant3",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Nagarro1",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "techo-bloc",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SYNTEGON",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "APF-Entreprises",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NAVANTIAUK",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sandisk",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MicroStrategy1",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PAConsulting",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ABOUTYOUGmbH",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeutscheTelekomITSolutionsSlovakia",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeutscheTelekomITSolutions",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JackLinksProteinSnacks",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RedBull",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CaliforniaClosets",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InlandEmpirePaperCo",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UKAtomicEnergyAuthority",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SaludFamilyHealthCenters",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Walmart30",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NatixisInPortugal",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CRB",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WNSGlobalServices144",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Lely1",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Bet3651",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MattelInc",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RaisingCanes",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VuoriInc",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Vericast",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SWGroup",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ENERTRAG",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Entain",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AFCA",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AceTate",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WesternDigital",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sodexo",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WJCompany",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Nemera",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Stannah1",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EndeavourGroupCareers",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MotelOne",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FortuneBrands",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EPSA",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AristaNetworks",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Medfar",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Rotork1",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SISLEY",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VAMSystems",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Tilencia",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InPost",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LGCGroup",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ContactEnergy",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SyscoGB",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TAL",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TurnitinLLC",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WynnResorts",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RedWingShoeCompany",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Spie-batignolles",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ingrop",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RadiusLimited",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BSInternational",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NewEnglandDonorServices",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Deloitte6",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IntegratedDermatology",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DEINDENTALEDG",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KingAndMoffatt",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ThePanaroGroup",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CityCountyHealthcareGroupLtd",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Blend360",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PhillyTechCo",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Dashlabsai",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Mirantis",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TMSLLC",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "epiktet",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RentokilInitial1",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Gameloft",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MaxMaraFashionGroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HRConnectLimited",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AudemarsPiguet",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NEXTON",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PortsmouthHospitalsUniversityNHSTrust",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EVORIEL",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ocorian",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CirrusAssetManagement",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "somfygroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AmrefHealthAfrica4",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Flywire1",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SMCP",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Intuitive",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InternationalDairyQueen",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BUT2",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UnitedInfrastructure",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LVMHPerfumesCosmetics",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SNV",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StreamRealty",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Brightspeed",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ForTecMedical2",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HomeInsteadCare",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MedHealth3",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WorldwideTechServices",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ChristianLivingCommunities",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CRDCareersIndependentRecruiters",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sirtex",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SwissMedicalNetwork1",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MeridianEnergy1",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TessenderloGroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Comoto",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TechnicAtome",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IOTAGROUP",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CERN",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EnprotechCorp",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LARCStaffing",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Netatmo",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DevIQ",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WabashValleyPowerAlliance",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IPTGlobal",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Autodoc3",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ARHS",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IngramContentGroup1",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "InterIKEAGroup",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RVAllgemeineVersicherungenAG",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sobi",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ArchGlobalServicesPhilippinesInc",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Heimstaden",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KPN",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Playtech",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AccessibleSpaceInc",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Equinox",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DecipheraPharmaceuticals1",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SeniorResourceGroupLLC",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PriviaHealth",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Freshworks",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UnitekLearning",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Primark",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "North40Outfitters",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ERICBOMPARD",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KIABI",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Courir",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DigitalVirgo",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HanaGroup",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JACOBSDOUWEEGBERTS",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DrReddysLaboratoriesLimited",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UtilityWarehouse1",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "IkanoRetail",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheUniversityOfAuckland",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Kronospan",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CieloProjects",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Lesaffre",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "UnitedFranchiseGroup",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CliffordChance",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sutherland",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AspenSkiingCompany",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AsburyCommunities",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StrategicHRInc",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JobTeaser",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Summerset1",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GroupeHospitalierParisSaintJoseph",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "OruhowaitoHeTongHuiShe",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NorthCargoZhuShiHuiShe",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZhuShiHuiSheFFL",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HeTongHuiSheAXIA",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HeTongHuiSheYingWeiQiHua",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bew",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ApexCleanEnergy",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "OGEGmbH1",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ColiseeFrance",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ArthurGrandTechnologiesInc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KMSTechnology1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GarageHeadquarters",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Travoom",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GTT",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DataIntellect",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RPIConsultants",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Wijin",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Dailymotion",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BTranz",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Bigin",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BlueOptima",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AstroscaleUS",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Conforama",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PramiraInc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NazarbayevUniversity1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeltaElectronics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Salomon",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CityofPhiladelphia",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EntCreditUnion1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AJBell1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SEEK",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HECParisInQatar",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wgc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TheTileShop1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Labelium",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Aviko",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SQLI1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "REPAGROUP",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SilfabSolar",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ApplaudoStudios",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TeklysiumInc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BauschStroebel",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CHECK24",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cosun2",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ubisoft2",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MontamoGmbH",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EWIWorldwide",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BlueScope",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DeepBlueCompany",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VusionGroupSA",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ReportersCommitteeForFreedomOfThePress",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Avaloq1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Altisource",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Santen",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Colliers1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "M3USA",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SynergyRecruitment1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KittitasValleyHealthcare",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DENTEGO",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Brainlab",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EVERSANA1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Epworth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BMWDealerCareers",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BCTechPro",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SOCOTECUKIreland",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PSLogistics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZhuShiHuiSheSANTA",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZhuShiHuiSheDayOne",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Trigo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Accor",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FacilityPerformanceConsultingLimited",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PactGroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WilliamsRacing",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MATHoldings",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TelefonicaTech",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Firstgas",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Gen4Dental",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CarePartners1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "natureO",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EOSFrance",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "EDF-UK",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BryceTech",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Believe",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Xplor",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cuscal1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Nearmap",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KaufmanBroad",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CITECH",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JohnSnowLabs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Sportradar",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "JSHeldLLC",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Hiflylabs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "NECSWS",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HillstoneRestaurantGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Fastmarkets",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KeywordsStudios",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GalileoLearning",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LongbridgeFinancial",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ALTAREA",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ASOS",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AVIVGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PRT",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cricut",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GenomicsEngland",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SMAC1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RESPECInc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CoffmanEngineersInc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BenCo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ib-vogt-GmbH",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Octopus1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HitachiSolutions",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BlancasSandovalAssociatesPA",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FRPAdvisory",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DuttonAutomotive",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HedrickGardnerKincheloeGarofaloLLC",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ConstanterPhilanthropyServices",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WAM",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZooplusSE",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Evooq",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Vosker",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ExpertInstitute",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "KOSTALGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ayming",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BabbleCloud",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StrerSECoKGaAStrerGruppe",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Unit44",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ProntoMarketing",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MassayaCo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MyHRLLC",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "LenmarConsultingInc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ApplusIDIADA1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PlaytoLabs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "RecruitmentLoop",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Talent3",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "TransitionalCareManagement",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "medmix",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Treace",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HumanCapitalCR",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HUG",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HumanEquation",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Techtrueup1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HolyCrossHospital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DoctorsMemorialHospital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Pyrotek3",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GohfrInc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "DYYLTD",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GDKNCorp",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ALDIStores",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "SeaToSummitPtyLtd",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZhuShiHuiSheAMURIEjp",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ZhuShiHuiShePassionMonster",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CooperAutoGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VillaGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Groupe-Gardinier",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ADVENS",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MoorSouthPIERManagementCoLP",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "WDGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BlueAlly",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Locinox",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StaubliGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BOCCARD",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MasterBrandCabinetsLLC",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AngloAmericanDeBeersGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PilmicoFoodsCorporation",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BekumGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Veilant",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ValeoFoods",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FlintStudio",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AbuseRefugeOrg",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "HarleyTherapy",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Montu",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "McArthurGlenUKLtd1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Colliers",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ballantynes",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "AmaliTech",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ReachPlc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "T-SystemsIberia",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "CystemsLogicInc1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "T-SystemsICTIndiaPvtLtd1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FusionConsulting",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Ollion",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Assent",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BuzzClanLLC",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ThePlace1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Swissquote",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "BankOfChinaLuxembourg",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "FinancialStaffingResourcesLtd",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PivotageConsulting",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Cermaticom",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "Kaelo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "GlobeMedGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "MitsubishiPowerEMEA",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "VivaEnergyAustralia",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "StreemEnergy",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "METGroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "PQ",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "prosidianconsulting",
+    "hits": 28,
+    "latestYear": 2025
+  },
+  {
+    "slug": "ManimaLogistikGmbH",
+    "hits": 15,
+    "latestYear": 2025
+  },
+  {
+    "slug": "Dev2",
+    "hits": 5,
+    "latestYear": 2023
+  },
+  {
+    "slug": "TrinitasHumanCapitalSolutions",
+    "hits": 1,
+    "latestYear": 2023
+  },
+  {
+    "slug": "PharmaCannis",
+    "hits": 2,
+    "latestYear": 2022
+  },
+  {
     "slug": "blablacar",
     "hits": 294,
     "latestYear": 2021
@@ -65,6 +2735,36 @@
     "latestYear": 2017
   },
   {
+    "slug": "IntegratedResourcesINC",
+    "hits": 8,
+    "latestYear": 2017
+  },
+  {
+    "slug": "Mindlance2",
+    "hits": 5,
+    "latestYear": 2017
+  },
+  {
+    "slug": "HealthcareSupportStaffing1",
+    "hits": 2,
+    "latestYear": 2017
+  },
+  {
+    "slug": "AskITConsulting",
+    "hits": 1,
+    "latestYear": 2017
+  },
+  {
+    "slug": "WebleeTechnologies",
+    "hits": 1,
+    "latestYear": 2017
+  },
+  {
+    "slug": "24-HourMedicalStaffingServicesLLC1",
+    "hits": 1,
+    "latestYear": 2017
+  },
+  {
     "slug": "ebatesinc",
     "hits": 96,
     "latestYear": 2016
@@ -72,6 +2772,21 @@
   {
     "slug": "hoopla",
     "hits": 48,
+    "latestYear": 2016
+  },
+  {
+    "slug": "ApexSystems3",
+    "hits": 6,
+    "latestYear": 2016
+  },
+  {
+    "slug": "dstaff",
+    "hits": 1,
+    "latestYear": 2016
+  },
+  {
+    "slug": "AxiumHealthcarePharmacyInc",
+    "hits": 1,
     "latestYear": 2016
   }
 ]

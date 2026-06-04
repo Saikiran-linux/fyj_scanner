@@ -140,9 +140,10 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "current": "2,465 slugs (Greenhouse 883 · Lever 1217 · Ashby 350 · SR 15) + YC workatastartup added.",
-      "next": "GitHub raw README search; curated SmartRecruiters bootstrap list.",
-      "touches": ["seed/scrape-github.mjs (new)", "data/slugs-*.json"]
+      "current": "Slug files: Greenhouse 883 · Lever 1217 · Ashby 350 · SmartRecruiters 558 (was 15). DB SR tenants 18 → 561 enabled (companies total 4,622 → 5,165), loaded 2026-06-04.",
+      "finding": "SmartRecruiters has a public, unauthenticated job-search API (jobs.smartrecruiters.com/sr-jobs/search) returning company.identifier — the exact postings-API slug. Read SR's own index instead of a static curated list: 543 new slugs in 45s, all self-verifying (live postings today). Sample probe 24/25 live, 1.8k jobs, 0% block. Better than the planned 'curated bootstrap'. grep.app (auth-free GitHub index) is now behind a security checkpoint, and REST code-search needs a token — so the GitHub path is token-gated.",
+      "next": "Run scrape-github with a GITHUB_TOKEN to harvest GH/Lever/Ashby slugs from code-search (curated-raw mode runs token-free but is low-yield). Consider similar public-search discovery for other ATSes. Next scan folds the 543 new SR tenants (~tens of k jobs) into the index.",
+      "touches": ["seed/lib.mjs (new, shared extractors+merge)", "seed/scrape-smartrecruiters.mjs (new, run+loaded)", "seed/scrape-github.mjs (new, token-gated)", "package.json", "data/slugs-smartrecruiters.json"]
     },
     {
       "id": "f-103",

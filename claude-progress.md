@@ -6,6 +6,26 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-04 · f-102 slug-pool expansion — SmartRecruiters 18 → 561 tenants
+
+**Goal**: grow scan coverage by expanding the slug pool. SmartRecruiters was the badly under-seeded source (15 slugs).
+
+**What changed**
+
+- `seed/lib.mjs` (new) — shared slug-discovery helpers: per-ATS host regexes (lifted from scrape-hn), the RESERVED path-segment set, `extractSlugs()`, and a non-destructive `mergeIntoSlugFile()` (union; sum hits, max latestYear). The other scrapers now reuse this.
+- `seed/scrape-smartrecruiters.mjs` (new, `npm run scrape-smartrecruiters`) — **discovers SR slugs via SR's own public job-search API** (`jobs.smartrecruiters.com/sr-jobs/search`), fanning across ~50 role/industry keywords. Each result's `company.identifier` *is* the postings-API slug, and every returned slug has live postings today (self-verifying). `--load` upserts discovered SR companies straight into Supabase (additive, SR-only, preserves `enabled`).
+- `seed/scrape-github.mjs` (new, `npm run scrape-github`) — GH/Lever/Ashby/SR slug harvest from GitHub. Token-gated code-search (high-yield, needs `GITHUB_TOKEN`) + an auth-free curated-raw fallback. **Not run** (no token this session; grep.app is now behind a security checkpoint so there's no auth-free GitHub index to lean on).
+
+**Verified (live, prod `mwcpoaefmggapztkxakp`)**
+
+- Discovery run: SR slug file **15 → 558 (+543)** in 45s. Sample probe of 25 random discovered slugs: **24 live + jobs, 1 empty, 0 fail, 1,777 jobs, 0% block-rate** (~71 jobs/tenant — SR tenants are big enterprises).
+- `--load` upsert: SR companies in DB **18 → 561 enabled**; companies total **4,622 → 5,165**. All SR rows enabled, none disabled.
+- Deliberately did NOT run build-seeds/load-companies: that re-INSERTs every greenhouse/lever/ashby slug from the slug files, which would resurrect the 65 dead Greenhouse rows f-101 just rewrote to another ATS. SR was loaded in isolation to avoid that regression.
+
+**Next**: next scan folds the 543 new SR tenants into the jobs index (potentially tens of thousands of jobs before dedup). Run `scrape-github` with a `GITHUB_TOKEN` for the GH/Lever/Ashby corpus. Same service-role-key rotation reminder as below still stands.
+
+---
+
 ## 2026-06-04 · f-101 Greenhouse 404 recovery — coverage reclaim (cross-ATS + slug-drift)
 
 **Goal**: reclaim the 518 Greenhouse companies sitting `enabled=false` with a `404` last_error — coverage we already discovered but can no longer reach.
