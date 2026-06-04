@@ -338,12 +338,22 @@ export const PROVIDERS = {
     parse(json) {
       return (json?.content || []).map((j) => {
         const location = [j.location?.city, j.location?.country].filter(Boolean).join(', ');
+        // The listing's `ref` is the *API* URL (api.smartrecruiters.com/...),
+        // which renders as raw JSON in a browser — not something to hand a job
+        // seeker. The listing has no applyUrl/postingUrl field, so build the
+        // public posting page ourselves: jobs.smartrecruiters.com/{identifier}/
+        // {id} resolves 200 to the real posting (the careers.* host instead
+        // 302-redirects the bare id to the company landing page, losing the job).
+        const identifier = j.company?.identifier || j.companyName;
+        const url = identifier && j.id
+          ? `https://jobs.smartrecruiters.com/${identifier}/${j.id}`
+          : (identifier ? `https://careers.smartrecruiters.com/${identifier}` : '');
         return {
           ...EMPTY_OPTIONAL_FIELDS,
           external_id: String(j.id || j.uuid || ''),
           title: j.name || '',
           location,
-          url: j.ref || `https://careers.smartrecruiters.com/${j.companyName}/${j.id}`,
+          url,
           department: j.department?.label || null,
           employment_type: j.typeOfEmployment?.label || null,
           // The listing endpoint has summaries only; the description pass
