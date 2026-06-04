@@ -15,8 +15,7 @@
     "tailor": "node --env-file=.env scripts/tailor-resume.mjs",
     "render": "node scripts/render-resume.mjs",
     "ab-test": "node --env-file=.env scripts/abembeddingtest.mjs",
-    "match": "node --env-file=.env scripts/call-match.mjs",
-    "web": "node --env-file=.env src/web-server.mjs"
+    "match": "node --env-file=.env scripts/call-match.mjs"
   },
   "engines": {
     "node": ">=20.6"
