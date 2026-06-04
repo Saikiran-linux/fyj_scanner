@@ -126,12 +126,12 @@
       "title": "Greenhouse 404 recovery (cross-ATS + slug-drift)",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "in_progress",
-      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run; 518 Greenhouse companies now sit disabled with a 404 last_error.",
+      "status": "shipped",
+      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run; 518 Greenhouse companies sat disabled with a 404 last_error.",
       "scope": "src/recover-greenhouse-slugs.mjs: re-verify base slug, probe Ashby/Lever/SR with the same slug (ATS migration), then 2–3 same-ATS slug variants; rewrite the companies row on the first live non-empty board. Never overwrites an (ats,slug) another row owns; writes data/recover-greenhouse-report.json.",
-      "touches": ["src/recover-greenhouse-slugs.mjs (new)", "package.json (recover-greenhouse script)"],
-      "finding": "Suffix slug-drift (notion→notion-labs) recovers ~0% of the aged disabled pool — notion-labs 404s too. Cross-ATS migration (same slug, Greenhouse→Ashby) recovers ~15% on a 40-row live sample (Strava, Osmo, Mutiny, Fig, LatchBio, Benevity). So the script leads with cross-ATS. Remaining ~85% are mostly dead/acquired companies, left disabled.",
-      "next": "Run `npm run recover-greenhouse -- --dry-run` against prod (needs .env), review data/recover-greenhouse-report.json, then run live. ~518 candidates; est. ~75 recoverable / ~1k jobs.",
+      "touches": ["src/recover-greenhouse-slugs.mjs (new)", "package.json (recover-greenhouse script)", ".gitignore"],
+      "finding": "Suffix slug-drift (notion→notion-labs) recovered 0/518 — notion-labs 404s too. Cross-ATS migration (same slug, mostly Greenhouse→Ashby) is the real pattern: 65/518 (12.5%) reclaimed, ~807 jobs. Remaining 453 are mostly dead/acquired companies, left disabled.",
+      "evidence": ["Live run 2026-06-04: 65 companies re-enabled (58 ashby · 4 lever · 3 SR), 807 jobs. gh disabled-404 518→453. Collision guard left greenhouse/notion disabled (ashby/notion already covered)."],
       "verify": "select count(*) from public.companies where ats='greenhouse' and enabled=false and last_error ilike '%404%';"
     },
     {

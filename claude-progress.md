@@ -16,9 +16,14 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 **Key finding (empirical, live 40-row sample)**: the f-101 premise ("slug drift, e.g. `notion`→`notion-labs`") is **wrong for this pool** — `notion-labs` 404s too, and suffix-variants recovered **0/40**. The real recoverable pattern is **cross-ATS migration: 6/40 (15%)**, all Greenhouse→Ashby (Strava, Osmo, Mutiny, Fig, LatchBio, Benevity — live companies that switched ATS). Across 518 disabled rows that projects to ~75 companies / ~1k jobs reclaimed. The other ~85% are mostly dead/acquired companies — correctly left disabled rather than mis-pointed.
 
-**Verified**: candidate query returns 518 rows (`execute_sql` on prod `mwcpoaefmggapztkxakp`); cross-ATS recovery measured live (15%); variant generator + `resolved()` unit-checked; `node --check` clean. **NOT run end-to-end** — no `.env` creds in this session, so the assembled script (which reads/writes via `supabase-client.mjs`) hasn't been executed. It uses the same helpers + update shape as `src/scan.mjs`/`seed-companies.mjs`.
+**Verified — RAN LIVE against prod `mwcpoaefmggapztkxakp`**:
+- Dry-run (830s, 0% block-rate on every source): 65 cross-ATS recoveries (58 ashby · 4 lever · 3 SR), 807 jobs, median 9/co; 0 variant, 0 reactivate, 453 unresolved, 61 skipped (already covered). Top hits all live companies — Skydio 114, BetterUp 39, Lambda 38, Thumbtack 32, Strava 24, Patreon 20.
+- Live run (exit 0): **65 companies re-enabled**. Confirmed via SQL: gh disabled-404 **518 → 453**; the 65 rows now `enabled=true` with fresh `last_success_at`; Skydio/Strava/BetterUp/Lambda/Patreon all `ats=ashby`. **Collision guard held in prod**: `greenhouse/notion` left disabled because `ashby/notion` already existed — no dup.
+- `data/recover-greenhouse-report.json` is gitignored (per-run audit artifact, like a log).
 
-**Next**: with `.env` set, `npm run recover-greenhouse -- --dry-run`, review the report JSON, then run live; re-scan to pull the reclaimed boards. Then continue f-102 (slug-pool expansion).
+**Note**: the Supabase service-role key was pasted in chat this session — **rotate it** (and update GitHub Actions secrets), per CLAUDE.md hard-rule #1.
+
+**Next**: `npm run scan` to pull the 65 reclaimed boards into the jobs index (~+800 active jobs). Then f-102 (slug-pool expansion: GitHub README scrape + SmartRecruiters bootstrap).
 
 ---
 
