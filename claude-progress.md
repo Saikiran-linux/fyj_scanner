@@ -24,10 +24,11 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 **Verified state**: scripts run green against Supabase `mwcpoaefmggapztkxakp` with `OPENAI_API_KEY` set; sampling now correctly capped (`Got 200/400/600 jobs`). No schema or production-pipeline changes. Branch `claude/abtesting-hOFRM`, PR #28 (draft).
 
+**Deep bake-off (added later same session — see [`docs/matching-benchmark.md`](docs/matching-benchmark.md))**: 10 methods × 3 diverse resumes, graded by an independent gpt-5.1+gpt-5.2 ensemble oracle (inter-judge ρ=0.879). Winner = **pointwise LLM rerank**, and the cheap `gpt-4o-mini` ties/beats `gpt-4.1` (fit 84.0 vs 83.5, recall 80% vs 73%) — **reverses** the earlier single-resume call that favoured gpt-4.1. Best vs current production: **+10.9 meanFit@10, +30 pts recall**. Current `PROD` (dense 3-small summary) ranked **last of 10**. Surprises: plain lexical skill-overlap is the strongest non-LLM method; HyDE wins the retrieval-only track; field-chunking and listwise rerank both **underperformed** (drop them).
+
 **Next**
 
-- On approval: implement the reranker per the design sketch (new `src/rerank.mjs`, two-stage retrieve-then-rerank in `match-resume.mjs`, query-time only, graceful cosine fallback). **Not started — awaiting go-ahead.**
-- Optional deeper field-chunk study (multiple resumes, larger judge pool).
+- On approval: implement the reranker per the design sketch — now refined to **`gpt-4o-mini` pointwise** (new `src/rerank.mjs`, two-stage retrieve-then-rerank in `match-resume.mjs`, query-time only, graceful cosine fallback). Consider a lexical/hybrid retrieval feed (rec. #2 in the benchmark doc). **Not started — awaiting go-ahead.**
 - Rotate the Supabase service-role + OpenAI keys shared during this session.
 
 ---
