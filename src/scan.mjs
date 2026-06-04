@@ -407,6 +407,10 @@ try {
     // nothing. maxRows=Infinity (cap removed) drains the whole backlog.
     const candidates = await selectAll('jobs', {
       description: 'is.null',
+      // Skip rows we've already attempted (description_fetched_at set) — some
+      // postings legitimately have no description text, and re-fetching them
+      // every scan would burn the cap on the same persistent-null rows.
+      description_fetched_at: 'is.null',
       closed_at: 'is.null',
       select: 'id,external_id,companies!inner(id,ats,slug)',
       'companies.ats': `in.(${fetchableAts.join(',')})`,

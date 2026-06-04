@@ -112,6 +112,13 @@ while (true) {
   const inClause = `(${fetchableAts.join(',')})`;
   const page = await select('jobs', {
     description: 'is.null',
+    // Only rows we've never attempted. Without this, postings the provider
+    // returns with no description text stay description=null forever, get
+    // re-selected on every page, and the while-loop never terminates (it just
+    // re-fetches the same persistent-null rows). description_fetched_at is set
+    // on every attempt, so this both makes the pass terminate and stops us
+    // re-hitting the upstream for descriptions that genuinely don't exist.
+    description_fetched_at: 'is.null',
     closed_at: 'is.null',
     limit: String(PAGE_SIZE),
     select: 'id,external_id,companies!inner(id,ats,slug)',
