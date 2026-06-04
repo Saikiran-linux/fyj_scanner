@@ -28,6 +28,8 @@ export default function ResumeMatcher() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [drag, setDrag] = useState(false);
+  const [remote, setRemote] = useState('');
+  const [location, setLocation] = useState('');
   const fileRef = useRef(null);
 
   const text = (resumeText || pasted).trim();
@@ -59,7 +61,7 @@ export default function ResumeMatcher() {
     try {
       const res = await fetch('/api/match', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText: text }),
+        body: JSON.stringify({ resumeText: text, remote: remote || undefined, location: location.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Request failed');
@@ -69,7 +71,7 @@ export default function ResumeMatcher() {
     } finally {
       setLoading(false);
     }
-  }, [text]);
+  }, [text, remote, location]);
 
   return (
     <div className="space-y-4">
@@ -93,6 +95,27 @@ export default function ResumeMatcher() {
         className="w-full min-h-[90px] bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-sky-500"
       />
 
+      <div className="flex flex-wrap items-end gap-3 border border-zinc-800 rounded p-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wide text-zinc-500">Location contains</span>
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. United States, Texas, Remote"
+            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm w-60 focus:outline-none focus:border-sky-500" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wide text-zinc-500">Workplace</span>
+          <select value={remote} onChange={(e) => setRemote(e.target.value)}
+            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-sky-500">
+            <option value="">any</option>
+            <option value="remote">remote</option>
+            <option value="hybrid">hybrid</option>
+            <option value="onsite">on-site</option>
+          </select>
+        </label>
+        {(location || remote) && (
+          <button onClick={() => { setLocation(''); setRemote(''); }} className="text-zinc-400 hover:text-zinc-100 text-sm px-2 py-1.5">Clear</button>
+        )}
+      </div>
+
       <div className="flex items-center gap-3">
         <button onClick={findMatches} disabled={!ready}
           className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-default text-white text-sm font-medium px-4 py-2 rounded">
@@ -109,8 +132,16 @@ export default function ResumeMatcher() {
         <div className="space-y-3">
           <div className="text-sm text-zinc-400">
             Matched as <span className="text-zinc-100 font-medium">{result.title}</span> — top {result.matches.length} of {result.retrieved} candidates
+            {result.filter && (result.filter.location || result.filter.remote) && (
+              <> · filtered to {[result.filter.location, result.filter.remote].filter(Boolean).join(' · ')} ({result.poolMatched} matched)</>
+            )}
             {' '}({result.reranked ? 'reranked by gpt-4o-mini' : 'cosine only'}, {(result.tookMs / 1000).toFixed(1)}s).
           </div>
+          {result.matches.length === 0 && (
+            <div className="border border-zinc-800 rounded p-4 text-sm text-zinc-400">
+              No jobs matched that location filter in the nearest {result.retrieved} candidates. Try a broader location or clear the filter.
+            </div>
+          )}
           <div className="space-y-2">
             {result.matches.map((m, i) => (
               <div key={i} className="flex gap-4 items-start border border-zinc-800 rounded-lg p-4 hover:bg-zinc-900/40">

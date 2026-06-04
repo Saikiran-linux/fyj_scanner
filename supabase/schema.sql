@@ -225,23 +225,35 @@ returns table (
   limit match_count;
 $$;
 
+-- plpgsql (not sql) so we can raise hnsw.ef_search: the HNSW index only
+-- explores ef_search candidates (default 40), which silently caps a larger
+-- `match_count` at 40 rows. The web matcher over-fetches a wide pool (e.g.
+-- 250) and then filters by location in app code, so we lift ef_search to
+-- match_count (bounded 40..1000) for THIS call only (set_config is_local=true).
 create or replace function public.match_resume_candidates(resume_vec vector, match_count integer default 50)
 returns table (
   id uuid, cosine_sim numeric, title text, description_summary text,
   location text, company text, ats text, posted date, remote text,
   comp_min integer, comp_max integer, comp_currency text, url text
-) language sql stable as $$
-  select
-    j.id,
-    round((1 - (j.embedding <=> resume_vec))::numeric, 4) as cosine_sim,
-    j.title, j.description_summary, j.location, c.slug as company, c.ats,
-    j.first_seen_at::date as posted, j.remote, j.comp_min, j.comp_max,
-    j.comp_currency, j.url
-  from public.jobs j
-  join public.companies c on c.id = j.company_id
-  where j.closed_at is null and j.embedding is not null
-  order by j.embedding <=> resume_vec
-  limit match_count;
+) language plpgsql stable as $$
+begin
+  perform set_config('hnsw.ef_search', greatest(40, least(match_count, 1000))::text, true);
+  return query
+    select
+      j.id,
+      round((1 - (j.embedding <=> resume_vec))::numeric, 4) as cosine_sim,
+      j.title, j.description_summary, j.location, c.slug as company, c.ats,
+      j.first_seen_at::date as posted, j.remote,
+      -- comp_min/comp_max are numeric in the table; cast to match the integer
+      -- return columns (plpgsql RETURN QUERY is strict, unlike language sql).
+      j.comp_min::integer, j.comp_max::integer,
+      j.comp_currency, j.url
+    from public.jobs j
+    join public.companies c on c.id = j.company_id
+    where j.closed_at is null and j.embedding is not null
+    order by j.embedding <=> resume_vec
+    limit match_count;
+end;
 $$;
 
 -- ── scans ──────────────────────────────────────────────────────────
