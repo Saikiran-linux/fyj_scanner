@@ -20,8 +20,8 @@
  * Does NOT write to Supabase. Reads ~200 rows + fires OpenAI embedding batches.
  * Cost: ~$0.01 total (three batches of 200 texts + 1 resume embed).
  *
- * Usage:  node --env-file=.env scripts/ab-embedding-test.mjs
- *   or:   npm run ab-test   (add to package.json scripts if you like)
+ * Usage:  npm run ab-test
+ *   or:   node --env-file=.env scripts/abembeddingtest.mjs
  */
 
 import { selectAll } from '../src/supabase-client.mjs';
@@ -196,10 +196,9 @@ const rows = await selectAll('jobs', {
     'comp_min', 'comp_max', 'comp_currency', 'comp_interval', 'comp_text',
     'remote', 'employment_type',
   ].join(','),
-  limit: String(SAMPLE_SIZE),
   // Most-recently scanned first to get a representative current sample.
   order: 'id.desc',
-}, { pageSize: SAMPLE_SIZE });
+}, { pageSize: SAMPLE_SIZE, maxRows: SAMPLE_SIZE });
 
 if (rows.length < 10) {
   console.error(`Only ${rows.length} rows returned — not enough to evaluate. Run backfill-summaries first.`);
