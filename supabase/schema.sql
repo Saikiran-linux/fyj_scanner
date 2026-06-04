@@ -195,6 +195,55 @@ create index if not exists jobs_embedding_hnsw_idx
   on public.jobs using hnsw (embedding vector_cosine_ops)
   with (m = 16, ef_construction = 64);
 
+-- ── resume matching RPCs ───────────────────────────────────────────
+-- Symmetric resume↔jobs cosine search over the HNSW index. The resume is
+-- embedded into the SAME 1536-dim space as jobs.embedding (see
+-- scripts/embed-resume.mjs), so `embedding <=> resume_vec` is a true
+-- cosine distance. Both functions are STABLE and read-only.
+--
+-- match_resume: the original, display-oriented result set (kept for the
+-- existing scripts/call-match.mjs path). match_resume_candidates: adds the
+-- job `id` and `description_summary` so a second-stage LLM reranker
+-- (src/rerank.mjs) can score each candidate's fit. The reranker over-fetches
+-- (match_count ~50) then trims to the final top-K, so this is the function
+-- the production matcher calls.
+create or replace function public.match_resume(resume_vec vector, match_count integer default 30)
+returns table (
+  cosine_sim numeric, title text, location text, company text, ats text,
+  posted date, remote text, comp_min integer, comp_max integer,
+  comp_currency text, url text
+) language sql stable as $$
+  select
+    round((1 - (j.embedding <=> resume_vec))::numeric, 4) as cosine_sim,
+    j.title, j.location, c.slug as company, c.ats,
+    j.first_seen_at::date as posted, j.remote, j.comp_min, j.comp_max,
+    j.comp_currency, j.url
+  from public.jobs j
+  join public.companies c on c.id = j.company_id
+  where j.closed_at is null and j.embedding is not null
+  order by j.embedding <=> resume_vec
+  limit match_count;
+$$;
+
+create or replace function public.match_resume_candidates(resume_vec vector, match_count integer default 50)
+returns table (
+  id uuid, cosine_sim numeric, title text, description_summary text,
+  location text, company text, ats text, posted date, remote text,
+  comp_min integer, comp_max integer, comp_currency text, url text
+) language sql stable as $$
+  select
+    j.id,
+    round((1 - (j.embedding <=> resume_vec))::numeric, 4) as cosine_sim,
+    j.title, j.description_summary, j.location, c.slug as company, c.ats,
+    j.first_seen_at::date as posted, j.remote, j.comp_min, j.comp_max,
+    j.comp_currency, j.url
+  from public.jobs j
+  join public.companies c on c.id = j.company_id
+  where j.closed_at is null and j.embedding is not null
+  order by j.embedding <=> resume_vec
+  limit match_count;
+$$;
+
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
 -- lives in probe_results.

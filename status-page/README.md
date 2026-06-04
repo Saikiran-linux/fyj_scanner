@@ -8,6 +8,7 @@ A minimal Next.js 15 dashboard that visualises the scanner's SLA and recent runs
 |---|---|
 | `/` (Overview) | Three SLA tiles, per-source health (24h/7d/30d toggle), three charts (active jobs, new per scan, closed per scan), recent scans |
 | `/jobs` | Searchable job list — title contains, ATS filter, active-only toggle, paginated 50/page |
+| `/matches` | Upload a résumé (PDF, parsed in-browser) → top live job matches. Two-stage: cosine retrieve → gpt-4o-mini rerank. Needs `OPENAI_API_KEY`. |
 | `/scans` | Paginated scan history with status filter (all/ok/failed/running) |
 | `/scans/[id]` | Single scan — summary tiles, top error reasons, all probe results with filter pills (all/failed/blocked/slowest) |
 | `/companies` | Companies table — slug search, ATS filter, state filter (enabled/disabled/errored), sorted by error count |
