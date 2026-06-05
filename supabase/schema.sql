@@ -58,6 +58,22 @@ create table if not exists public.companies (
 create index if not exists companies_enabled_idx on public.companies (enabled) where enabled = true;
 create index if not exists companies_ats_idx on public.companies (ats);
 
+-- Sharding key for matrix-parallel scans (f-109). A stable hash of the company
+-- id into 60 buckets [0,60). The scan workflow can fan out into N parallel
+-- shards (N ≤ 60); shard i owns the contiguous bucket range
+-- [floor(i*60/N), floor((i+1)*60/N)), which tiles [0,60) exactly for any N, so
+-- shards are disjoint and complete. Generated/stored (md5 is immutable) so the
+-- bucket is fixed for a company's lifetime and both the company list and the
+-- per-shard job snapshot can be filtered by a simple indexed range. Default
+-- N=1 (one shard) selects the whole range and behaves identically to today.
+alter table public.companies
+  add column if not exists shard smallint
+  generated always as (
+    ((get_byte(decode(md5(id::text), 'hex'), 0) * 256
+      + get_byte(decode(md5(id::text), 'hex'), 1)) % 60)
+  ) stored;
+create index if not exists companies_shard_idx on public.companies (shard) where enabled = true;
+
 -- ── jobs ───────────────────────────────────────────────────────────
 -- One row per (company, external_id). Never deleted. closed_at is set when
 -- a job stops appearing in the ATS response (and the company's scan that
@@ -323,6 +339,12 @@ create table if not exists public.scans (
 );
 
 create index if not exists scans_started_idx on public.scans (started_at desc);
+
+-- Which shard of a matrix-parallel scan cycle wrote this row (f-109). A sharded
+-- cycle produces shard_count rows (one per shard) sharing a near-identical
+-- started_at; the dashboard groups a cycle by that. Default 0/1 = unsharded.
+alter table public.scans add column if not exists shard_index integer not null default 0;
+alter table public.scans add column if not exists shard_count integer not null default 1;
 
 -- Probe succeeded (HTTP+schema ok) but the per-company DB upsert failed. This
 -- is the blind spot that hid the PGRST102 freeze (f-112) for 19 days: such
@@ -625,8 +647,13 @@ returns table (
         lead(started_at) over (order by started_at),
         'infinity'::timestamptz
       ) as next_started_at
+    -- One representative row per scan CYCLE. A sharded cycle (f-109) writes
+    -- shard_count rows seconds apart; windowing over all of them would make
+    -- near-zero-width sibling windows and mis-bucket jobs. shard_index=0 (which
+    -- always runs) is the cycle's boundary; its window spans the whole cycle's
+    -- jobs across all shards. No-op when unsharded (shard_index is always 0).
     from public.scans
-    where status = 'ok'
+    where status = 'ok' and shard_index = 0
   )
   -- count(*) not count(j.*): the latter references the whole composite row,
   -- which stops the planner doing an index-only scan and makes it heap-fetch

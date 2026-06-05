@@ -201,6 +201,20 @@
       "verify": "select count(*) from pg_proc where proname='close_unseen_jobs';",
       "next": "Verify closed_jobs/new_jobs behave sanely on the first post-deploy scan; then build on it for f-109 matrix sharding."
     },
+    {
+      "id": "f-109",
+      "title": "Matrix-shard the scan (parallel jobs by company-hash)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "The single ~30-min Actions job won't survive 10x company growth toward 1M jobs. Unblocked by f-108 (per-company server-side close-sweep), so parallel shards over disjoint companies never double-close.",
+      "scope": "Stored companies.shard bucket [0,60) (generated, indexed). Shard i of N owns range [floor(i*60/N), floor((i+1)*60/N)) — tiles [0,60) exactly for any N<=60 (disjoint+complete). scan.mjs reads SHARD_INDEX/SHARD_COUNT and scopes the company load, the active-job snapshot (jobs!inner companies.shard), and the description pass to its slice; writes scans.shard_index/shard_count. Workflow uses a matrix; SHARD_COUNT derives from strategy.job-total so only the matrix list changes. Per-provider rate-limit concurrency is NOT divided by N (providers throttle per-IP; each shard runs on its own runner IP → ~N× aggregate throughput; adaptive limiter backs off if globally limited). f_new_jobs_by_scan_source windows on shard_index=0 so a sharded cycle isn't mis-bucketed.",
+      "touches": ["supabase/schema.sql (companies.shard, scans.shard_*, f_new_jobs_by_scan_source)", "src/scan.mjs", ".github/workflows/scan.yml", "migrations add_company_shard_and_scan_shard_columns + f_new_jobs_by_scan_source_shard_aware (applied to prod)"],
+      "evidence": ["Partition validated live (read-only): N=4 shards companies 898+921+887+957=3,663 (0 dupes) and jobs 25,860+25,107+25,138+29,634=105,739 (0 dupes) — disjoint AND complete. node --check passes. PostgREST and()/embedded companies.and() filter syntax verified against prod."],
+      "status_note": "DEFAULT N=1 (matrix [0]) so production behaviour is unchanged. Capability is ready; flip by listing 0..N-1 in the workflow matrix.",
+      "verify": "select shard_count, count(*) from public.scans where started_at > now() - interval '1 day' group by 1;",
+      "next": "When ready to scale: set matrix to [0,1,2,3], run a cycle, confirm shards stay green and per-provider block-rate doesn't spike; then the discovery push (deepen SR, Workable, Workday) can land the volume."
+    },
 
     {
       "id": "f-201",
