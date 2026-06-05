@@ -215,6 +215,19 @@
       "verify": "select shard_count, count(*) from public.scans where started_at > now() - interval '1 day' group by 1;",
       "next": "When ready to scale: set matrix to [0,1,2,3], run a cycle, confirm shards stay green and per-provider block-rate doesn't spike; then the discovery push (deepen SR, Workable, Workday) can land the volume."
     },
+    {
+      "id": "f-113",
+      "title": "Job relevance layer (target-role classification + filtering)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Product is an AI-first staffing agency for tech/IT professionals, knowledge-workers, senior/exec leaders and students in those fields. The index was full of service/manual/retail/clinical noise (waiter, dishwasher, care assistant, automotive technician), mostly from SmartRecruiters' generic keyword seeding — roles our customers would never pay to be matched to.",
+      "scope": "Classify every job by ROLE (not employer industry) into a family + is_target + seniority. Hybrid: src/classify.mjs high-precision rules (free, ~45% coverage) + gpt-4o-mini for the ambiguous middle (scripts/backfill-classification.mjs --llm). is_target NULL stays surfaced (only known-false hidden) so an unclassified backlog never hides good jobs. scan.mjs classifies new jobs at ingest and gates description/embedding spend to is_target is not false. match_resume(_candidates) filter is_target is not false.",
+      "touches": ["src/classify.mjs (new)", "scripts/backfill-classification.mjs (new)", "src/scan.mjs", "supabase/schema.sql (jobs.job_family/is_target/seniority/classified_*; match RPCs)", "migrations add_job_classification_columns + match_rpcs_filter_target_roles (applied to prod)"],
+      "evidence": ["Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."],
+      "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
+      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified; THEN prune SR tenants that are ~entirely non-target; THEN retarget discovery to professional-role keyword fan-out."
+    },
 
     {
       "id": "f-201",

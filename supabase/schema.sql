@@ -244,6 +244,29 @@ alter table public.jobs add column if not exists embedding vector(1536);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
 
+-- ── job relevance classification (f-113) ───────────────────────────
+-- Tags each job with a coarse role family + whether it's a "target" role for
+-- our customer base (tech/IT professionals, knowledge-workers, senior/exec
+-- leadership, students/interns in those fields) vs blue-collar/service/retail/
+-- clinical roles they'd never pay us to find a job for. Classification is by
+-- the ROLE, never the employer's industry. Populated by src/classify.mjs (free
+-- high-precision rules) + gpt-4o-mini for the ambiguous middle, via
+-- scripts/backfill-classification.mjs and the scan's per-job pass.
+--
+-- is_target semantics: true = surface to customers; false = hide (known noise);
+-- NULL = not yet classified — treated as "maybe" and still surfaced, so an
+-- unclassified backlog never hides good jobs. Only is_target=false is filtered
+-- out of matching.
+alter table public.jobs add column if not exists job_family    text;
+alter table public.jobs add column if not exists is_target     boolean;
+alter table public.jobs add column if not exists seniority     text;
+alter table public.jobs add column if not exists classified_at timestamptz;
+alter table public.jobs add column if not exists classified_by text;  -- 'rules' | 'llm'
+
+-- Drives the "active, surfaceable jobs" filter used by matching + dashboards.
+create index if not exists jobs_target_active_idx on public.jobs (job_family)
+  where closed_at is null and is_target is not false;
+
 -- HNSW for cosine similarity. Picked over IVFFlat because:
 --   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
 --   - Latency: p99 ~5-20ms vs IVFFlat's ~30-100ms
@@ -284,7 +307,9 @@ returns table (
     j.comp_currency, j.url
   from public.jobs j
   join public.companies c on c.id = j.company_id
-  where j.closed_at is null and j.embedding is not null
+  -- is_target is not false: surface target roles AND not-yet-classified ones,
+  -- hide only known-noise (blue-collar/service/retail/clinical) per f-113.
+  where j.closed_at is null and j.embedding is not null and j.is_target is not false
   order by j.embedding <=> resume_vec
   limit match_count;
 $$;
@@ -314,7 +339,8 @@ begin
       j.comp_currency, j.url
     from public.jobs j
     join public.companies c on c.id = j.company_id
-    where j.closed_at is null and j.embedding is not null
+    -- is_target is not false: hide only known-noise; keep unclassified visible (f-113).
+    where j.closed_at is null and j.embedding is not null and j.is_target is not false
     order by j.embedding <=> resume_vec
     limit match_count;
 end;

@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
 import { fetchJobs, fetchJobDescription, fetchJobPosting, hasDescriptionFetcher, hasDetailFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
+import { classifyTitle } from './classify.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
@@ -307,6 +308,21 @@ async function probeOne(company) {
         row.description_fetched_at = nowIso;
       }
     }
+    // Relevance classification (f-113), NEW jobs only. We never re-write an
+    // existing row's classification here — that would clobber a better LLM
+    // verdict with the free rules pass. The high-precision rules tag the
+    // obvious ~45%; low-confidence rows are left classified_at=null so the
+    // LLM backfill (scripts/backfill-classification.mjs --llm) resolves them.
+    if (!existing.has(j.external_id)) {
+      const cls = classifyTitle(j.title);
+      row.job_family = cls.family;
+      row.is_target = cls.is_target;
+      row.seniority = cls.seniority;
+      if (cls.confidence === 'high') {
+        row.classified_at = nowIso;
+        row.classified_by = 'rules';
+      }
+    }
     return row;
   });
 
@@ -496,6 +512,9 @@ try {
       // every scan would burn the cap on the same persistent-null rows.
       description_fetched_at: 'is.null',
       closed_at: 'is.null',
+      // Don't spend per-job detail fetches on known-noise roles (f-113);
+      // unclassified (null) still get fetched.
+      is_target: 'not.is.false',
       select: 'id,external_id,companies!inner(id,ats,slug,shard)',
       'companies.ats': `in.(${fetchableAts.join(',')})`,
       // Only fetch descriptions for this shard's companies.
@@ -620,6 +639,9 @@ if (process.env.SKIP_LLM_PASSES) {
     const missing = await selectAll('jobs', {
       embedding: 'is.null',
       closed_at: 'is.null',
+      // Don't spend embeddings on known-noise roles (f-113); unclassified
+      // (null) still get embedded so matching isn't starved pre-LLM-pass.
+      is_target: 'not.is.false',
       // Keep in sync with buildJobText() in src/embeddings.mjs — any new
       // signal the embedder reads has to be in this select list or it'll
       // silently get embedded as null.
