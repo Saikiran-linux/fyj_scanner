@@ -24,7 +24,7 @@ Follow-on to the f-101/f-102 coverage work — making the newly-expanded SmartRe
 **Verified state (prod)**
 
 - Ashby enrichment: **10,142 rows updated in 159s, 0 fail, 0% block** — comp_min now on **4,321 / 10,137** (rest publish none).
-- SR detail enrichment: **running** (~32k candidates, ~5–6/s, ETA ~100 min). First attempt was killed by a session/container boundary at row 8 (no code error) and **restarted**; resumable. Pre-run SR coverage: remote 2.7k, comp 5, dept 22.8k → expect remote ~100% (onsite fallback), comp ~18%, dept higher after the pass.
+- SR detail enrichment: **done** — 32,148/32,150 updated, **2 failed, 0% block, 87 min** (first attempt was killed by a session boundary at row 8, no code error; restarted, resumable). Result: SR `remote` 2.7k → **24,537** (70%; the other ~10k postings carry no location at all, left null — honest), `comp_min` 5 → **2,968** (~8.5% publish salary), `department` 22.8k, `employment_type` 34.8k.
 - Data availability ceilings (honest): Greenhouse exposes neither comp nor employment_type structurally (skipped per decision); Lever comp only where the source provides it (~13%, already extracted).
 
 **Next**: confirm the SR enrichment finished (re-run `npm run backfill-enrichment -- --ats=smartrecruiters` if the container recycled — it resumes). Same service-role-key rotation reminder stands.
