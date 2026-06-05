@@ -6,6 +6,22 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · Post-merge: deploy verified + write-failure guardrails (PR #34)
+
+After #33 merged, verified the fix in the real CI environment and added guardrails so this class of silent failure can't recur.
+
+**Deploy verified** — dispatched `scan.yml` on `main` (scan `0ca86904`, Actions runner): `db_write`/PGRST102 failures **= 0**, `companies_error = 0` (the 152 greenhouse HTTP-503s in the prior local run were container-IP-only), `stale_among_healthy = 0`, active stable at **105,877**.
+
+**Guardrails (PR #34, draft, branch `claude/immediate-next-steps-AE9N4`):**
+- `scans.companies_write_failed` first-class metric + `totals` counter (migration applied) — the blind spot that hid the freeze (probe-ok-but-write-failed counts in neither ok nor error).
+- Fail-fast: scan marked `failed` + process exits non-zero (Actions red) when >5% of probed companies (and >25 absolute) fail their write. The PGRST102 freeze (~31%) would have tripped this on day 1.
+- Zombie-scan reaper at startup (`running` >45min → `failed`); reaped 28 existing zombies.
+- Dashboard query 6b — freeze detector (write-failure rate + zombie-open jobs).
+
+**Thaw reconciliation (healthy, one-time):** `total_jobs` 117,308 → 130,351 (**+13,043 genuinely-new** rows that accumulated during the 19-day freeze), `closed` 11.6k → 24,474 (**+~12.9k genuinely-gone**), active flat. The per-scan `new_jobs` *counter* reads high (~40k) during this reconciliation because it also counts churn/reopens; the underlying table moved by ~13k, the real backlog clearing. **Watch the next scheduled cron (06:17 UTC): `new_jobs` should fall back to small numbers.** If it stays ~40k, there's a new-count/external-id churn issue to investigate separately (does not affect the active set, which is correct and stable).
+
+---
+
 ## 2026-06-05 · CRITICAL upsert bug fix (PGRST102) + server-side close-sweep (f-112, f-108)
 
 Started on the documented #1 next step (server-side close-sweep) and, while validating it against live prod, **uncovered an active P0 data-integrity bug** that was silently freezing most of the index.
