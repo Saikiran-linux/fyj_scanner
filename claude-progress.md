@@ -6,6 +6,22 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · ROOT-CAUSE: inflated new_jobs (selectAll pagination) + dashboard timeouts
+
+User reported the dashboard erroring (`f_new_jobs_by_scan_source → 57014 statement timeout`, ACTIVE JOBS reading 0) and **~38k "new" jobs every scan while active stayed ~105k**. Two distinct bugs, both found and fixed.
+
+**1. Inflated new_jobs — root cause: `selectAll` paginated with LIMIT/OFFSET and no stable ORDER BY** (`src/supabase-client.mjs`). Reproduced live: the active-job snapshot read returned 105,780 rows but only **68,882 unique** `(company_id, external_id)` — ~37k duplicates, so ~37k *distinct* open jobs were missing from the snapshot. Those missing jobs were counted "new" every scan (and their descriptions re-sent → write amplification). LIMIT/OFFSET without a total ORDER BY is not stable on a large table — pages drift, duplicating some rows and skipping others; it worsened as `jobs` grew. Confirmed via per-scan audit: last scan reported `new=38,433` but only `2,323` rows were actually inserted (closed counter was always accurate — it's server-side).
+   - **Fix:** rewrote `selectAll` to use **keyset/cursor pagination** on a unique key (`id` by default) — `order=id.asc` + `id=gt.<cursor>`. Stable *and* O(1) per page (no growing OFFSET scan), which also matters at the 1M target. Verified: snapshot now returns 105,780 rows = 105,780 unique. All callers hit `jobs`/`companies` (uuid `id`); embedded-resource + `maxRows` paths retested green.
+   - Takes effect for cron scans **only after this PR merges**; until then the deployed scanner keeps miscounting (cosmetic — active set is correct).
+
+**2. Dashboard timeouts (DB-side, fixed live):**
+   - `mv_jobs_totals_by_source` was **empty** → ACTIVE JOBS 0 / "no scans". Cause: `f_refresh_totals_by_source` uses `REFRESH ... CONCURRENTLY`, which *errors on a never-populated MV*, so it failed every scan and the MV stayed empty. Repopulated it (plain refresh) and **hardened the function** to fall back to a plain refresh on error (migration applied). Active total back to 105,780.
+   - `f_new_jobs_by_scan_source` timed out at **12.7s** (>8s authenticator → 57014). It range-joins jobs by `first_seen_at` and heap-fetched ~57k wide (embedding-bearing) rows just to read `company_id`. **Fix:** covering index `jobs(first_seen_at, company_id)` + `count(j.*)`→`count(*)` → index-only scan, `Heap Fetches: 0`, **95 ms** (134× faster). Migrations applied; `vacuum analyze jobs` run.
+
+All four DB migrations applied to prod (`jobs_first_seen_company_idx`, refresh fallback, `count(*)` fn, plus the MV repopulate). Branch `claude/immediate-next-steps-AE9N4` (PR #34). Code change (`selectAll`) needs merge to fix the cron's new-count.
+
+---
+
 ## 2026-06-05 · Post-merge: deploy verified + write-failure guardrails (PR #34)
 
 After #33 merged, verified the fix in the real CI environment and added guardrails so this class of silent failure can't recur.

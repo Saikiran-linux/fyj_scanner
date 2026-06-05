@@ -90,6 +90,13 @@ create table if not exists public.jobs (
 
 create index if not exists jobs_company_idx on public.jobs (company_id);
 create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at desc);
+-- Covering index for f_new_jobs_by_scan_source(): it range-joins jobs by
+-- first_seen_at and needs only company_id alongside. With the first_seen-only
+-- index above the planner heap-fetched every matched row (each carries the
+-- ~6KB embedding vector) just to read company_id — ~57k wide fetches that
+-- pushed the dashboard RPC past the 8s authenticator timeout (Postgres 57014).
+-- (first_seen_at, company_id) lets that scan stay in the index.
+create index if not exists jobs_first_seen_company_idx on public.jobs (first_seen_at, company_id);
 create index if not exists jobs_active_idx on public.jobs (company_id, last_seen_at desc) where closed_at is null;
 create index if not exists jobs_title_trgm_idx on public.jobs using gin (title gin_trgm_ops);
 create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fingerprint) where closed_at is null;
@@ -621,7 +628,12 @@ returns table (
     from public.scans
     where status = 'ok'
   )
-  select w.id, w.started_at, c.ats, count(j.*)::bigint
+  -- count(*) not count(j.*): the latter references the whole composite row,
+  -- which stops the planner doing an index-only scan and makes it heap-fetch
+  -- every matched (wide, embedding-bearing) row just to count it. count(*)
+  -- needs only first_seen_at (range) + company_id (join), both covered by
+  -- jobs_first_seen_company_idx.
+  select w.id, w.started_at, c.ats, count(*)::bigint
   from windowed w
   join public.jobs j
     on j.first_seen_at >= w.started_at
@@ -682,6 +694,14 @@ set statement_timeout = '5min'
 as $$
 begin
   refresh materialized view concurrently public.mv_jobs_totals_by_source;
+exception when others then
+  -- REFRESH ... CONCURRENTLY errors when the MV has never been populated
+  -- (e.g. created WITH NO DATA, or a failed initial load). When that happens
+  -- the concurrent refresh fails on every scan and the MV stays EMPTY — which
+  -- silently zeroed the whole dashboard (ACTIVE JOBS 0, "no scans"). Fall back
+  -- to a plain refresh, which populates it and lets later concurrent refreshes
+  -- work again.
+  refresh materialized view public.mv_jobs_totals_by_source;
 end
 $$;
 
