@@ -18,7 +18,7 @@
 
 import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
-import { fetchJobs, fetchJobDescription, hasDescriptionFetcher, PROVIDER_NAMES } from './providers.mjs';
+import { fetchJobs, fetchJobDescription, fetchJobPosting, hasDescriptionFetcher, hasDetailFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
@@ -37,7 +37,18 @@ function describeHash(text) {
 // run. Caps the time spent on providers like SmartRecruiters whose listing
 // doesn't include descriptions. The backlog drains over many scans; for the
 // initial bulk catch-up use `npm run backfill-descriptions` instead.
-const DESCRIPTION_FETCH_CAP = Number(process.env.DESCRIPTION_FETCH_CAP || 500);
+//
+// Default raised to 3,000 (from 500) now that the SmartRecruiters tenant pool
+// grew ~30× (f-102) — at 500/run the per-job-fetch backlog would never drain.
+// 3,000 SR fetches cost ~5min through the rate limiter, comfortably inside the
+// workflow's 30-min budget alongside the ~3min probe pass. Set
+// DESCRIPTION_FETCH_CAP=0 to remove the cap entirely (unbounded — only safe for
+// manual/local runs, NOT the 30-min-capped cron). The pass paginates, so values
+// above PostgREST's 1,000-row ceiling now actually take effect.
+const DESCRIPTION_FETCH_CAP = (() => {
+  const raw = Number(process.env.DESCRIPTION_FETCH_CAP ?? 3000);
+  return raw === 0 ? Infinity : raw;
+})();
 
 // How many job descriptions the scanner will pass through gpt-4o-mini per
 // run to produce embedding-friendly summaries. Each call is ~$0.0001, so
@@ -390,18 +401,22 @@ try {
   if (fetchableAts.length === 0) {
     console.log('No providers need per-job description fetches');
   } else {
-    // Bounded query — we explicitly want at most DESCRIPTION_FETCH_CAP rows
-    // (not selectAll's "paginate until empty"). PostgREST tops out at 1000
-    // rows per request, which comfortably covers our cap.
-    const candidates = await select('jobs', {
+    // Pull up to DESCRIPTION_FETCH_CAP candidates. A single PostgREST request
+    // tops out at 1,000 rows, so we use selectAll (paginates) with maxRows set
+    // to the cap — otherwise raising the cap above 1,000 would silently do
+    // nothing. maxRows=Infinity (cap removed) drains the whole backlog.
+    const candidates = await selectAll('jobs', {
       description: 'is.null',
+      // Skip rows we've already attempted (description_fetched_at set) — some
+      // postings legitimately have no description text, and re-fetching them
+      // every scan would burn the cap on the same persistent-null rows.
+      description_fetched_at: 'is.null',
       closed_at: 'is.null',
-      limit: String(DESCRIPTION_FETCH_CAP),
       select: 'id,external_id,companies!inner(id,ats,slug)',
       'companies.ats': `in.(${fetchableAts.join(',')})`,
-    });
+    }, { maxRows: DESCRIPTION_FETCH_CAP });
     if (candidates.length) {
-      console.log(`Fetching descriptions for up to ${candidates.length} jobs (cap=${DESCRIPTION_FETCH_CAP})`);
+      console.log(`Fetching descriptions for up to ${candidates.length} jobs (cap=${Number.isFinite(DESCRIPTION_FETCH_CAP) ? DESCRIPTION_FETCH_CAP : 'none'})`);
       // Shuffle so we spread across providers, same reasoning as the probe shuffle.
       for (let i = candidates.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -416,7 +431,13 @@ try {
         if (!ats || !slug) continue;
         descStats.attempted++;
         try {
-          const res = await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
+          // Use the richer per-job fetch where available (SmartRecruiters): the
+          // same detail request that yields the description also carries comp /
+          // remote / department / employment_type, which the listing omits.
+          // Other providers fall back to the description-only path.
+          const res = hasDetailFetcher(ats)
+            ? await fetchJobPosting(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter })
+            : await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
           if (!res.ok) {
             descStats.failed++;
             continue;
@@ -425,15 +446,21 @@ try {
           // as an attempt — write description_fetched_at so we don't keep
           // retrying forever. Actual text remains null. We also write
           // description_hash so the next scan's hash-compare sees a match
-          // and doesn't re-PATCH the same row.
+          // and doesn't re-PATCH the same row. Structured detail fields (when
+          // present) are written alongside, but only when non-null so we never
+          // clobber good data with a null.
+          const patch = {
+            description: res.description ?? null,
+            description_hash: describeHash(res.description ?? null),
+            description_fetched_at: new Date().toISOString(),
+          };
+          for (const [k, v] of Object.entries(res.fields || {})) {
+            if (v != null) patch[k] = v;
+          }
           await update(
             'jobs',
             { id: `eq.${row.id}` },
-            {
-              description: res.description ?? null,
-              description_hash: describeHash(res.description ?? null),
-              description_fetched_at: new Date().toISOString(),
-            },
+            patch,
             { returning: 'minimal' },
           );
           descStats.ok++;

@@ -6,6 +6,93 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · Architecture efficiency review for 1M-scale (analysis, no code yet)
+
+Full read of `scan.mjs` + `schema.sql` + a live size check. The design is sound for ~100k jobs but has several **O(total jobs)/O(total companies)-per-scan** operations that break at 10×. Measured now: jobs **117k total / 105k active**, table **670 MB = 90 MB heap + 581 MB indexes** (6.5× — index bloat from per-scan UPDATE churn); probe_results 182k rows. 1M active ≈ **25–40k companies, ~6–7 GB jobs table, ~160k probe_results/day**.
+
+**Bottlenecks, ranked (file:line → why it breaks → fix):**
+1. **Global active-job snapshot** `scan.mjs:111` — `selectAll` pulls *every* active job into a Node Map each scan (~1,000 REST round trips at 1M, big memory). → **Move close-sweep server-side**: upsert with `last_seen_at=scan_start`, then `UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start`. Drops the snapshot entirely. *Prerequisite for everything below.*
+2. **Single serial 30-min Actions job** (`.github/workflows/scan.yml`, `concurrency: scan`) — 40k companies ≈ 90+ min. → **Matrix-shard** by `hashtext(id) % N`; close-sweep is per-company so shards are naturally non-overlapping once #1 lands. Biggest throughput unlock.
+3. **Per-row PostgREST writes** (description pass `scan.mjs:460`, upserts/closes) saturate the pooler (known 504 cascade). → **Direct transaction-pooled connection (port 6543) + `COPY` to temp table + one `INSERT…ON CONFLICT`/`UPDATE…FROM`** for bulk paths.
+4. **Write amplification / index bloat** — every scan UPDATEs `last_seen_at` on every active row; `jobs_active_idx (company_id,last_seen_at desc)` makes those updates non-HOT → bloat. → drop/rethink that index, `fillfactor=80`, aggressive autovacuum on `jobs`, and **partition `jobs`** (active vs archived / monthly) since churn → 5–10M rows/yr.
+5. **Per-scan full-table side jobs** — MV refresh `f_refresh_totals_by_source()` (`scan.mjs:616`) full-counts all jobs every run; active-count `HEAD count=exact` (`scan.mjs:566`); embedding pass `selectAll`s all null-embedding rows (`scan.mjs:534`). → incremental MV from scan deltas, `reltuples` estimate, bounded embedding page.
+6. **probe_results unbounded** (f-904) — 160k/day at scale. → partition by month + drop old, or persist only non-ok + aggregates.
+7. **HNSW at 1M** — match RPC post-filters `closed_at is null` after traversal; index ~6 GB. → **null embedding on close** (extend the description-change trigger to `closed_at`), consider partial HNSW `WHERE closed_at IS NULL`.
+
+**Already right (keep):** description hash-skip, batched probe_results + company-reset PATCH, dashboard MV, HNSW over IVFFlat, partial pending-work indexes.
+
+**Recommended order:** (1) server-side close-sweep → (2) matrix sharding → (3) direct-conn bulk writes/COPY → (4) jobs index/vacuum/partition + (6) probe_results partition → (5) incremental MV/estimated counts → (7) embed-on-close + partial HNSW. **Do #1–#2 BEFORE turning on Workday/SR-deepening**, or the first big scan blows the 30-min job. Suggested feature IDs when starting: f-108 close-sweep, f-109 sharding, f-110 bulk-writes, f-111 partitioning.
+
+---
+
+## 2026-06-05 · Session wrap + path-to-1M roadmap (read this first if you're new)
+
+**Where we are now** (verified live, prod `mwcpoaefmggapztkxakp`):
+
+| Metric | Value |
+|---|---|
+| Companies total / enabled | 5,165 / 3,664 |
+| Active jobs | **105,706** (was ~70.5k at session start) |
+| Active with description | 104,512 (98.9%) |
+| Active with compensation | 12,581 |
+| Active with remote | 42,964 |
+| Per-source active | Greenhouse 47k · SmartRecruiters 35k · Ashby 10k · Lever 8.7k · workatastartup 4.9k |
+
+All this session's work is on branch `claude/wizardly-mendel-BrW6a` / **PR #31** (draft). Entries below have the detail; index:
+- **f-101** — Greenhouse 404 recovery (`src/recover-greenhouse-slugs.mjs`). Real recoverable pattern is cross-ATS migration, not slug-drift. 65 companies reclaimed.
+- **f-102** — SmartRecruiters discovery via its public `sr-jobs/search` API (`seed/scrape-smartrecruiters.mjs`, `seed/lib.mjs`, `seed/scrape-github.mjs`). SR tenants 18 → 561.
+- **Job links + enrichment** — SR url fix (was the API URL), description-cap raise + infinite-loop fix, Ashby comp-extraction fix, SR detail enrichment (`scripts/backfill-enrichment.mjs`, `fetchDetail`/`fetchJobPosting` in providers).
+
+**⚠️ Open chores**: rotate the Supabase service-role key (shared in chat this session) + update the GH Actions secret; run `scrape-github` with a `GITHUB_TOKEN` to finish f-102's GitHub path.
+
+### Path to 1M+ jobs (evidence-backed roadmap — discovery is the easy part, scan infra is the hard part)
+
+Live-probed 2026-06-05. The jobs exist; getting them is a discovery + adapter problem:
+
+**Discovery levers, ranked by yield/effort:**
+1. **Deepen SmartRecruiters** — `sr-jobs/search?limit=1` reports **totalFound = 344,499**. We have 35k. Just harvest the API we already built more deeply (more keywords + geo/offset fan-out). 35k → ~300k. *Lowest effort.*
+2. **Workable adapter** — `jobs.workable.com/api/v1/jobs?query=…` is **public, 200, paginated** (`nextPageToken`, `totalSize` 16k+ for "engineer"). Same "read the ATS's own index" pattern as SR; gives jobs *and* company discovery. Was wrongly deferred (f-902 said "no public API"). +100k. *Re-open f-902.*
+3. **Workday adapter (f-104)** — verified `myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` POST works: NVIDIA 2,000 jobs, Red Hat 293. Per-tenant (tenant,dc,site) config is the work; discover tenants from HN/GitHub/Wayback `myworkdayjobs.com` URLs + curated list. +300–500k.
+4. **Deepen Greenhouse/Lever/Ashby** — `scrape-github.mjs` (needs `GITHUB_TOKEN`) + existing `seed/scrape-wayback.mjs` CDX corpus. +150–250k.
+5. **Long-tail adapters** — Recruitee, Teamtailor, Personio, JazzHR, BreezyHR, iCIMS. +100k.
+
+SR + Workable + Workday alone clear 1M.
+
+**The real bottleneck — scan infra (must land alongside discovery, or 1M is a one-time dump not a maintainable index):**
+- **Shard the scan**: 1M ≈ 25–40k companies; the single 30-min Actions job (3,664 companies / ~8 min today) won't scale 10×. Split across parallel matrix jobs by ATS or company-hash. Blocked on ↓.
+- **Server-side close-sweep**: today the scan loads *every* active job into Node (`selectAll`) to diff — a memory/time wall at 1M, and the reason the `concurrency: scan` group forbids parallel runs (double-close). Move to SQL-side "close jobs not seen this run, per company" → unblocks sharding.
+- **Pooler saturation** (known 504/statement-timeout cascade): batch writes harder / `COPY` / direct transaction-pooled connection for bulk instead of the REST path.
+- **Cost/storage**: 1M embeddings ≈ 6 GB vector + HNSW, ~$20–30 one-time embed; size the Supabase tier deliberately. SR/Workday/Workable need per-job detail fetches (hours at scale → accept eventual consistency).
+
+**Recommended sequence**: (1) deepen SR + ship Workable → ~450k, low risk; (2) Workday → 1M+; (3) in parallel, server-side close-sweep + scan-sharding (the unlock). Consider promoting these into `feature_list.json` as f-106 (deepen-SR), f-107 (Workable), f-108 (scan-sharding/close-sweep) when starting.
+
+---
+
+## 2026-06-04 · Job links + field enrichment (SR url fix, desc-cap fix, comp/remote/dept)
+
+Follow-on to the f-101/f-102 coverage work — making the newly-expanded SmartRecruiters rows actually usable.
+
+**Bugs fixed**
+
+- **SR job url pointed at the API, not the apply page** (`src/providers.mjs`). Listing's `ref` is `api.smartrecruiters.com/...` (renders as raw JSON). The listing has no applyUrl/postingUrl, so construct `jobs.smartrecruiters.com/{identifier}/{id}` (verified 200; the `careers.*` host 302s the bare id to the company landing page). Backfilled all **35,216** existing SR rows in prod; spot-checks resolve 200.
+- **Description pass looped forever** (`scripts/backfill-descriptions.mjs`, `src/scan.mjs`). Candidate query filtered `description is null` but not `description_fetched_at`, so postings the provider returns with no description text were re-selected every page — the backfill `while`-loop never terminated (74k "attempted" vs a 34k backlog, churning ~148 persistent-null rows for hours). Added `description_fetched_at is null`. Verified: backfill now exits in 2s once drained.
+- **Ashby comp_min/max always null** (`src/providers.mjs`). Read `salaryComp.value.*` but the numbers live directly on the component (`salaryComp.minValue/maxValue/currencyCode`); `comp_text` worked (tierSummary) so the gap was silent. Fixed; verified 109/111 on a live board.
+
+**Enhancements**
+
+- **Description-fetch cap** raised 500 → 3,000 default, env-configurable, `=0` unbounded, and now paginates via `selectAll` (a single `select` silently capped at 1,000). Fits the cron's 30-min budget. `scripts/backfill-descriptions.mjs` now uses a limiter-governed worker pool (~3× faster).
+- **SR detail extraction** (`src/providers.mjs`): `fetchDetail()` + limiter-aware `fetchJobPosting()` pull comp / remote (onsite·hybrid·remote) / department / employment_type / location from the per-job detail endpoint (the listing omits them). The scan's per-job pass now writes these for new detail-capable jobs (non-null only). `scripts/backfill-enrichment.mjs` (+ `npm run backfill-enrichment`) fills existing rows: `--ats=smartrecruiters` (detail, resumable via `remote is null`), `--ats=ashby|lever` (re-parse listing).
+
+**Verified state (prod)**
+
+- Ashby enrichment: **10,142 rows updated in 159s, 0 fail, 0% block** — comp_min now on **4,321 / 10,137** (rest publish none).
+- SR detail enrichment: **done** — 32,148/32,150 updated, **2 failed, 0% block, 87 min** (first attempt was killed by a session boundary at row 8, no code error; restarted, resumable). Result: SR `remote` 2.7k → **24,537** (70%; the other ~10k postings carry no location at all, left null — honest), `comp_min` 5 → **2,968** (~8.5% publish salary), `department` 22.8k, `employment_type` 34.8k.
+- Data availability ceilings (honest): Greenhouse exposes neither comp nor employment_type structurally (skipped per decision); Lever comp only where the source provides it (~13%, already extracted).
+
+**Next**: confirm the SR enrichment finished (re-run `npm run backfill-enrichment -- --ats=smartrecruiters` if the container recycled — it resumes). Same service-role-key rotation reminder stands.
+
+---
+
 ## 2026-06-04 · f-102 slug-pool expansion — SmartRecruiters 18 → 561 tenants
 
 **Goal**: grow scan coverage by expanding the slug pool. SmartRecruiters was the badly under-seeded source (15 slugs).
