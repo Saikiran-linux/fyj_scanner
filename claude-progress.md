@@ -6,6 +6,25 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · Architecture efficiency review for 1M-scale (analysis, no code yet)
+
+Full read of `scan.mjs` + `schema.sql` + a live size check. The design is sound for ~100k jobs but has several **O(total jobs)/O(total companies)-per-scan** operations that break at 10×. Measured now: jobs **117k total / 105k active**, table **670 MB = 90 MB heap + 581 MB indexes** (6.5× — index bloat from per-scan UPDATE churn); probe_results 182k rows. 1M active ≈ **25–40k companies, ~6–7 GB jobs table, ~160k probe_results/day**.
+
+**Bottlenecks, ranked (file:line → why it breaks → fix):**
+1. **Global active-job snapshot** `scan.mjs:111` — `selectAll` pulls *every* active job into a Node Map each scan (~1,000 REST round trips at 1M, big memory). → **Move close-sweep server-side**: upsert with `last_seen_at=scan_start`, then `UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start`. Drops the snapshot entirely. *Prerequisite for everything below.*
+2. **Single serial 30-min Actions job** (`.github/workflows/scan.yml`, `concurrency: scan`) — 40k companies ≈ 90+ min. → **Matrix-shard** by `hashtext(id) % N`; close-sweep is per-company so shards are naturally non-overlapping once #1 lands. Biggest throughput unlock.
+3. **Per-row PostgREST writes** (description pass `scan.mjs:460`, upserts/closes) saturate the pooler (known 504 cascade). → **Direct transaction-pooled connection (port 6543) + `COPY` to temp table + one `INSERT…ON CONFLICT`/`UPDATE…FROM`** for bulk paths.
+4. **Write amplification / index bloat** — every scan UPDATEs `last_seen_at` on every active row; `jobs_active_idx (company_id,last_seen_at desc)` makes those updates non-HOT → bloat. → drop/rethink that index, `fillfactor=80`, aggressive autovacuum on `jobs`, and **partition `jobs`** (active vs archived / monthly) since churn → 5–10M rows/yr.
+5. **Per-scan full-table side jobs** — MV refresh `f_refresh_totals_by_source()` (`scan.mjs:616`) full-counts all jobs every run; active-count `HEAD count=exact` (`scan.mjs:566`); embedding pass `selectAll`s all null-embedding rows (`scan.mjs:534`). → incremental MV from scan deltas, `reltuples` estimate, bounded embedding page.
+6. **probe_results unbounded** (f-904) — 160k/day at scale. → partition by month + drop old, or persist only non-ok + aggregates.
+7. **HNSW at 1M** — match RPC post-filters `closed_at is null` after traversal; index ~6 GB. → **null embedding on close** (extend the description-change trigger to `closed_at`), consider partial HNSW `WHERE closed_at IS NULL`.
+
+**Already right (keep):** description hash-skip, batched probe_results + company-reset PATCH, dashboard MV, HNSW over IVFFlat, partial pending-work indexes.
+
+**Recommended order:** (1) server-side close-sweep → (2) matrix sharding → (3) direct-conn bulk writes/COPY → (4) jobs index/vacuum/partition + (6) probe_results partition → (5) incremental MV/estimated counts → (7) embed-on-close + partial HNSW. **Do #1–#2 BEFORE turning on Workday/SR-deepening**, or the first big scan blows the 30-min job. Suggested feature IDs when starting: f-108 close-sweep, f-109 sharding, f-110 bulk-writes, f-111 partitioning.
+
+---
+
 ## 2026-06-05 · Session wrap + path-to-1M roadmap (read this first if you're new)
 
 **Where we are now** (verified live, prod `mwcpoaefmggapztkxakp`):
