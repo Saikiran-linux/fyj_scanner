@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-04",
+  "updated_at": "2026-06-05",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -171,6 +171,35 @@
       "status": "planned",
       "rationale": "Store everything; filter in SQL views so different users can apply different filters without re-scanning.",
       "touches": ["supabase/schema.sql", "supabase/dashboard-queries.sql"]
+    },
+
+    {
+      "id": "f-112",
+      "title": "Fix PGRST102 heterogeneous-keys upsert (frozen large companies)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Live audit 2026-06-05: 1,139 companies (incl. SpaceX, OpenAI, Databricks, Carvana, DoorDash) failed their ENTIRE per-company jobs upsert every scan with `db_write: 400 PGRST102 \"All object keys must match\"`. 62,182 active jobs (59% of the index) were frozen — last_seen_at never refreshed, no new postings added — since 2026-05-17.",
+      "root_cause": "PostgREST requires every object in a bulk insert/upsert array to carry an identical key set. The description hash-skip optimisation (landed 2026-05-17) attaches description/description_hash/description_fetched_at only to rows whose text changed, so any company with a MIX of changed + unchanged postings in one batch sent heterogeneous keys → 400 → whole-company write failed. Big boards (always ≥1 changed posting) failed every scan; the existing code fails safe by early-returning before the close-sweep, so jobs froze rather than being closed.",
+      "scope": "src/scan.mjs probeOne(): bucket jobRows by their sorted key signature and upsert each homogeneous group separately. Any group failure still early-returns before the close-sweep (no close on partial write). Self-healing: the next successful scan re-stamps these companies and closes whatever the providers no longer list.",
+      "touches": ["src/scan.mjs"],
+      "evidence": ["Proven on live prod mwcpoaefmggapztkxakp: 1,139 companies failing, 62,182 stale-open jobs, first_seen 2026-05-17 22:31. node --check passes."],
+      "verify": "select count(*) from public.probe_results pr join (select id from public.scans where status='ok' order by started_at desc limit 1) s on s.id=pr.scan_id where pr.error like 'db_write:%PGRST102%';  -- expect 0 after first post-fix scan",
+      "next": "Confirm via the first scheduled scan after merge that db_write PGRST102 errors drop to 0 and active_jobs_after corrects upward as frozen boards refresh."
+    },
+    {
+      "id": "f-108",
+      "title": "Server-side close-sweep (last_seen_at watermark RPC)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "1M-scale architecture review (claude-progress.md 2026-06-05): the close-sweep diffed a global in-Node snapshot of every active job and PATCHed a per-company external_id IN-list — O(total jobs) memory and a write wall at 10x, and the reason scans can't be sharded (double-close).",
+      "scope": "Add public.close_unseen_jobs(company_id, scan_start) RPC: UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start. src/scan.mjs captures SCAN_START_ISO before any upsert and calls the RPC per successfully-probed company instead of the client-side diff. Idempotent, per-company → shard-safe (prerequisite for f-109 matrix sharding).",
+      "touches": ["supabase/schema.sql", "src/scan.mjs", "migration add_close_unseen_jobs_rpc (applied to prod)"],
+      "evidence": ["Migration applied to prod 2026-06-05; close_unseen_jobs('<fake-uuid>', now()) returns 0 (runs, non-destructive). Equivalence proven: across all 2,524 companies whose write succeeded last scan, 0 open jobs predate scan_start, so the watermark sweep closes exactly what the old diff did. node --check passes."],
+      "note": "The in-Node snapshot is still read — it now serves only the description hash-skip and new-job counting, not closing. Dropping it entirely is coupled to the COPY/bulk-write work (f-110).",
+      "verify": "select count(*) from pg_proc where proname='close_unseen_jobs';",
+      "next": "Verify closed_jobs/new_jobs behave sanely on the first post-deploy scan; then build on it for f-109 matrix sharding."
     },
 
     {

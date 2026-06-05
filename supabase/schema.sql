@@ -98,6 +98,47 @@ create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fing
 -- scanning thousands of closed rows to fill a 50-row LIMIT.
 create index if not exists jobs_active_first_seen_idx on public.jobs (first_seen_at desc) where closed_at is null;
 
+-- ── server-side close-sweep (f-108) ─────────────────────────────────
+-- Close every still-open job for ONE company that the current scan didn't
+-- re-list. The scanner stamps last_seen_at on every job it sees this run
+-- (always strictly later than the run's watermark), so any open row for the
+-- company whose last_seen_at predates the watermark is one the ATS no longer
+-- lists → close it.
+--
+-- This replaces the old client-side diff (load every active job into Node,
+-- compute a set difference, then PATCH a potentially huge external_id IN-list
+-- over REST). Keeping the sweep server-side and keyed on
+-- (company_id, last_seen_at) means:
+--   • no unbounded IN-list payload per company (the index jobs_active_idx
+--     already covers exactly this predicate),
+--   • it is idempotent — re-running closes nothing new,
+--   • it touches only one company's rows, so a sharded scan that partitions
+--     companies across parallel jobs can never double-close another shard's
+--     jobs. That non-overlap is the prerequisite for matrix-sharding the
+--     scan (f-109).
+--
+-- CALLER CONTRACT: invoke this ONLY for a company whose probe SUCCEEDED this
+-- run, and pass the watermark captured BEFORE any upsert. Calling it for a
+-- company that wasn't probed (or with now() as the watermark) would close
+-- that company's entire active set, since none of its rows were re-stamped.
+-- Returns the number of rows closed so the scanner can keep its totals.
+create or replace function public.close_unseen_jobs(
+  p_company_id uuid,
+  p_scan_start timestamptz
+) returns integer
+language sql
+as $$
+  with closed as (
+    update public.jobs
+       set closed_at = now()
+     where company_id = p_company_id
+       and closed_at is null
+       and last_seen_at < p_scan_start
+    returning 1
+  )
+  select count(*)::integer from closed;
+$$;
+
 -- ── job descriptions ───────────────────────────────────────────────
 -- Plain-text job description, populated by the scanner (for providers where
 -- it ships in the listing response) or by a separate per-job fetch pass.

@@ -106,6 +106,13 @@ if (companies.length === 0) {
 // are handled by the upsert's unique-constraint resolution and the close
 // sweep's "external_id not in current listing" check, respectively. We
 // don't need a consistent snapshot — we just need a recent one.
+// Watermark for the server-side close-sweep (f-108). Any open job whose
+// last_seen_at predates this is one no successful probe re-stamped this run —
+// i.e. the ATS stopped listing it. Captured BEFORE any upsert so every job we
+// see this run gets last_seen_at strictly later than the watermark and is
+// never mistakenly closed.
+const SCAN_START_ISO = new Date().toISOString();
+
 console.log('Pre-fetching active job snapshot...');
 const snapshotStart = Date.now();
 const activeRows = await selectAll('jobs', {
@@ -249,14 +256,39 @@ async function probeOne(company) {
   });
 
   if (jobRows.length) {
+    // PostgREST requires every object in a bulk insert/upsert to carry the
+    // *same* set of keys, or it 400s the whole request with PGRST102
+    // ("All object keys must match"). Our rows are deliberately heterogeneous:
+    // the description-skip optimisation only attaches description /
+    // description_hash / description_fetched_at to rows whose text changed
+    // since the snapshot. Mixing changed + unchanged rows in one request
+    // therefore failed the company's entire write — silently freezing every
+    // company that had at least one changed posting alongside unchanged ones
+    // (~1.1k companies, incl. the largest boards, stuck since 2026-05-17).
+    // Fix: bucket rows by their key signature and upsert each homogeneous
+    // group on its own. Grouping by signature (not a hard-coded with/without-
+    // description split) keeps this correct if a future field becomes
+    // conditional too.
+    const groups = new Map();
+    for (const row of jobRows) {
+      const sig = Object.keys(row).sort().join(',');
+      let g = groups.get(sig);
+      if (!g) { g = []; groups.set(sig, g); }
+      g.push(row);
+    }
     try {
       // Use return=minimal — we don't need the rows back. Returning
       // representation was costing us a full row payload per upsert, which
       // added up across 3k companies. We re-derive "new vs reopened" from
       // the snapshot we already have.
-      await upsert('jobs', jobRows, 'company_id,external_id', { returning: 'minimal' });
+      for (const group of groups.values()) {
+        await upsert('jobs', group, 'company_id,external_id', { returning: 'minimal' });
+      }
     } catch (e) {
       // Record as success of probe but failure of write — surface in notes.
+      // We bail BEFORE the close-sweep below: if any group failed, some seen
+      // jobs weren't re-stamped, and closing on a partial write would wrongly
+      // close still-listed jobs. Next scan retries the whole company.
       await recordProbe(company, {
         http_status: result.http_status,
         latency_ms: result.latency_ms,
@@ -279,31 +311,27 @@ async function probeOne(company) {
   totals.new_jobs += newCount;
 
   // Close jobs previously active for this company but absent from this scan.
-  // Derived from the snapshot — no extra round-trip. We only do this on a
-  // successful scan — never on a partial/error response. Race note: a row
-  // inserted between snapshot and probe won't appear in `existing`, so it
-  // won't get incorrectly closed.
+  // Server-side (f-108): the upserts above stamped every seen job with
+  // last_seen_at >= SCAN_START_ISO, so close_unseen_jobs() closes exactly the
+  // company's still-open rows whose last_seen_at predates the run. This runs
+  // only after every upsert group succeeded (we returned early otherwise), so
+  // we never close on a partial/failed write. Versus the old client-side diff
+  // it drops the potentially-huge external_id IN-list payload, is idempotent,
+  // and — because it touches one company's rows keyed on (company_id,
+  // last_seen_at) — lets the scan be sharded later without double-closing
+  // (f-109). Race note: a row inserted after the watermark gets a newer
+  // last_seen_at, so it is never closed.
   let closedThisCompany = 0;
-  const toCloseExtIds = [];
-  for (const ext of existing.keys()) {
-    if (!seenExternalIds.has(ext)) toCloseExtIds.push(ext);
-  }
-  if (toCloseExtIds.length) {
-    try {
-      // Filter by (company_id, external_id) so we don't need to have
-      // fetched primary-key ids in the snapshot.
-      const extList = toCloseExtIds.map((e) => `"${e.replace(/"/g, '""')}"`).join(',');
-      await update(
-        'jobs',
-        { company_id: `eq.${company.id}`, external_id: `in.(${extList})`, closed_at: 'is.null' },
-        { closed_at: new Date().toISOString() },
-        { returning: 'minimal' },
-      );
-      closedThisCompany = toCloseExtIds.length;
-      totals.closed_jobs += closedThisCompany;
-    } catch (e) {
-      console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
-    }
+  try {
+    const closed = await rpc('close_unseen_jobs', {
+      p_company_id: company.id,
+      p_scan_start: SCAN_START_ISO,
+    });
+    // PostgREST returns the bare scalar for an integer-returning function.
+    closedThisCompany = typeof closed === 'number' ? closed : Number(closed) || 0;
+    totals.closed_jobs += closedThisCompany;
+  } catch (e) {
+    console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
 
   await recordProbe(company, {
