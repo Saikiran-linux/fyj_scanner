@@ -129,23 +129,48 @@ export async function select(table, query = {}) {
  * cap (1,000). Use this whenever the result set could be larger than 1k —
  * a bare select() truncates silently. Pass `pageSize` to override the chunk
  * size; defaults to 1,000 which is the upstream cap.
+ *
+ * Pagination is **keyset (cursor) on a unique ordered column** (default the
+ * primary key `id`), NOT limit/offset. This matters for correctness, not just
+ * speed: `LIMIT/OFFSET` without a *total* `ORDER BY` is not stable on a large
+ * table — PostgreSQL may return rows in a different physical order between the
+ * (many) page requests, so some rows come back on two pages and others are
+ * skipped entirely. That silently corrupted the scanner's active-job snapshot
+ * (it returned the right row COUNT but ~35% duplicates and ~35% missing rows),
+ * which made every scan miscount tens of thousands of already-open jobs as
+ * "new" and re-send their descriptions. Seeking past the last id we saw
+ * (`id=gt.<cursor>` + `order=id.asc`) is both stable and O(1) per page (no
+ * growing OFFSET scan) — important as `jobs` heads toward 1M rows.
+ *
+ * Assumes the target table has a unique, sortable `keyColumn` and that the
+ * caller does not itself filter/order on that column (true for every caller
+ * here — they hit `jobs`/`companies`, both keyed on a uuid `id`). Override via
+ * the `keyColumn` option if that ever changes.
  */
-export async function selectAll(table, query = {}, { pageSize = 1000, maxRows = Infinity } = {}) {
+export async function selectAll(table, query = {}, { pageSize = 1000, maxRows = Infinity, keyColumn = 'id' } = {}) {
   const all = [];
-  let offset = 0;
-  // PostgREST honours `limit` and `offset` query params; the server still
-  // applies its own max-rows ceiling per request, so we paginate. A caller's
-  // own `limit` in `query` is ignored here (we own that param for paging) —
-  // use the `maxRows` option to cap the total number of rows returned.
+  // Make sure the cursor column comes back in the rows so we can read the next
+  // cursor; append it if the caller narrowed `select` and left it out.
+  let select = query.select;
+  if (keyColumn && typeof select === 'string') {
+    const cols = select.split(',').map((s) => s.trim());
+    if (!cols.includes(keyColumn) && !cols.includes('*')) select = `${select},${keyColumn}`;
+  }
+  let cursor = null;
   while (all.length < maxRows) {
     const want = Math.min(pageSize, maxRows - all.length);
-    const page = await request('GET', `/${table}`, {
-      query: { ...query, limit: String(want), offset: String(offset) },
-    });
+    const q = {
+      ...query,
+      ...(select ? { select } : {}),
+      order: `${keyColumn}.asc`,
+      limit: String(want),
+    };
+    if (cursor != null) q[keyColumn] = `gt.${cursor}`;
+    const page = await request('GET', `/${table}`, { query: q });
     if (!Array.isArray(page) || page.length === 0) break;
     all.push(...page);
+    cursor = page[page.length - 1][keyColumn];
     if (page.length < want) break;
-    offset += page.length;
   }
   return all;
 }
