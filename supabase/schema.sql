@@ -317,6 +317,13 @@ create table if not exists public.scans (
 
 create index if not exists scans_started_idx on public.scans (started_at desc);
 
+-- Probe succeeded (HTTP+schema ok) but the per-company DB upsert failed. This
+-- is the blind spot that hid the PGRST102 freeze (f-112) for 19 days: such
+-- companies count in neither companies_ok nor companies_error. Tracked as a
+-- first-class metric so the dashboard freeze-detector (query 6b) and the scan's
+-- own fail-fast guardrail can act on it.
+alter table public.scans add column if not exists companies_write_failed integer default 0;
+
 -- ── probe_results ──────────────────────────────────────────────────
 -- One row per (scan, company). Used for monitoring and per-company history.
 

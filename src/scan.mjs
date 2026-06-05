@@ -70,6 +70,15 @@ const limiter = new RateLimiter();
 const SCAN_ID = await openScan();
 console.log(`Scan ${SCAN_ID} started`);
 
+// Reap zombie scans before doing anything else. closeScan() is best-effort —
+// if the process dies (OOM, runner kill) or a pooler outage eats the final
+// write (we hit a 57P03 compute restart once), the row stays 'running'
+// forever and skews dashboards/alerts. A real run can't exceed the 30-min
+// Actions budget, so anything still 'running' after 45 min is dead. The
+// concurrency:scan group guarantees no genuine peer is running, so this never
+// races a live scan. Excludes our own just-opened row (started_at is now).
+await reapStaleScans();
+
 let companies;
 try {
   // selectAll paginates past PostgREST's 1k max-rows cap — a bare select()
@@ -139,6 +148,12 @@ const totals = {
   companies_probed: 0,
   companies_ok: 0,
   companies_error: 0,
+  // Probe HTTP/schema succeeded but the DB write (upsert) failed — e.g. the
+  // PGRST102 heterogeneous-keys class that silently froze ~1.1k companies for
+  // 19 days (see f-112). These count in neither companies_ok nor
+  // companies_error, so without an explicit counter they're invisible. Surface
+  // them loudly: this is the metric that would have caught that freeze on day 1.
+  companies_write_failed: 0,
   new_jobs: 0,
   closed_jobs: 0,
 };
@@ -289,6 +304,7 @@ async function probeOne(company) {
       // We bail BEFORE the close-sweep below: if any group failed, some seen
       // jobs weren't re-stamped, and closing on a partial write would wrongly
       // close still-listed jobs. Next scan retries the whole company.
+      totals.companies_write_failed++;
       await recordProbe(company, {
         http_status: result.http_status,
         latency_ms: result.latency_ms,
@@ -626,14 +642,40 @@ const embedNote = embedStats
   ? ` || embed: ${embedStats.embedded} ok, ${embedStats.failed} failed (~$${embedStats.costEstimateUsd.toFixed(4)})`
   : '';
 
-await closeScan(SCAN_ID, 'ok', {
+// Write-failure guardrail (f-112 follow-up). A healthy scan writes nearly
+// everything it probes; a spike in write failures (probe ok, DB upsert
+// rejected) is a systemic problem — the PGRST102 freeze, or a pooler /
+// statement-timeout cascade — that must never pass silently again. Above 5%
+// of probed companies AND >25 in absolute terms (so a tiny run can't trip it)
+// we mark the scan `failed` and exit non-zero, turning the Actions run red.
+// Data already written is unaffected; the next scan retries the failed
+// companies. The PGRST102 freeze failed ~31% of companies — this would have
+// gone red on day 1 instead of staying silent for 19 days.
+const writeFailRate = totals.companies_probed ? totals.companies_write_failed / totals.companies_probed : 0;
+const writeFailHigh = totals.companies_write_failed > 25 && writeFailRate > 0.05;
+const writeNote = totals.companies_write_failed
+  ? ` || db-write-failed: ${totals.companies_write_failed} (${(writeFailRate * 100).toFixed(1)}%)`
+  : '';
+
+await closeScan(SCAN_ID, writeFailHigh ? 'failed' : 'ok', {
   ...totals,
   active_jobs_after,
-  notes: sourceNotes + descNote + summaryNote + embedNote,
+  notes: (writeFailHigh ? '⚠️ HIGH DB-WRITE-FAILURE RATE ' : '') + sourceNotes + writeNote + descNote + summaryNote + embedNote,
 });
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
+console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} write_failed=${totals.companies_write_failed} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
 console.log(`Per-source: ${sourceNotes}`);
+if (writeFailHigh) {
+  console.error(
+    `\n⚠️  GUARDRAIL TRIPPED: ${totals.companies_write_failed}/${totals.companies_probed} companies ` +
+    `(${(writeFailRate * 100).toFixed(1)}%) probed ok but failed their DB write. ` +
+    `Scan marked 'failed'. Inspect: select error, count(*) from probe_results ` +
+    `where scan_id='${SCAN_ID}' and error like 'db_write:%' group by 1;`,
+  );
+  // Non-zero exit so the GitHub Actions run goes red. Set exitCode (not
+  // process.exit) so the totals-refresh below still runs before we exit.
+  process.exitCode = 1;
+}
 
 // Refresh the per-source totals MV that backs the dashboard. The live
 // aggregate over jobs is too slow for the authenticator's 8s timeout on a
@@ -647,6 +689,30 @@ try {
 }
 
 // ── helpers ────────────────────────────────────────────────────────
+
+// Mark long-dead 'running' scans as failed. closeScan() is best-effort, so a
+// crashed process or a lost final write (we've seen a pooler 57P03 eat one)
+// leaves a perpetual 'running' row that pollutes dashboards and the v_recent
+// views. 45 min is safely past the 30-min Actions budget, and the
+// concurrency:scan group means no genuine peer can be running, so this never
+// reaps a live scan. Our own row (started just now) is excluded by the cutoff.
+async function reapStaleScans() {
+  try {
+    const cutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    await update(
+      'scans',
+      { status: 'eq.running', started_at: `lt.${cutoff}` },
+      {
+        status: 'failed',
+        ended_at: new Date().toISOString(),
+        notes: 'auto-reaped: left running >45min (process died or final status write lost)',
+      },
+      { returning: 'minimal' },
+    );
+  } catch (e) {
+    console.warn(`stale-scan reap failed (non-fatal): ${e.message}`);
+  }
+}
 
 async function openScan() {
   const [row] = await insert('scans', [{ status: 'running' }]);
