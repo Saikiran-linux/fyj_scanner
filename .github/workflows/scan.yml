@@ -32,7 +32,7 @@ jobs:
         # change. Default [0] = a single shard over the whole company set =
         # the unsharded scan. Safe to parallelize because close_unseen_jobs()
         # is per-company, so shards never touch each other's jobs.
-        shard: [0, 1]
+        shard: [0]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
