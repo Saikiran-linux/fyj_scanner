@@ -6,6 +6,39 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · CRITICAL upsert bug fix (PGRST102) + server-side close-sweep (f-112, f-108)
+
+Started on the documented #1 next step (server-side close-sweep) and, while validating it against live prod, **uncovered an active P0 data-integrity bug** that was silently freezing most of the index.
+
+**The bug (f-112) — found via live audit, fixed:**
+- **1,139 companies** (incl. SpaceX, OpenAI, Databricks, Carvana, DoorDash, Anduril) failed their *entire* per-company jobs upsert **every scan** with `db_write: 400 PGRST102 "All object keys must match"`. Result: **62,182 active jobs (59% of the index)** frozen — `last_seen_at` never refreshed, no new postings ingested — since **2026-05-17 22:31** (~19 days).
+- **Root cause:** PostgREST requires every object in a bulk upsert array to share one key set. The description hash-skip optimisation (landed 2026-05-17) attaches `description`/`description_hash`/`description_fetched_at` only to rows whose text *changed*. Any company with a mix of changed + unchanged postings in one batch → heterogeneous keys → 400 → whole-company write fails. Big boards (≥1 changed posting every scan) failed every time. The code fails *safe* (early-returns before the close-sweep), so jobs froze rather than being closed — which is exactly why they showed up as `stale_open == total_open`.
+- **Fix** (`src/scan.mjs` `probeOne`): bucket `jobRows` by sorted key signature and upsert each homogeneous group separately. Any group failure still early-returns before the close-sweep (never close on a partial write). Self-healing — the next successful scan re-stamps these boards and closes whatever the providers no longer list.
+
+**Server-side close-sweep (f-108) — the planned next step, landed in the same path:**
+- New idempotent RPC `public.close_unseen_jobs(company_id, scan_start)` (`supabase/schema.sql`, migration `add_close_unseen_jobs_rpc` **applied to prod**): `UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start`.
+- `src/scan.mjs` captures `SCAN_START_ISO` before any upsert and calls the RPC per successfully-probed company, replacing the client-side diff + per-company external_id IN-list PATCH. Idempotent, per-company → **shard-safe** (the prerequisite for f-109 matrix sharding). The in-Node active snapshot is still read, but now only for the description hash-skip + new-job counting; fully dropping it is coupled to the COPY/bulk-write work (f-110).
+
+**Verified (live prod `mwcpoaefmggapztkxakp`, read-only + non-destructive):**
+- Scope of bug confirmed: 1,139 failing companies, 62,182 stale-open jobs, first occurrence 2026-05-17.
+- Close-sweep **equivalence proven**: across all **2,524** companies whose write succeeded last scan, **0** open jobs predate `scan_start` → the watermark sweep closes exactly what the old diff did (no over-closing). The 62k stale rows belong solely to the PGRST102 victims, protected by the early-return.
+- `close_unseen_jobs('<fake-uuid>', now())` → `0` (function runs, non-destructive). `node --check src/scan.mjs` passes.
+
+**NOT yet verified:** a full live scan has not run from this session (no `.env`/secrets in the cloud container). Correctness is established by the equivalence proof + syntax check + applied migration, but the headline numbers (PGRST102 errors → 0, active count correcting upward) must be confirmed on the **first scheduled scan after merge**. Don't tick the clean-state checklist as "scan green" until then.
+
+Branch `claude/immediate-next-steps-AE9N4`. The migration is already live in prod, so the code is safe to merge (RPC exists before the scan that calls it).
+
+**VERIFIED LIVE — ran the fixed scanner against prod** (`npm run scan`, scan `f1a2b319`, 169s, 3,663 companies):
+- **PGRST102 `db_write` failures: 1,314 → 0** (the immediately-prior old-code cron scan had 1,314; mine had 0). `any_dbwrite_failures = 0`, `companies_dbwrite_fail = 0`.
+- **The 19-day freeze thawed:** `new=40,684 / closed=10,214`; **stale-open jobs 64,698 → 10,024**. The remaining 10,024 are 100% accounted for by companies not successfully probed this run (9,630 in HTTP-503 errored boards + 394 in disabled boards) — **0 stale among the 3,511 companies that wrote successfully**, which is the close-sweep correctness invariant.
+- Marquee boards refreshed: bayada/carvana/spacex/veeva/openai all `last_seen` ~05:0x, `still_stale=0`. (Databricks alone stayed frozen — it drew a transient greenhouse 503 this run; recovers next probe.)
+- `err=152` were all transient **HTTP 503** (greenhouse 151 + SR 1) from this container's IP; `newly_autodisabled=0`.
+- A transient DB compute restart (`57P03`) hit right at the scan's tail, so the process's own `closeScan`/totals-refresh writes were lost — I closed the `running` scan row manually with the real totals and re-ran `f_refresh_totals_by_source()` once the DB recovered (~3 min).
+
+**One caveat to flag:** the deployed cron still runs the OLD code until PR #33 merges, so the next scheduled scan will re-freeze the mixed-description boards (no data harm — they just go stale again). **Merging #33 is what makes the fix permanent.**
+
+---
+
 ## 2026-06-05 · Architecture efficiency review for 1M-scale (analysis, no code yet)
 
 Full read of `scan.mjs` + `schema.sql` + a live size check. The design is sound for ~100k jobs but has several **O(total jobs)/O(total companies)-per-scan** operations that break at 10×. Measured now: jobs **117k total / 105k active**, table **670 MB = 90 MB heap + 581 MB indexes** (6.5× — index bloat from per-scan UPDATE churn); probe_results 182k rows. 1M active ≈ **25–40k companies, ~6–7 GB jobs table, ~160k probe_results/day**.
