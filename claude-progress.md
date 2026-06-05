@@ -16,7 +16,9 @@ Built matrix-parallel scan sharding — the documented next infra step, unblocke
 
 **Workflow:** `strategy.matrix.shard` (default `[0]`); `SHARD_COUNT` derives from `strategy.job-total`, so adding shards to the matrix is the only change. `fail-fast: false` isolates a failed shard; per-shard artifact names.
 
-**Verified (read-only against prod):** N=4 partition is disjoint AND complete — companies 898+921+887+957 = 3,663 (0 dupes), jobs 25,860+25,107+25,138+29,634 = 105,739 (0 dupes), reproduced via the exact `selectAll` query shapes `scan.mjs` uses. `node --check` passes; PostgREST `and()`/embedded-`companies.and()` syntax confirmed live. Migrations applied to prod: `add_company_shard_and_scan_shard_columns`, `f_new_jobs_by_scan_source_shard_aware`. **NOT run end-to-end sharded** (default N=1); first N>1 cycle should confirm shards stay green and block-rate is stable.
+**Verified (read-only):** N=4 partition disjoint AND complete — companies 898+921+887+957 = 3,663, jobs 25,860+25,107+25,138+29,634 = 105,739 (0 dupes), via the exact `selectAll` shapes `scan.mjs` uses. Migrations applied: `add_company_shard_and_scan_shard_columns`, `f_new_jobs_by_scan_source_shard_aware`.
+
+**VERIFIED LIVE END-TO-END at N=2** (dispatched on branch; scans `5ffb7ec1` shard 0/2 + `2fa87d8a` shard 1/2): shards **ran in parallel** (17:21:32–17:23:44 ∥ 17:21:30–17:24:02); each probed ONLY its bucket range (0 out-of-range either side); **union of probed companies = 3,663 = total enabled** (disjoint+complete); **stale_among_healthy = 0** (no jobs missed → per-shard snapshots complete, close-sweep + new-count correct under sharding); active stable 105,737; new_jobs accurate (120+180=300); write_failed=0. Matrix reverted to default `[0]` (N=1) after the test.
 
 **Next:** flip the matrix to `[0,1,2,3]` when company count grows (or to validate), then the discovery push (deepen SR → Workable → Workday) to land the volume.
 
