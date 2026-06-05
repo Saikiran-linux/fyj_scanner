@@ -6,6 +6,49 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · Session wrap + path-to-1M roadmap (read this first if you're new)
+
+**Where we are now** (verified live, prod `mwcpoaefmggapztkxakp`):
+
+| Metric | Value |
+|---|---|
+| Companies total / enabled | 5,165 / 3,664 |
+| Active jobs | **105,706** (was ~70.5k at session start) |
+| Active with description | 104,512 (98.9%) |
+| Active with compensation | 12,581 |
+| Active with remote | 42,964 |
+| Per-source active | Greenhouse 47k · SmartRecruiters 35k · Ashby 10k · Lever 8.7k · workatastartup 4.9k |
+
+All this session's work is on branch `claude/wizardly-mendel-BrW6a` / **PR #31** (draft). Entries below have the detail; index:
+- **f-101** — Greenhouse 404 recovery (`src/recover-greenhouse-slugs.mjs`). Real recoverable pattern is cross-ATS migration, not slug-drift. 65 companies reclaimed.
+- **f-102** — SmartRecruiters discovery via its public `sr-jobs/search` API (`seed/scrape-smartrecruiters.mjs`, `seed/lib.mjs`, `seed/scrape-github.mjs`). SR tenants 18 → 561.
+- **Job links + enrichment** — SR url fix (was the API URL), description-cap raise + infinite-loop fix, Ashby comp-extraction fix, SR detail enrichment (`scripts/backfill-enrichment.mjs`, `fetchDetail`/`fetchJobPosting` in providers).
+
+**⚠️ Open chores**: rotate the Supabase service-role key (shared in chat this session) + update the GH Actions secret; run `scrape-github` with a `GITHUB_TOKEN` to finish f-102's GitHub path.
+
+### Path to 1M+ jobs (evidence-backed roadmap — discovery is the easy part, scan infra is the hard part)
+
+Live-probed 2026-06-05. The jobs exist; getting them is a discovery + adapter problem:
+
+**Discovery levers, ranked by yield/effort:**
+1. **Deepen SmartRecruiters** — `sr-jobs/search?limit=1` reports **totalFound = 344,499**. We have 35k. Just harvest the API we already built more deeply (more keywords + geo/offset fan-out). 35k → ~300k. *Lowest effort.*
+2. **Workable adapter** — `jobs.workable.com/api/v1/jobs?query=…` is **public, 200, paginated** (`nextPageToken`, `totalSize` 16k+ for "engineer"). Same "read the ATS's own index" pattern as SR; gives jobs *and* company discovery. Was wrongly deferred (f-902 said "no public API"). +100k. *Re-open f-902.*
+3. **Workday adapter (f-104)** — verified `myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` POST works: NVIDIA 2,000 jobs, Red Hat 293. Per-tenant (tenant,dc,site) config is the work; discover tenants from HN/GitHub/Wayback `myworkdayjobs.com` URLs + curated list. +300–500k.
+4. **Deepen Greenhouse/Lever/Ashby** — `scrape-github.mjs` (needs `GITHUB_TOKEN`) + existing `seed/scrape-wayback.mjs` CDX corpus. +150–250k.
+5. **Long-tail adapters** — Recruitee, Teamtailor, Personio, JazzHR, BreezyHR, iCIMS. +100k.
+
+SR + Workable + Workday alone clear 1M.
+
+**The real bottleneck — scan infra (must land alongside discovery, or 1M is a one-time dump not a maintainable index):**
+- **Shard the scan**: 1M ≈ 25–40k companies; the single 30-min Actions job (3,664 companies / ~8 min today) won't scale 10×. Split across parallel matrix jobs by ATS or company-hash. Blocked on ↓.
+- **Server-side close-sweep**: today the scan loads *every* active job into Node (`selectAll`) to diff — a memory/time wall at 1M, and the reason the `concurrency: scan` group forbids parallel runs (double-close). Move to SQL-side "close jobs not seen this run, per company" → unblocks sharding.
+- **Pooler saturation** (known 504/statement-timeout cascade): batch writes harder / `COPY` / direct transaction-pooled connection for bulk instead of the REST path.
+- **Cost/storage**: 1M embeddings ≈ 6 GB vector + HNSW, ~$20–30 one-time embed; size the Supabase tier deliberately. SR/Workday/Workable need per-job detail fetches (hours at scale → accept eventual consistency).
+
+**Recommended sequence**: (1) deepen SR + ship Workable → ~450k, low risk; (2) Workday → 1M+; (3) in parallel, server-side close-sweep + scan-sharding (the unlock). Consider promoting these into `feature_list.json` as f-106 (deepen-SR), f-107 (Workable), f-108 (scan-sharding/close-sweep) when starting.
+
+---
+
 ## 2026-06-04 · Job links + field enrichment (SR url fix, desc-cap fix, comp/remote/dept)
 
 Follow-on to the f-101/f-102 coverage work — making the newly-expanded SmartRecruiters rows actually usable.
