@@ -21,6 +21,18 @@ env:
 
 jobs:
   scan:
+    strategy:
+      # One shard failing must NOT cancel its siblings — each shard owns a
+      # disjoint slice of companies, so a failure is isolated to that slice.
+      fail-fast: false
+      matrix:
+        # Scan sharding (f-109). List 0..N-1 to fan the scan out across N
+        # parallel jobs (N ≤ 60); SHARD_COUNT below derives from the matrix
+        # length via strategy.job-total, so this list is the ONLY thing to
+        # change. Default [0] = a single shard over the whole company set =
+        # the unsharded scan. Safe to parallelize because close_unseen_jobs()
+        # is per-company, so shards never touch each other's jobs.
+        shard: [0]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -54,13 +66,19 @@ jobs:
           # cascades. The rate limiter still caps per-provider concurrency
           # separately for the ATS HTTP calls.
           SCAN_WORKER_POOL: '10'
+          # Sharding: each matrix job scans its slice. SHARD_COUNT derives from
+          # the matrix length, so adding shards to the matrix above is the only
+          # change needed. Default matrix [0] → SHARD_COUNT=1 (unsharded).
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_COUNT: ${{ strategy.job-total }}
         run: node src/scan.mjs
 
       - name: Upload logs (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scan-log-${{ github.run_id }}
+          # Per-shard name — matrix jobs can't share one artifact name (v4).
+          name: scan-log-${{ github.run_id }}-shard${{ matrix.shard }}
           path: |
             *.log
           if-no-files-found: ignore

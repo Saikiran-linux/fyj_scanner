@@ -58,6 +58,22 @@ create table if not exists public.companies (
 create index if not exists companies_enabled_idx on public.companies (enabled) where enabled = true;
 create index if not exists companies_ats_idx on public.companies (ats);
 
+-- Sharding key for matrix-parallel scans (f-109). A stable hash of the company
+-- id into 60 buckets [0,60). The scan workflow can fan out into N parallel
+-- shards (N ≤ 60); shard i owns the contiguous bucket range
+-- [floor(i*60/N), floor((i+1)*60/N)), which tiles [0,60) exactly for any N, so
+-- shards are disjoint and complete. Generated/stored (md5 is immutable) so the
+-- bucket is fixed for a company's lifetime and both the company list and the
+-- per-shard job snapshot can be filtered by a simple indexed range. Default
+-- N=1 (one shard) selects the whole range and behaves identically to today.
+alter table public.companies
+  add column if not exists shard smallint
+  generated always as (
+    ((get_byte(decode(md5(id::text), 'hex'), 0) * 256
+      + get_byte(decode(md5(id::text), 'hex'), 1)) % 60)
+  ) stored;
+create index if not exists companies_shard_idx on public.companies (shard) where enabled = true;
+
 -- ── jobs ───────────────────────────────────────────────────────────
 -- One row per (company, external_id). Never deleted. closed_at is set when
 -- a job stops appearing in the ATS response (and the company's scan that
@@ -228,6 +244,29 @@ alter table public.jobs add column if not exists embedding vector(1536);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
 
+-- ── job relevance classification (f-113) ───────────────────────────
+-- Tags each job with a coarse role family + whether it's a "target" role for
+-- our customer base (tech/IT professionals, knowledge-workers, senior/exec
+-- leadership, students/interns in those fields) vs blue-collar/service/retail/
+-- clinical roles they'd never pay us to find a job for. Classification is by
+-- the ROLE, never the employer's industry. Populated by src/classify.mjs (free
+-- high-precision rules) + gpt-4o-mini for the ambiguous middle, via
+-- scripts/backfill-classification.mjs and the scan's per-job pass.
+--
+-- is_target semantics: true = surface to customers; false = hide (known noise);
+-- NULL = not yet classified — treated as "maybe" and still surfaced, so an
+-- unclassified backlog never hides good jobs. Only is_target=false is filtered
+-- out of matching.
+alter table public.jobs add column if not exists job_family    text;
+alter table public.jobs add column if not exists is_target     boolean;
+alter table public.jobs add column if not exists seniority     text;
+alter table public.jobs add column if not exists classified_at timestamptz;
+alter table public.jobs add column if not exists classified_by text;  -- 'rules' | 'llm'
+
+-- Drives the "active, surfaceable jobs" filter used by matching + dashboards.
+create index if not exists jobs_target_active_idx on public.jobs (job_family)
+  where closed_at is null and is_target is not false;
+
 -- HNSW for cosine similarity. Picked over IVFFlat because:
 --   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
 --   - Latency: p99 ~5-20ms vs IVFFlat's ~30-100ms
@@ -268,7 +307,9 @@ returns table (
     j.comp_currency, j.url
   from public.jobs j
   join public.companies c on c.id = j.company_id
-  where j.closed_at is null and j.embedding is not null
+  -- is_target is not false: surface target roles AND not-yet-classified ones,
+  -- hide only known-noise (blue-collar/service/retail/clinical) per f-113.
+  where j.closed_at is null and j.embedding is not null and j.is_target is not false
   order by j.embedding <=> resume_vec
   limit match_count;
 $$;
@@ -298,7 +339,8 @@ begin
       j.comp_currency, j.url
     from public.jobs j
     join public.companies c on c.id = j.company_id
-    where j.closed_at is null and j.embedding is not null
+    -- is_target is not false: hide only known-noise; keep unclassified visible (f-113).
+    where j.closed_at is null and j.embedding is not null and j.is_target is not false
     order by j.embedding <=> resume_vec
     limit match_count;
 end;
@@ -323,6 +365,12 @@ create table if not exists public.scans (
 );
 
 create index if not exists scans_started_idx on public.scans (started_at desc);
+
+-- Which shard of a matrix-parallel scan cycle wrote this row (f-109). A sharded
+-- cycle produces shard_count rows (one per shard) sharing a near-identical
+-- started_at; the dashboard groups a cycle by that. Default 0/1 = unsharded.
+alter table public.scans add column if not exists shard_index integer not null default 0;
+alter table public.scans add column if not exists shard_count integer not null default 1;
 
 -- Probe succeeded (HTTP+schema ok) but the per-company DB upsert failed. This
 -- is the blind spot that hid the PGRST102 freeze (f-112) for 19 days: such
@@ -625,8 +673,13 @@ returns table (
         lead(started_at) over (order by started_at),
         'infinity'::timestamptz
       ) as next_started_at
+    -- One representative row per scan CYCLE. A sharded cycle (f-109) writes
+    -- shard_count rows seconds apart; windowing over all of them would make
+    -- near-zero-width sibling windows and mis-bucket jobs. shard_index=0 (which
+    -- always runs) is the cycle's boundary; its window spans the whole cycle's
+    -- jobs across all shards. No-op when unsharded (shard_index is always 0).
     from public.scans
-    where status = 'ok'
+    where status = 'ok' and shard_index = 0
   )
   -- count(*) not count(j.*): the latter references the whole composite row,
   -- which stops the planner doing an index-only scan and makes it heap-fetch

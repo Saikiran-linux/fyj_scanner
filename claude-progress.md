@@ -6,6 +6,41 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · f-113 job relevance layer (target-role classification)
+
+**Product context (from the user):** this is an AI-first staffing agency whose customers are tech/IT professionals, knowledge-workers, senior/exec leaders, and students in those fields — NOT people in service/manual/retail/clinical roles. The index had a lot of noise (waiter, dishwasher, care assistant, automotive technician…), mostly from SmartRecruiters (seeded via generic keyword fan-out). So we now classify every job and surface only target roles. Classification is by ROLE, never employer industry.
+
+**Shipped (decisions: tag/filter + prune SR tenants; hybrid rules+LLM):**
+- `src/classify.mjs` — high-precision title→{family,is_target,seniority,confidence} rules. Validated on 105k live titles: **45.5% high-precision coverage** (33.9% target, 11.6% non-target); the ambiguous 54.5% → confidence:'low' for the LLM.
+- Schema (`jobs.job_family/is_target/seniority/classified_at/classified_by` + partial index `jobs_target_active_idx`). `is_target` semantics: true=surface, false=hide, **NULL=surface (unclassified, not yet hidden)** — so an unclassified backlog never hides good jobs; only known-false is filtered.
+- `scripts/backfill-classification.mjs` — rules pass (free) + `--llm` gpt-4o-mini pass for the ambiguous middle (grouped updates, ~few hundred PATCHes for the table). **Ran rules pass live: 48,162 jobs tagged.**
+- `src/scan.mjs` — classifies NEW jobs at ingest (rules, inline; never clobbers an existing/LLM verdict); gates the description-fetch + embedding passes to `is_target is not false` so we stop spending on known-noise.
+- Match RPCs (`match_resume`, `match_resume_candidates`) now filter `is_target is not false` → **12,259 known-noise jobs hidden from customers immediately**; 93,603 (target + unclassified) still surface.
+
+**Live state:** known non-target=12,259 hidden; SR is the noisiest (5.6k target vs 5.6k non-target among classified, 23.6k still unclassified); Ashby/Lever/WaaS are ~all target. Migrations applied: `add_job_classification_columns`, `match_rpcs_filter_target_roles`.
+
+**Next:** (1) run `backfill-classification.mjs --llm` with an OPENAI_API_KEY to resolve the 57.7k unclassified (~$6-12 one-time) — needed before SR pruning so we don't disable tenants with unclassified-but-target roles; (2) then prune SR tenants whose jobs are ~entirely non-target; (3) retarget discovery (SR/Workable/Workday keyword fan-out on professional roles) so we ingest relevant jobs in the first place.
+
+---
+
+## 2026-06-05 · f-109 scan sharding (capability built, default N=1)
+
+Built matrix-parallel scan sharding — the documented next infra step, unblocked by f-108. **Default N=1, so production behaviour is unchanged**; flip by listing shards in the workflow matrix.
+
+**How it works:** stored `companies.shard` bucket `[0,60)` (generated from md5(id), indexed). Shard *i* of *N* owns the contiguous range `[floor(i*60/N), floor((i+1)*60/N))`, which tiles `[0,60)` exactly for any N≤60 → shards are **disjoint and complete**. `scan.mjs` reads `SHARD_INDEX`/`SHARD_COUNT` and scopes the company load, the active-job snapshot (`jobs → companies!inner`, embedded `companies.and=(shard.gte.LO,shard.lt.HI)`), and the description pass to its slice; writes `scans.shard_index/shard_count`. Per-company `close_unseen_jobs` (f-108) means shards never touch each other's jobs — the safety property that makes parallelism correct.
+
+**Decisions:** (1) per-provider rate-limit concurrency is **not** divided by N — ATS providers throttle per source-IP and each shard runs on its own runner IP, so N shards give ~N× aggregate throughput (the real win); the adaptive limiter backs a shard off if a provider turns out to be globally limited. (2) **one `scans` row per shard**, tagged `shard_index/shard_count`. (3) `f_new_jobs_by_scan_source` now windows on `shard_index=0` so a sharded cycle's siblings don't mis-bucket new-job counts (no-op at N=1).
+
+**Workflow:** `strategy.matrix.shard` (default `[0]`); `SHARD_COUNT` derives from `strategy.job-total`, so adding shards to the matrix is the only change. `fail-fast: false` isolates a failed shard; per-shard artifact names.
+
+**Verified (read-only):** N=4 partition disjoint AND complete — companies 898+921+887+957 = 3,663, jobs 25,860+25,107+25,138+29,634 = 105,739 (0 dupes), via the exact `selectAll` shapes `scan.mjs` uses. Migrations applied: `add_company_shard_and_scan_shard_columns`, `f_new_jobs_by_scan_source_shard_aware`.
+
+**VERIFIED LIVE END-TO-END at N=2** (dispatched on branch; scans `5ffb7ec1` shard 0/2 + `2fa87d8a` shard 1/2): shards **ran in parallel** (17:21:32–17:23:44 ∥ 17:21:30–17:24:02); each probed ONLY its bucket range (0 out-of-range either side); **union of probed companies = 3,663 = total enabled** (disjoint+complete); **stale_among_healthy = 0** (no jobs missed → per-shard snapshots complete, close-sweep + new-count correct under sharding); active stable 105,737; new_jobs accurate (120+180=300); write_failed=0. Matrix reverted to default `[0]` (N=1) after the test.
+
+**Next:** flip the matrix to `[0,1,2,3]` when company count grows (or to validate), then the discovery push (deepen SR → Workable → Workday) to land the volume.
+
+---
+
 ## 2026-06-05 · ROOT-CAUSE: inflated new_jobs (selectAll pagination) + dashboard timeouts
 
 User reported the dashboard erroring (`f_new_jobs_by_scan_source → 57014 statement timeout`, ACTIVE JOBS reading 0) and **~38k "new" jobs every scan while active stayed ~105k**. Two distinct bugs, both found and fixed.

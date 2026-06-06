@@ -201,6 +201,33 @@
       "verify": "select count(*) from pg_proc where proname='close_unseen_jobs';",
       "next": "Verify closed_jobs/new_jobs behave sanely on the first post-deploy scan; then build on it for f-109 matrix sharding."
     },
+    {
+      "id": "f-109",
+      "title": "Matrix-shard the scan (parallel jobs by company-hash)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "The single ~30-min Actions job won't survive 10x company growth toward 1M jobs. Unblocked by f-108 (per-company server-side close-sweep), so parallel shards over disjoint companies never double-close.",
+      "scope": "Stored companies.shard bucket [0,60) (generated, indexed). Shard i of N owns range [floor(i*60/N), floor((i+1)*60/N)) — tiles [0,60) exactly for any N<=60 (disjoint+complete). scan.mjs reads SHARD_INDEX/SHARD_COUNT and scopes the company load, the active-job snapshot (jobs!inner companies.shard), and the description pass to its slice; writes scans.shard_index/shard_count. Workflow uses a matrix; SHARD_COUNT derives from strategy.job-total so only the matrix list changes. Per-provider rate-limit concurrency is NOT divided by N (providers throttle per-IP; each shard runs on its own runner IP → ~N× aggregate throughput; adaptive limiter backs off if globally limited). f_new_jobs_by_scan_source windows on shard_index=0 so a sharded cycle isn't mis-bucketed.",
+      "touches": ["supabase/schema.sql (companies.shard, scans.shard_*, f_new_jobs_by_scan_source)", "src/scan.mjs", ".github/workflows/scan.yml", "migrations add_company_shard_and_scan_shard_columns + f_new_jobs_by_scan_source_shard_aware (applied to prod)"],
+      "evidence": ["Partition validated live (read-only): N=4 shards companies 898+921+887+957=3,663 (0 dupes) and jobs 25,860+25,107+25,138+29,634=105,739 (0 dupes) — disjoint AND complete. node --check passes. PostgREST and()/embedded companies.and() filter syntax verified against prod.", "VERIFIED LIVE END-TO-END at N=2 (scans 5ffb7ec1 + 2fa87d8a): ran in parallel, 0 out-of-range probes either shard, union probed=3,663=total enabled, stale_among_healthy=0, active stable 105,737, new_jobs accurate (300), write_failed=0. Matrix reverted to default [0]."],
+      "status_note": "DEFAULT N=1 (matrix [0]) so production behaviour is unchanged. Capability is ready; flip by listing 0..N-1 in the workflow matrix.",
+      "verify": "select shard_count, count(*) from public.scans where started_at > now() - interval '1 day' group by 1;",
+      "next": "When ready to scale: set matrix to [0,1,2,3], run a cycle, confirm shards stay green and per-provider block-rate doesn't spike; then the discovery push (deepen SR, Workable, Workday) can land the volume."
+    },
+    {
+      "id": "f-113",
+      "title": "Job relevance layer (target-role classification + filtering)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Product is an AI-first staffing agency for tech/IT professionals, knowledge-workers, senior/exec leaders and students in those fields. The index was full of service/manual/retail/clinical noise (waiter, dishwasher, care assistant, automotive technician), mostly from SmartRecruiters' generic keyword seeding — roles our customers would never pay to be matched to.",
+      "scope": "Classify every job by ROLE (not employer industry) into a family + is_target + seniority. Hybrid: src/classify.mjs high-precision rules (free, ~45% coverage) + gpt-4o-mini for the ambiguous middle (scripts/backfill-classification.mjs --llm). is_target NULL stays surfaced (only known-false hidden) so an unclassified backlog never hides good jobs. scan.mjs classifies new jobs at ingest and gates description/embedding spend to is_target is not false. match_resume(_candidates) filter is_target is not false.",
+      "touches": ["src/classify.mjs (new)", "scripts/backfill-classification.mjs (new)", "src/scan.mjs", "supabase/schema.sql (jobs.job_family/is_target/seniority/classified_*; match RPCs)", "migrations add_job_classification_columns + match_rpcs_filter_target_roles (applied to prod)"],
+      "evidence": ["Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."],
+      "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
+      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified; THEN prune SR tenants that are ~entirely non-target; THEN retarget discovery to professional-role keyword fan-out."
+    },
 
     {
       "id": "f-201",
