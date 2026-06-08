@@ -263,6 +263,27 @@
       "depends_on": ["f-114 (parameterized search)", "f-115 (full-index embeddings)"],
       "touches": ["new mcp-server/ (or edge function)", "supabase search_jobs RPC"]
     },
+    {
+      "id": "f-117",
+      "title": "Operator access control on /matches (lock down before client data)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "The /matches résumé-matcher is a PUBLIC Vercel URL (fyj-scanner.vercel.app). Before operators run real client résumés through it for the staffing launch, it must be access-controlled.",
+      "scope": "Add basic protection: Vercel password protection OR middleware basic-auth / a shared-secret header on /matches and /api/match. Cheapest path to a private operator console for day one; proper per-user auth (Clerk, f-201) comes later.",
+      "touches": ["status-page/middleware.js (new) or Vercel project setting", "status-page/app/api/match/route.js"]
+    },
+    {
+      "id": "f-118",
+      "title": "Daily enrichment freshness (classify -> summarize -> embed) so new jobs are matchable",
+      "phase": "product-a",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "Cron runs SKIP_LLM_PASSES=1, so new jobs get rules-classified at ingest but never summarized/embedded — they'd be unmatchable within days of launch even after the one-time backfill (f-115).",
+      "scope": "A scheduled workflow (or re-enable the scan's LLM passes) that runs backfill-classification --llm + backfill-summaries + embed-backfill daily over is_target-not-false rows lacking enrichment. Bounds cost (only target rows, only the day's new backlog).",
+      "depends_on": ["f-115 (initial backfill)", "OPENAI_API_KEY in CI"],
+      "touches": [".github/workflows (new enrichment workflow)", "scripts/backfill-*"]
+    },
 
     {
       "id": "f-201",

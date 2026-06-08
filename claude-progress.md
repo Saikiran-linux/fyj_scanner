@@ -6,6 +6,31 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · LAUNCH CHECKLIST — staffing (Product A) goes live tomorrow
+
+Ordered next steps to operate the AI-first staffing firm. Owner in brackets; ✅=done this session.
+
+**Must-do to launch (in order):**
+1. **Merge PR #36** → relevance layer + all scan/dashboard fixes onto `main` (cron + live dashboard). [user — or me on request]
+2. **Make matching real (the #1 blocker):** classify(LLM) → summarize → embed the **tech/target slice** first. Matchability **7.7% → ~95%**. ~$30, ~2h. **BLOCKED on `OPENAI_API_KEY`.** [me, once key provided] — f-115
+3. **Lock down `/matches`** (public Vercel URL) with basic auth before client résumés go through it. [me, no key] — f-117
+4. **QA:** 2–3 real client résumés through `/matches`, eyeball relevance. [together, after #2]
+
+**Backbone — no key, can start now:**
+5. **f-114 — parameterize relevance in search** (`target_only` default true + filters; shared `search_jobs` RPC). Keeps staffing unchanged; prerequisite for Product B. [me]
+
+**Right after launch:**
+6. **f-118 — daily enrichment workflow** (classify→summarize→embed), else new jobs go unmatchable within days (cron has SKIP_LLM_PASSES=1).
+7. **f-116 — Jobs MCP server** (Product B) once f-114 + full-index embeddings land.
+
+**Housekeeping:** rotate the Supabase service-role key + update the Actions secret. [user]
+
+**Live readiness snapshot (2026-06-05):** 93,847 surfaced target jobs; only **7,249 embedded (7.7% matchable)** ← the blocker. 12,259 known-noise hidden; 58,080 still unclassified (need the --llm pass). Classifier + rules backfill (48,162 tagged), match-filtering, scan-ingest classification, dashboard auto-refresh fix, sharding (default N=1) all shipped & on the branch (PR #36).
+
+**Tracker:** added f-117 (operator auth), f-118 (freshness) to `feature_list.json`; f-114/115/116 + product-a/product-b phases already there.
+
+---
+
 ## 2026-06-05 · Product strategy: one DB, two lenses (recorded in the plan)
 
 User reframed the product: don't delete blue-collar jobs — the same scanned index powers **two products via a filter lens**, not two datasets.
