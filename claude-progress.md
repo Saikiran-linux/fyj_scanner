@@ -6,6 +6,48 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · LAUNCH CHECKLIST — staffing (Product A) goes live tomorrow
+
+Ordered next steps to operate the AI-first staffing firm. Owner in brackets; ✅=done this session.
+
+**Must-do to launch (in order):**
+1. **Merge PR #36** → relevance layer + all scan/dashboard fixes onto `main` (cron + live dashboard). [user — or me on request]
+2. **Make matching real (the #1 blocker):** classify(LLM) → summarize → embed the **tech/target slice** first. Matchability **7.7% → ~95%**. ~$30, ~2h. **BLOCKED on `OPENAI_API_KEY`.** [me, once key provided] — f-115
+3. **Lock down `/matches`** (public Vercel URL) with basic auth before client résumés go through it. [me, no key] — f-117
+4. **QA:** 2–3 real client résumés through `/matches`, eyeball relevance. [together, after #2]
+
+**Backbone — no key, can start now:**
+5. **f-114 — parameterize relevance in search** (`target_only` default true + filters; shared `search_jobs` RPC). Keeps staffing unchanged; prerequisite for Product B. [me]
+
+**Right after launch:**
+6. **f-118 — daily enrichment workflow** (classify→summarize→embed), else new jobs go unmatchable within days (cron has SKIP_LLM_PASSES=1).
+7. **f-116 — Jobs MCP server** (Product B) once f-114 + full-index embeddings land.
+
+**Housekeeping:** rotate the Supabase service-role key + update the Actions secret. [user]
+
+**Live readiness snapshot (2026-06-05):** 93,847 surfaced target jobs; only **7,249 embedded (7.7% matchable)** ← the blocker. 12,259 known-noise hidden; 58,080 still unclassified (need the --llm pass). Classifier + rules backfill (48,162 tagged), match-filtering, scan-ingest classification, dashboard auto-refresh fix, sharding (default N=1) all shipped & on the branch (PR #36).
+
+**Tracker:** added f-117 (operator auth), f-118 (freshness) to `feature_list.json`; f-114/115/116 + product-a/product-b phases already there.
+
+---
+
+## 2026-06-05 · Product strategy: one DB, two lenses (recorded in the plan)
+
+User reframed the product: don't delete blue-collar jobs — the same scanned index powers **two products via a filter lens**, not two datasets.
+- **Product A — AI-first staffing firm** (near-term revenue): tech/IT lens (`is_target=true` / tech families); high-touch paid placements.
+- **Product B — NL jobs search for AI agents & people** (platform): MCP/API over the *whole* index, any filter the caller wants (blue-collar included); usage-monetized.
+
+**Commitments recorded** in `HOSTED_PLATFORM_PLAN.md` ("Product Strategy — one DB, two lenses") + `feature_list.json` (phases `product-a`/`product-b`; f-114/115/116):
+1. Tag, don't delete (the f-113 relevance layer is the shared backbone).
+2. **Reverse the "prune SR tenants" plan** — keep blue-collar tenants (Product B wants them); only disable genuinely dead (404/empty) tenants.
+3. **Parameterize relevance in search** (`target_only`/`family`/filters), don't hardcode — supersedes the hardcoded `is_target is not false` now in `match_resume*` (f-114).
+4. Shared backbone built once: full classification + embeddings (tech slice first to launch A, full index for B) + a hybrid NL→{filters+vector} `search_jobs` RPC.
+5. Product B interface = a curated **MCP server** (+ REST), never raw DB access (f-116).
+
+**Launch sequencing:** Product A first (classify + embed tech slice, `target_only=true`) → parameterize search (f-114) → embed full index + ship MCP (f-116). No code this entry — planning only.
+
+---
+
 ## 2026-06-05 · f-113 job relevance layer (target-role classification)
 
 **Product context (from the user):** this is an AI-first staffing agency whose customers are tech/IT professionals, knowledge-workers, senior/exec leaders, and students in those fields — NOT people in service/manual/retail/clinical roles. The index had a lot of noise (waiter, dishwasher, care assistant, automotive technician…), mostly from SmartRecruiters (seeded via generic keyword fan-out). So we now classify every job and surface only target roles. Classification is by ROLE, never employer industry.
