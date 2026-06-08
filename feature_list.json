@@ -8,7 +8,9 @@
     "phase-3": "Per-user matching pipeline + inbox + daily digest",
     "phase-4": "On-demand Sonnet A–G deep eval + multi-agent CV-tailor + tracker",
     "phase-5": "Billing + feedback loop + polish",
-    "phase-6": "Growth instrumentation"
+    "phase-6": "Growth instrumentation",
+    "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
+    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -226,7 +228,40 @@
       "touches": ["src/classify.mjs (new)", "scripts/backfill-classification.mjs (new)", "src/scan.mjs", "supabase/schema.sql (jobs.job_family/is_target/seniority/classified_*; match RPCs)", "migrations add_job_classification_columns + match_rpcs_filter_target_roles (applied to prod)"],
       "evidence": ["Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."],
       "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
-      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified; THEN prune SR tenants that are ~entirely non-target; THEN retarget discovery to professional-role keyword fan-out."
+      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified. STRATEGY UPDATE 2026-06-05: do NOT prune blue-collar tenants — Product B (NL jobs MCP) wants them; only disable genuinely dead (404/empty) tenants. Relevance becomes a parameterized lens, not a hardcoded filter — see f-114."
+    },
+    {
+      "id": "f-114",
+      "title": "Parameterize relevance in search (target_only/family filters) — two-product backbone",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "Two products share one DB + one search engine (HOSTED_PLATFORM_PLAN.md 'one DB, two lenses'). Staffing wants tech-only; the agent/NL MCP wants the whole index. Relevance must be a query parameter, not baked in.",
+      "scope": "Replace the hardcoded `is_target is not false` in match_resume/match_resume_candidates with parameters (target_only boolean default true, optional family/seniority/location/remote/comp filters). Add a generalised search_jobs(query_vec, filters) RPC both products call. Staffing passes target_only=true (default, so today's path is unchanged); Product B passes target_only=false + any filters.",
+      "touches": ["supabase/schema.sql (match_resume*, new search_jobs RPC)", "status-page/lib/match.js", "status-page/app/api/match"],
+      "next": "Land alongside the launch so staffing keeps target_only=true while the engine is ready for Product B."
+    },
+    {
+      "id": "f-115",
+      "title": "Embeddings across the index (matchability)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "The matcher only sees embedded jobs. Live check 2026-06-05: of 93,847 surfaced target jobs only 7,249 (7.7%) are embedded — clients are matched against 8% of the index. Biggest single lever on product quality and the #1 launch blocker.",
+      "scope": "Run summary + embedding backfill. LAUNCH ORDER: classify (LLM) -> embed the tech/target slice first (~36k, cheap) to launch staffing (Product A); then embed the full index for Product B's NL search. Also decide ongoing freshness: enable LLM passes in cron OR a daily classify->summarize->embed backfill, else new jobs are unmatchable within days.",
+      "touches": ["scripts/backfill-summaries.mjs", "scripts/backfill-embeddings.mjs", ".github/workflows (a daily enrichment workflow)"],
+      "blocked_on": ["OPENAI_API_KEY available to the backfill/CI"],
+      "verify": "select round(100.0*count(*) filter (where embedding is not null)/count(*),1) as pct_matchable from public.jobs where closed_at is null and is_target is not false;"
+    },
+    {
+      "id": "f-116",
+      "title": "Jobs MCP server + REST API (Product B)",
+      "phase": "product-b",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Curated MCP server (+ thin REST) exposing search_jobs(query, filters)/get_job(id)/list_families backed by the f-114 search_jobs RPC. NL query -> LLM extracts structured filters + semantic vector -> hybrid retrieve over the full index. Never raw DB access; rate-limited + per-key for usage-based monetization. Agents become a demand + distribution channel feeding Product A.",
+      "depends_on": ["f-114 (parameterized search)", "f-115 (full-index embeddings)"],
+      "touches": ["new mcp-server/ (or edge function)", "supabase search_jobs RPC"]
     },
 
     {

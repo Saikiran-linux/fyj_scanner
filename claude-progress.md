@@ -6,6 +6,23 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · Product strategy: one DB, two lenses (recorded in the plan)
+
+User reframed the product: don't delete blue-collar jobs — the same scanned index powers **two products via a filter lens**, not two datasets.
+- **Product A — AI-first staffing firm** (near-term revenue): tech/IT lens (`is_target=true` / tech families); high-touch paid placements.
+- **Product B — NL jobs search for AI agents & people** (platform): MCP/API over the *whole* index, any filter the caller wants (blue-collar included); usage-monetized.
+
+**Commitments recorded** in `HOSTED_PLATFORM_PLAN.md` ("Product Strategy — one DB, two lenses") + `feature_list.json` (phases `product-a`/`product-b`; f-114/115/116):
+1. Tag, don't delete (the f-113 relevance layer is the shared backbone).
+2. **Reverse the "prune SR tenants" plan** — keep blue-collar tenants (Product B wants them); only disable genuinely dead (404/empty) tenants.
+3. **Parameterize relevance in search** (`target_only`/`family`/filters), don't hardcode — supersedes the hardcoded `is_target is not false` now in `match_resume*` (f-114).
+4. Shared backbone built once: full classification + embeddings (tech slice first to launch A, full index for B) + a hybrid NL→{filters+vector} `search_jobs` RPC.
+5. Product B interface = a curated **MCP server** (+ REST), never raw DB access (f-116).
+
+**Launch sequencing:** Product A first (classify + embed tech slice, `target_only=true`) → parameterize search (f-114) → embed full index + ship MCP (f-116). No code this entry — planning only.
+
+---
+
 ## 2026-06-05 · f-113 job relevance layer (target-role classification)
 
 **Product context (from the user):** this is an AI-first staffing agency whose customers are tech/IT professionals, knowledge-workers, senior/exec leaders, and students in those fields — NOT people in service/manual/retail/clinical roles. The index had a lot of noise (waiter, dishwasher, care assistant, automotive technician…), mostly from SmartRecruiters (seeded via generic keyword fan-out). So we now classify every job and surface only target roles. Classification is by ROLE, never employer industry.
