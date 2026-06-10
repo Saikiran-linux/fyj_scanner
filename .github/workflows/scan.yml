@@ -54,6 +54,15 @@ jobs:
           # cascades. The rate limiter still caps per-provider concurrency
           # separately for the ATS HTTP calls.
           SCAN_WORKER_POOL: '10'
+          # Cloudflare R2 — raw ATS response archive (Workstream A). All four
+          # are required to enable archiving; if any is absent the scanner's
+          # r2Enabled() gate returns false and the archive pass is a no-op, so
+          # the scan still runs. These are repo secrets and must be mapped here
+          # explicitly — GitHub does not auto-expose secrets as env vars.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: node src/scan.mjs
 
       - name: Upload logs (always)
