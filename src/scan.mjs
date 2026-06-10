@@ -160,15 +160,39 @@ async function flushProbeResults(force = false) {
   }
 }
 
+// Stable, canonical JSON: object keys sorted recursively so the serialization
+// is deterministic run-to-run. Used to hash the *parsed* job content for the
+// archive dedupe decision.
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+// The content hash that drives archive dedupe. We hash the PARSED jobs, not the
+// raw response bytes: HTML-scraping providers (e.g. workatastartup) embed a
+// fresh per-request CSRF token in every response, so the raw bytes change on
+// every fetch even when the listing is identical — hashing them would defeat
+// dedupe and re-upload a near-duplicate every scan. The parsed jobs are stable,
+// so they're the right signal for "did the board actually change?". If parsing
+// failed (jobs null), fall back to the raw bytes so we still archive something.
+function archiveContentHash(result) {
+  return result.jobs != null ? contentHash(canonicalJson(result.jobs)) : contentHash(result.raw_text);
+}
+
 // Archive a company's raw ATS response to R2 for replay / audit / analytics.
-// Content-addressed + deduped: the object key and the raw_archive primary key
-// are the sha256 of the exact response bytes, so an unchanged board (matched
-// against companies.last_raw_hash) is a no-op and only a CHANGED response
-// triggers an upload + row. Gated on R2 being configured; fully NON-FATAL —
-// any failure logs and the scan proceeds (a missing archive is acceptable).
+// Deduped on the parsed-content hash (see archiveContentHash): an unchanged
+// board (matched against companies.last_raw_hash) is a no-op, and only a
+// CHANGED listing triggers an upload + row. The object key and raw_archive
+// primary key are that content hash, so a board flapping back to a previously
+// archived version merges instead of duplicating. We still store the exact raw
+// response bytes as the object body for full-fidelity replay. Gated on R2 being
+// configured; fully NON-FATAL — any failure logs and the scan proceeds.
 async function archiveRawResponse(company, result, jobCount, nowIso) {
   if (!r2Enabled() || !result.raw_text) return;
-  const hash = contentHash(result.raw_text);
+  const hash = archiveContentHash(result);
   if (hash === company.last_raw_hash) return; // unchanged since last archive
   const key = `raw/ats=${company.ats}/company=${company.slug}/${hash}.json.gz`;
   try {

@@ -145,6 +145,18 @@ export async function putObject(key, body, { contentType = 'application/octet-st
 }
 
 /**
+ * DELETE an object. Idempotent — S3/R2 returns 204 whether or not the key
+ * existed. Throws on other errors. For retention/lifecycle and test cleanup.
+ */
+export async function deleteObject(key) {
+  const headers = sign({ method: 'DELETE', key, payload: '' });
+  const res = await fetch(endpoint(key), { method: 'DELETE', headers });
+  if (res.status === 204 || res.status === 200 || res.status === 404) return;
+  const text = await res.text().catch(() => '');
+  throw new Error(`R2 DELETE ${key} → ${res.status}: ${text.slice(0, 200)}`);
+}
+
+/**
  * GET an object's raw bytes. Returns a Buffer, or null on 404.
  */
 export async function getObject(key) {
