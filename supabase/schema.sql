@@ -58,6 +58,12 @@ create table if not exists public.companies (
 create index if not exists companies_enabled_idx on public.companies (enabled) where enabled = true;
 create index if not exists companies_ats_idx on public.companies (ats);
 
+-- Content hash (sha256) of the most recently archived raw ATS response for this
+-- company. The scanner compares the incoming response's hash against this to
+-- skip re-uploading an unchanged board to R2 (dedupe-on-change). See
+-- archiveRawResponse() in src/scan.mjs and src/r2.mjs.
+alter table public.companies add column if not exists last_raw_hash text;
+
 -- ── jobs ───────────────────────────────────────────────────────────
 -- One row per (company, external_id). Never deleted. closed_at is set when
 -- a job stops appearing in the ATS response (and the company's scan that
@@ -74,7 +80,6 @@ create table if not exists public.jobs (
   url               text,
   department        text,
   employment_type   text,
-  raw               jsonb,
   first_seen_at     timestamptz not null default now(),
   last_seen_at      timestamptz not null default now(),
   closed_at         timestamptz,
@@ -97,6 +102,33 @@ create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fing
 -- jobs_first_seen_idx above can't skip closed rows so the planner ends up
 -- scanning thousands of closed rows to fill a 50-row LIMIT.
 create index if not exists jobs_active_first_seen_idx on public.jobs (first_seen_at desc) where closed_at is null;
+
+-- The `raw jsonb` column was declared but never populated (raw responses now
+-- live in R2, archived per-company by the scanner — see raw_archive below).
+-- Drop it on existing databases; harmless if already gone.
+alter table public.jobs drop column if exists raw;
+
+-- ── raw response archive ────────────────────────────────────────────
+-- One row per DISTINCT raw ATS response we've stored, per company. The scanner
+-- writes the gzipped response bytes to Cloudflare R2 (src/r2.mjs) and records a
+-- pointer here. Content-addressed: the primary key is (company_id, sha256 of the
+-- response bytes), so identical re-fetches dedupe to a single object/row and
+-- only a CHANGED board adds a new version. This is the replay / audit /
+-- analytics source — re-parsing reads r2_key back through provider.parse().
+create table if not exists public.raw_archive (
+  company_id    uuid not null references public.companies(id) on delete cascade,
+  ats           text not null,
+  content_hash  text not null,                       -- sha256 of the raw response bytes
+  r2_key        text not null,                       -- object path in the R2 bucket
+  bytes         integer,                             -- gzipped object size
+  job_count     integer,                             -- jobs parsed from this response
+  last_scan_id  uuid,                                -- most recent scan that saw this exact payload
+  created_at    timestamptz not null default now(),  -- first time this version was archived
+  last_seen_at  timestamptz not null default now(),  -- most recent time it was seen
+  primary key (company_id, content_hash)
+);
+create index if not exists raw_archive_company_idx on public.raw_archive (company_id, last_seen_at desc);
+create index if not exists raw_archive_ats_idx on public.raw_archive (ats, created_at desc);
 
 -- ── job descriptions ───────────────────────────────────────────────
 -- Plain-text job description, populated by the scanner (for providers where

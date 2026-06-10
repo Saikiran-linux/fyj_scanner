@@ -23,6 +23,7 @@ import { fingerprint } from './fingerprint.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
+import { isEnabled as r2Enabled, contentHash, putGzipJson } from './r2.mjs';
 
 // md5 hex of the description text. Postgres' md5() emits the same encoding,
 // so a hash computed here can be compared bit-for-bit against the value
@@ -74,7 +75,10 @@ let companies;
 try {
   // selectAll paginates past PostgREST's 1k max-rows cap — a bare select()
   // silently truncates to 1,000 even though the table has more rows.
-  companies = await selectAll('companies', { enabled: 'eq.true', select: 'id,ats,slug,probe_url,consecutive_errors' });
+  // last_raw_hash is the content hash of the most recently archived raw
+  // response for this company — lets archiveRawResponse() skip re-uploading an
+  // unchanged board (the dedupe-on-change rule) with no extra per-company query.
+  companies = await selectAll('companies', { enabled: 'eq.true', select: 'id,ats,slug,probe_url,consecutive_errors,last_raw_hash' });
 } catch (e) {
   await closeScan(SCAN_ID, 'failed', { notes: `failed to load companies: ${e.message}` });
   console.error(e);
@@ -153,6 +157,44 @@ async function flushProbeResults(force = false) {
     await insert('probe_results', batch, { returning: 'minimal' });
   } catch (e) {
     console.error(`probe_results insert failed (${batch.length} rows): ${e.message}`);
+  }
+}
+
+// Archive a company's raw ATS response to R2 for replay / audit / analytics.
+// Content-addressed + deduped: the object key and the raw_archive primary key
+// are the sha256 of the exact response bytes, so an unchanged board (matched
+// against companies.last_raw_hash) is a no-op and only a CHANGED response
+// triggers an upload + row. Gated on R2 being configured; fully NON-FATAL —
+// any failure logs and the scan proceeds (a missing archive is acceptable).
+async function archiveRawResponse(company, result, jobCount, nowIso) {
+  if (!r2Enabled() || !result.raw_text) return;
+  const hash = contentHash(result.raw_text);
+  if (hash === company.last_raw_hash) return; // unchanged since last archive
+  const key = `raw/ats=${company.ats}/company=${company.slug}/${hash}.json.gz`;
+  try {
+    const { bytes } = await putGzipJson(key, result.raw_text);
+    // merge-duplicates handles a board flapping back to a previously-archived
+    // version: the (company_id, content_hash) row already exists, so we just
+    // bump last_seen_at / last_scan_id. created_at (not sent) is preserved as
+    // the first-archived timestamp.
+    await upsert(
+      'raw_archive',
+      [{
+        company_id: company.id,
+        ats: company.ats,
+        content_hash: hash,
+        r2_key: key,
+        bytes,
+        job_count: jobCount,
+        last_scan_id: SCAN_ID,
+        last_seen_at: nowIso,
+      }],
+      'company_id,content_hash',
+      { returning: 'minimal' },
+    );
+    await update('companies', { id: `eq.${company.id}` }, { last_raw_hash: hash }, { returning: 'minimal' });
+  } catch (e) {
+    console.error(`raw archive failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
 }
 
@@ -305,6 +347,10 @@ async function probeOne(company) {
       console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
     }
   }
+
+  // Archive the raw provider response to R2 (replay / audit / analytics).
+  // Non-fatal and deduped — see archiveRawResponse.
+  await archiveRawResponse(company, result, jobRows.length, nowIso);
 
   await recordProbe(company, {
     http_status: result.http_status,
