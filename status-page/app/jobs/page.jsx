@@ -49,11 +49,16 @@ export default async function JobsPage({ searchParams }) {
   let rows = [];
   let total = 0;
   let error = null;
+  // Count strategy: the planner's row estimate for a `title ilike '%…%'` search
+  // is wildly inaccurate (it estimates 10 for a result set of 4), which made the
+  // header and pagination claim more rows than actually exist. A title search is
+  // backed by the jobs_title_trgm_idx trigram index, so an EXACT count is both
+  // accurate and cheap there. Reserve the planner estimate ('planned') for the
+  // broad, near-full-table listing (no text search) — the only case whose exact
+  // count risks the 8s statement_timeout.
+  const countStrategy = q ? 'exact' : 'planned';
   try {
-    // Planner-estimated count: a precise count over 70k+ filtered rows hits
-    // the 8s statement_timeout. The estimate is within a few % and only
-    // drives "X total / page N of M" — accuracy isn't critical here.
-    const r = await pgSelectRange('jobs', query, { from, to, count: 'planned' });
+    const r = await pgSelectRange('jobs', query, { from, to, count: countStrategy });
     rows = r.rows;
     total = r.total;
     // ats filter on embedded resource doesn't drop parent rows by default;
