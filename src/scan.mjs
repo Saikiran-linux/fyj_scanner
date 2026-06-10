@@ -316,11 +316,25 @@ async function probeOne(company) {
 
   if (jobRows.length) {
     try {
-      // Use return=minimal — we don't need the rows back. Returning
-      // representation was costing us a full row payload per upsert, which
-      // added up across 3k companies. We re-derive "new vs reopened" from
-      // the snapshot we already have.
-      await upsert('jobs', jobRows, 'company_id,external_id', { returning: 'minimal' });
+      // PostgREST bulk insert requires every object in one request to share the
+      // same key set, else the whole batch 400s with PGRST102 "All object keys
+      // must match". Our rows are deliberately heterogeneous — only rows whose
+      // description changed carry description/_hash/_fetched_at (the write-volume
+      // optimization above) — so a company with a mix of changed and unchanged
+      // jobs would fail the entire upsert and silently drop all its writes.
+      // Partition by exact key signature so each request is homogeneous; this is
+      // normally 1–2 groups. Use return=minimal — we don't need the rows back;
+      // we re-derive "new vs reopened" from the snapshot we already have.
+      const groups = new Map();
+      for (const r of jobRows) {
+        const sig = Object.keys(r).sort().join(',');
+        let g = groups.get(sig);
+        if (!g) groups.set(sig, (g = []));
+        g.push(r);
+      }
+      for (const group of groups.values()) {
+        await upsert('jobs', group, 'company_id,external_id', { returning: 'minimal' });
+      }
     } catch (e) {
       // Record as success of probe but failure of write — surface in notes.
       await recordProbe(company, {
