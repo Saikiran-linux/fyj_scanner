@@ -96,6 +96,33 @@ from companies
 where consecutive_errors >= 3
 order by consecutive_errors desc, last_error_at desc;
 
+-- ─── 6b. FREEZE DETECTOR: probe-ok-but-write-failed + stale-open ───
+-- The signal that was missing when the PGRST102 bug (f-112) froze ~1.1k
+-- companies for 19 days. Two complementary lenses:
+--   (a) recent scans where companies were probed ok but their DB write
+--       failed (companies_write_failed) — the scan now also fails-fast and
+--       goes red above 5%, but this shows the trend.
+--   (b) "zombie-open" jobs: still open, belong to an enabled company, yet
+--       last_seen_at is far older than the most recent successful scan —
+--       i.e. the company is being probed but its rows aren't refreshing.
+-- Either being non-trivial and persistent means writes are silently failing.
+select 'recent_scan_write_failures' as lens, started_at::text as k,
+       companies_write_failed::text as v,
+       round(100.0*companies_write_failed/nullif(companies_probed,0),1)||'%' as pct
+from public.scans
+where started_at > now() - interval '2 days' and status in ('ok','failed')
+order by started_at desc
+limit 10;
+
+-- (b) zombie-open jobs per enabled company (run separately):
+-- select c.ats, c.slug, count(*) as zombie_open,
+--        to_char(max(j.last_seen_at),'MM-DD HH24:MI') as newest_last_seen
+-- from public.jobs j
+-- join public.companies c on c.id = j.company_id
+-- where j.closed_at is null and c.enabled = true
+--   and j.last_seen_at < (select max(started_at) from public.scans where status='ok') - interval '12 hours'
+-- group by 1,2 order by zombie_open desc limit 50;
+
 -- ─── 7. Auto-disabled companies (need review) ──────────────────────
 select
   ats, slug, consecutive_errors, last_error_at, last_error

@@ -6,6 +6,148 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-05 · LAUNCH CHECKLIST — staffing (Product A) goes live tomorrow
+
+Ordered next steps to operate the AI-first staffing firm. Owner in brackets; ✅=done this session.
+
+**Must-do to launch (in order):**
+1. **Merge PR #36** → relevance layer + all scan/dashboard fixes onto `main` (cron + live dashboard). [user — or me on request]
+2. **Make matching real (the #1 blocker):** classify(LLM) → summarize → embed the **tech/target slice** first. Matchability **7.7% → ~95%**. ~$30, ~2h. **BLOCKED on `OPENAI_API_KEY`.** [me, once key provided] — f-115
+3. **Lock down `/matches`** (public Vercel URL) with basic auth before client résumés go through it. [me, no key] — f-117
+4. **QA:** 2–3 real client résumés through `/matches`, eyeball relevance. [together, after #2]
+
+**Backbone — no key, can start now:**
+5. **f-114 — parameterize relevance in search** (`target_only` default true + filters; shared `search_jobs` RPC). Keeps staffing unchanged; prerequisite for Product B. [me]
+
+**Right after launch:**
+6. **f-118 — daily enrichment workflow** (classify→summarize→embed), else new jobs go unmatchable within days (cron has SKIP_LLM_PASSES=1).
+7. **f-116 — Jobs MCP server** (Product B) once f-114 + full-index embeddings land.
+
+**Housekeeping:** rotate the Supabase service-role key + update the Actions secret. [user]
+
+**Live readiness snapshot (2026-06-05):** 93,847 surfaced target jobs; only **7,249 embedded (7.7% matchable)** ← the blocker. 12,259 known-noise hidden; 58,080 still unclassified (need the --llm pass). Classifier + rules backfill (48,162 tagged), match-filtering, scan-ingest classification, dashboard auto-refresh fix, sharding (default N=1) all shipped & on the branch (PR #36).
+
+**Tracker:** added f-117 (operator auth), f-118 (freshness) to `feature_list.json`; f-114/115/116 + product-a/product-b phases already there.
+
+---
+
+## 2026-06-05 · Product strategy: one DB, two lenses (recorded in the plan)
+
+User reframed the product: don't delete blue-collar jobs — the same scanned index powers **two products via a filter lens**, not two datasets.
+- **Product A — AI-first staffing firm** (near-term revenue): tech/IT lens (`is_target=true` / tech families); high-touch paid placements.
+- **Product B — NL jobs search for AI agents & people** (platform): MCP/API over the *whole* index, any filter the caller wants (blue-collar included); usage-monetized.
+
+**Commitments recorded** in `HOSTED_PLATFORM_PLAN.md` ("Product Strategy — one DB, two lenses") + `feature_list.json` (phases `product-a`/`product-b`; f-114/115/116):
+1. Tag, don't delete (the f-113 relevance layer is the shared backbone).
+2. **Reverse the "prune SR tenants" plan** — keep blue-collar tenants (Product B wants them); only disable genuinely dead (404/empty) tenants.
+3. **Parameterize relevance in search** (`target_only`/`family`/filters), don't hardcode — supersedes the hardcoded `is_target is not false` now in `match_resume*` (f-114).
+4. Shared backbone built once: full classification + embeddings (tech slice first to launch A, full index for B) + a hybrid NL→{filters+vector} `search_jobs` RPC.
+5. Product B interface = a curated **MCP server** (+ REST), never raw DB access (f-116).
+
+**Launch sequencing:** Product A first (classify + embed tech slice, `target_only=true`) → parameterize search (f-114) → embed full index + ship MCP (f-116). No code this entry — planning only.
+
+---
+
+## 2026-06-05 · f-113 job relevance layer (target-role classification)
+
+**Product context (from the user):** this is an AI-first staffing agency whose customers are tech/IT professionals, knowledge-workers, senior/exec leaders, and students in those fields — NOT people in service/manual/retail/clinical roles. The index had a lot of noise (waiter, dishwasher, care assistant, automotive technician…), mostly from SmartRecruiters (seeded via generic keyword fan-out). So we now classify every job and surface only target roles. Classification is by ROLE, never employer industry.
+
+**Shipped (decisions: tag/filter + prune SR tenants; hybrid rules+LLM):**
+- `src/classify.mjs` — high-precision title→{family,is_target,seniority,confidence} rules. Validated on 105k live titles: **45.5% high-precision coverage** (33.9% target, 11.6% non-target); the ambiguous 54.5% → confidence:'low' for the LLM.
+- Schema (`jobs.job_family/is_target/seniority/classified_at/classified_by` + partial index `jobs_target_active_idx`). `is_target` semantics: true=surface, false=hide, **NULL=surface (unclassified, not yet hidden)** — so an unclassified backlog never hides good jobs; only known-false is filtered.
+- `scripts/backfill-classification.mjs` — rules pass (free) + `--llm` gpt-4o-mini pass for the ambiguous middle (grouped updates, ~few hundred PATCHes for the table). **Ran rules pass live: 48,162 jobs tagged.**
+- `src/scan.mjs` — classifies NEW jobs at ingest (rules, inline; never clobbers an existing/LLM verdict); gates the description-fetch + embedding passes to `is_target is not false` so we stop spending on known-noise.
+- Match RPCs (`match_resume`, `match_resume_candidates`) now filter `is_target is not false` → **12,259 known-noise jobs hidden from customers immediately**; 93,603 (target + unclassified) still surface.
+
+**Live state:** known non-target=12,259 hidden; SR is the noisiest (5.6k target vs 5.6k non-target among classified, 23.6k still unclassified); Ashby/Lever/WaaS are ~all target. Migrations applied: `add_job_classification_columns`, `match_rpcs_filter_target_roles`.
+
+**Next:** (1) run `backfill-classification.mjs --llm` with an OPENAI_API_KEY to resolve the 57.7k unclassified (~$6-12 one-time) — needed before SR pruning so we don't disable tenants with unclassified-but-target roles; (2) then prune SR tenants whose jobs are ~entirely non-target; (3) retarget discovery (SR/Workable/Workday keyword fan-out on professional roles) so we ingest relevant jobs in the first place.
+
+---
+
+## 2026-06-05 · f-109 scan sharding (capability built, default N=1)
+
+Built matrix-parallel scan sharding — the documented next infra step, unblocked by f-108. **Default N=1, so production behaviour is unchanged**; flip by listing shards in the workflow matrix.
+
+**How it works:** stored `companies.shard` bucket `[0,60)` (generated from md5(id), indexed). Shard *i* of *N* owns the contiguous range `[floor(i*60/N), floor((i+1)*60/N))`, which tiles `[0,60)` exactly for any N≤60 → shards are **disjoint and complete**. `scan.mjs` reads `SHARD_INDEX`/`SHARD_COUNT` and scopes the company load, the active-job snapshot (`jobs → companies!inner`, embedded `companies.and=(shard.gte.LO,shard.lt.HI)`), and the description pass to its slice; writes `scans.shard_index/shard_count`. Per-company `close_unseen_jobs` (f-108) means shards never touch each other's jobs — the safety property that makes parallelism correct.
+
+**Decisions:** (1) per-provider rate-limit concurrency is **not** divided by N — ATS providers throttle per source-IP and each shard runs on its own runner IP, so N shards give ~N× aggregate throughput (the real win); the adaptive limiter backs a shard off if a provider turns out to be globally limited. (2) **one `scans` row per shard**, tagged `shard_index/shard_count`. (3) `f_new_jobs_by_scan_source` now windows on `shard_index=0` so a sharded cycle's siblings don't mis-bucket new-job counts (no-op at N=1).
+
+**Workflow:** `strategy.matrix.shard` (default `[0]`); `SHARD_COUNT` derives from `strategy.job-total`, so adding shards to the matrix is the only change. `fail-fast: false` isolates a failed shard; per-shard artifact names.
+
+**Verified (read-only):** N=4 partition disjoint AND complete — companies 898+921+887+957 = 3,663, jobs 25,860+25,107+25,138+29,634 = 105,739 (0 dupes), via the exact `selectAll` shapes `scan.mjs` uses. Migrations applied: `add_company_shard_and_scan_shard_columns`, `f_new_jobs_by_scan_source_shard_aware`.
+
+**VERIFIED LIVE END-TO-END at N=2** (dispatched on branch; scans `5ffb7ec1` shard 0/2 + `2fa87d8a` shard 1/2): shards **ran in parallel** (17:21:32–17:23:44 ∥ 17:21:30–17:24:02); each probed ONLY its bucket range (0 out-of-range either side); **union of probed companies = 3,663 = total enabled** (disjoint+complete); **stale_among_healthy = 0** (no jobs missed → per-shard snapshots complete, close-sweep + new-count correct under sharding); active stable 105,737; new_jobs accurate (120+180=300); write_failed=0. Matrix reverted to default `[0]` (N=1) after the test.
+
+**Next:** flip the matrix to `[0,1,2,3]` when company count grows (or to validate), then the discovery push (deepen SR → Workable → Workday) to land the volume.
+
+---
+
+## 2026-06-05 · ROOT-CAUSE: inflated new_jobs (selectAll pagination) + dashboard timeouts
+
+User reported the dashboard erroring (`f_new_jobs_by_scan_source → 57014 statement timeout`, ACTIVE JOBS reading 0) and **~38k "new" jobs every scan while active stayed ~105k**. Two distinct bugs, both found and fixed.
+
+**1. Inflated new_jobs — root cause: `selectAll` paginated with LIMIT/OFFSET and no stable ORDER BY** (`src/supabase-client.mjs`). Reproduced live: the active-job snapshot read returned 105,780 rows but only **68,882 unique** `(company_id, external_id)` — ~37k duplicates, so ~37k *distinct* open jobs were missing from the snapshot. Those missing jobs were counted "new" every scan (and their descriptions re-sent → write amplification). LIMIT/OFFSET without a total ORDER BY is not stable on a large table — pages drift, duplicating some rows and skipping others; it worsened as `jobs` grew. Confirmed via per-scan audit: last scan reported `new=38,433` but only `2,323` rows were actually inserted (closed counter was always accurate — it's server-side).
+   - **Fix:** rewrote `selectAll` to use **keyset/cursor pagination** on a unique key (`id` by default) — `order=id.asc` + `id=gt.<cursor>`. Stable *and* O(1) per page (no growing OFFSET scan), which also matters at the 1M target. Verified: snapshot now returns 105,780 rows = 105,780 unique. All callers hit `jobs`/`companies` (uuid `id`); embedded-resource + `maxRows` paths retested green.
+   - Takes effect for cron scans **only after this PR merges**; until then the deployed scanner keeps miscounting (cosmetic — active set is correct).
+
+**2. Dashboard timeouts (DB-side, fixed live):**
+   - `mv_jobs_totals_by_source` was **empty** → ACTIVE JOBS 0 / "no scans". Cause: `f_refresh_totals_by_source` uses `REFRESH ... CONCURRENTLY`, which *errors on a never-populated MV*, so it failed every scan and the MV stayed empty. Repopulated it (plain refresh) and **hardened the function** to fall back to a plain refresh on error (migration applied). Active total back to 105,780.
+   - `f_new_jobs_by_scan_source` timed out at **12.7s** (>8s authenticator → 57014). It range-joins jobs by `first_seen_at` and heap-fetched ~57k wide (embedding-bearing) rows just to read `company_id`. **Fix:** covering index `jobs(first_seen_at, company_id)` + `count(j.*)`→`count(*)` → index-only scan, `Heap Fetches: 0`, **95 ms** (134× faster). Migrations applied; `vacuum analyze jobs` run.
+
+All four DB migrations applied to prod (`jobs_first_seen_company_idx`, refresh fallback, `count(*)` fn, plus the MV repopulate). Branch `claude/immediate-next-steps-AE9N4` (PR #34). Code change (`selectAll`) needs merge to fix the cron's new-count.
+
+---
+
+## 2026-06-05 · Post-merge: deploy verified + write-failure guardrails (PR #34)
+
+After #33 merged, verified the fix in the real CI environment and added guardrails so this class of silent failure can't recur.
+
+**Deploy verified** — dispatched `scan.yml` on `main` (scan `0ca86904`, Actions runner): `db_write`/PGRST102 failures **= 0**, `companies_error = 0` (the 152 greenhouse HTTP-503s in the prior local run were container-IP-only), `stale_among_healthy = 0`, active stable at **105,877**.
+
+**Guardrails (PR #34, draft, branch `claude/immediate-next-steps-AE9N4`):**
+- `scans.companies_write_failed` first-class metric + `totals` counter (migration applied) — the blind spot that hid the freeze (probe-ok-but-write-failed counts in neither ok nor error).
+- Fail-fast: scan marked `failed` + process exits non-zero (Actions red) when >5% of probed companies (and >25 absolute) fail their write. The PGRST102 freeze (~31%) would have tripped this on day 1.
+- Zombie-scan reaper at startup (`running` >45min → `failed`); reaped 28 existing zombies.
+- Dashboard query 6b — freeze detector (write-failure rate + zombie-open jobs).
+
+**Thaw reconciliation (healthy, one-time):** `total_jobs` 117,308 → 130,351 (**+13,043 genuinely-new** rows that accumulated during the 19-day freeze), `closed` 11.6k → 24,474 (**+~12.9k genuinely-gone**), active flat. The per-scan `new_jobs` *counter* reads high (~40k) during this reconciliation because it also counts churn/reopens; the underlying table moved by ~13k, the real backlog clearing. **Watch the next scheduled cron (06:17 UTC): `new_jobs` should fall back to small numbers.** If it stays ~40k, there's a new-count/external-id churn issue to investigate separately (does not affect the active set, which is correct and stable).
+
+---
+
+## 2026-06-05 · CRITICAL upsert bug fix (PGRST102) + server-side close-sweep (f-112, f-108)
+
+Started on the documented #1 next step (server-side close-sweep) and, while validating it against live prod, **uncovered an active P0 data-integrity bug** that was silently freezing most of the index.
+
+**The bug (f-112) — found via live audit, fixed:**
+- **1,139 companies** (incl. SpaceX, OpenAI, Databricks, Carvana, DoorDash, Anduril) failed their *entire* per-company jobs upsert **every scan** with `db_write: 400 PGRST102 "All object keys must match"`. Result: **62,182 active jobs (59% of the index)** frozen — `last_seen_at` never refreshed, no new postings ingested — since **2026-05-17 22:31** (~19 days).
+- **Root cause:** PostgREST requires every object in a bulk upsert array to share one key set. The description hash-skip optimisation (landed 2026-05-17) attaches `description`/`description_hash`/`description_fetched_at` only to rows whose text *changed*. Any company with a mix of changed + unchanged postings in one batch → heterogeneous keys → 400 → whole-company write fails. Big boards (≥1 changed posting every scan) failed every time. The code fails *safe* (early-returns before the close-sweep), so jobs froze rather than being closed — which is exactly why they showed up as `stale_open == total_open`.
+- **Fix** (`src/scan.mjs` `probeOne`): bucket `jobRows` by sorted key signature and upsert each homogeneous group separately. Any group failure still early-returns before the close-sweep (never close on a partial write). Self-healing — the next successful scan re-stamps these boards and closes whatever the providers no longer list.
+
+**Server-side close-sweep (f-108) — the planned next step, landed in the same path:**
+- New idempotent RPC `public.close_unseen_jobs(company_id, scan_start)` (`supabase/schema.sql`, migration `add_close_unseen_jobs_rpc` **applied to prod**): `UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start`.
+- `src/scan.mjs` captures `SCAN_START_ISO` before any upsert and calls the RPC per successfully-probed company, replacing the client-side diff + per-company external_id IN-list PATCH. Idempotent, per-company → **shard-safe** (the prerequisite for f-109 matrix sharding). The in-Node active snapshot is still read, but now only for the description hash-skip + new-job counting; fully dropping it is coupled to the COPY/bulk-write work (f-110).
+
+**Verified (live prod `mwcpoaefmggapztkxakp`, read-only + non-destructive):**
+- Scope of bug confirmed: 1,139 failing companies, 62,182 stale-open jobs, first occurrence 2026-05-17.
+- Close-sweep **equivalence proven**: across all **2,524** companies whose write succeeded last scan, **0** open jobs predate `scan_start` → the watermark sweep closes exactly what the old diff did (no over-closing). The 62k stale rows belong solely to the PGRST102 victims, protected by the early-return.
+- `close_unseen_jobs('<fake-uuid>', now())` → `0` (function runs, non-destructive). `node --check src/scan.mjs` passes.
+
+**NOT yet verified:** a full live scan has not run from this session (no `.env`/secrets in the cloud container). Correctness is established by the equivalence proof + syntax check + applied migration, but the headline numbers (PGRST102 errors → 0, active count correcting upward) must be confirmed on the **first scheduled scan after merge**. Don't tick the clean-state checklist as "scan green" until then.
+
+Branch `claude/immediate-next-steps-AE9N4`. The migration is already live in prod, so the code is safe to merge (RPC exists before the scan that calls it).
+
+**VERIFIED LIVE — ran the fixed scanner against prod** (`npm run scan`, scan `f1a2b319`, 169s, 3,663 companies):
+- **PGRST102 `db_write` failures: 1,314 → 0** (the immediately-prior old-code cron scan had 1,314; mine had 0). `any_dbwrite_failures = 0`, `companies_dbwrite_fail = 0`.
+- **The 19-day freeze thawed:** `new=40,684 / closed=10,214`; **stale-open jobs 64,698 → 10,024**. The remaining 10,024 are 100% accounted for by companies not successfully probed this run (9,630 in HTTP-503 errored boards + 394 in disabled boards) — **0 stale among the 3,511 companies that wrote successfully**, which is the close-sweep correctness invariant.
+- Marquee boards refreshed: bayada/carvana/spacex/veeva/openai all `last_seen` ~05:0x, `still_stale=0`. (Databricks alone stayed frozen — it drew a transient greenhouse 503 this run; recovers next probe.)
+- `err=152` were all transient **HTTP 503** (greenhouse 151 + SR 1) from this container's IP; `newly_autodisabled=0`.
+- A transient DB compute restart (`57P03`) hit right at the scan's tail, so the process's own `closeScan`/totals-refresh writes were lost — I closed the `running` scan row manually with the real totals and re-ran `f_refresh_totals_by_source()` once the DB recovered (~3 min).
+
+**One caveat to flag:** the deployed cron still runs the OLD code until PR #33 merges, so the next scheduled scan will re-freeze the mixed-description boards (no data harm — they just go stale again). **Merging #33 is what makes the fix permanent.**
+
+---
+
 ## 2026-06-05 · Architecture efficiency review for 1M-scale (analysis, no code yet)
 
 Full read of `scan.mjs` + `schema.sql` + a live size check. The design is sound for ~100k jobs but has several **O(total jobs)/O(total companies)-per-scan** operations that break at 10×. Measured now: jobs **117k total / 105k active**, table **670 MB = 90 MB heap + 581 MB indexes** (6.5× — index bloat from per-scan UPDATE churn); probe_results 182k rows. 1M active ≈ **25–40k companies, ~6–7 GB jobs table, ~160k probe_results/day**.

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { pgSelect, pgCount, pgRpc } from '../lib/supabase';
 import { Sla, Sparkline, Bars, StatusDot, Th, Td, Empty, RangePills, fmtTs, relativeAgo } from '../components/ui';
+import AutoRefresh from '../components/AutoRefresh';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -102,7 +103,7 @@ export default async function Page({ searchParams }) {
 
   return (
     <>
-      <meta httpEquiv="refresh" content="30" />
+      <AutoRefresh seconds={30} />
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         <header className="flex justify-between items-baseline">
           <div>

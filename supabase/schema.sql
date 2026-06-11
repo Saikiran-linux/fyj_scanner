@@ -64,6 +64,22 @@ create index if not exists companies_ats_idx on public.companies (ats);
 -- archiveRawResponse() in src/scan.mjs and src/r2.mjs.
 alter table public.companies add column if not exists last_raw_hash text;
 
+-- Sharding key for matrix-parallel scans (f-109). A stable hash of the company
+-- id into 60 buckets [0,60). The scan workflow can fan out into N parallel
+-- shards (N ≤ 60); shard i owns the contiguous bucket range
+-- [floor(i*60/N), floor((i+1)*60/N)), which tiles [0,60) exactly for any N, so
+-- shards are disjoint and complete. Generated/stored (md5 is immutable) so the
+-- bucket is fixed for a company's lifetime and both the company list and the
+-- per-shard job snapshot can be filtered by a simple indexed range. Default
+-- N=1 (one shard) selects the whole range and behaves identically to today.
+alter table public.companies
+  add column if not exists shard smallint
+  generated always as (
+    ((get_byte(decode(md5(id::text), 'hex'), 0) * 256
+      + get_byte(decode(md5(id::text), 'hex'), 1)) % 60)
+  ) stored;
+create index if not exists companies_shard_idx on public.companies (shard) where enabled = true;
+
 -- ── jobs ───────────────────────────────────────────────────────────
 -- One row per (company, external_id). Never deleted. closed_at is set when
 -- a job stops appearing in the ATS response (and the company's scan that
@@ -95,6 +111,13 @@ create table if not exists public.jobs (
 
 create index if not exists jobs_company_idx on public.jobs (company_id);
 create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at desc);
+-- Covering index for f_new_jobs_by_scan_source(): it range-joins jobs by
+-- first_seen_at and needs only company_id alongside. With the first_seen-only
+-- index above the planner heap-fetched every matched row (each carries the
+-- ~6KB embedding vector) just to read company_id — ~57k wide fetches that
+-- pushed the dashboard RPC past the 8s authenticator timeout (Postgres 57014).
+-- (first_seen_at, company_id) lets that scan stay in the index.
+create index if not exists jobs_first_seen_company_idx on public.jobs (first_seen_at, company_id);
 create index if not exists jobs_active_idx on public.jobs (company_id, last_seen_at desc) where closed_at is null;
 create index if not exists jobs_title_trgm_idx on public.jobs using gin (title gin_trgm_ops);
 create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fingerprint) where closed_at is null;
@@ -129,6 +152,47 @@ create table if not exists public.raw_archive (
 );
 create index if not exists raw_archive_company_idx on public.raw_archive (company_id, last_seen_at desc);
 create index if not exists raw_archive_ats_idx on public.raw_archive (ats, created_at desc);
+
+-- ── server-side close-sweep (f-108) ─────────────────────────────────
+-- Close every still-open job for ONE company that the current scan didn't
+-- re-list. The scanner stamps last_seen_at on every job it sees this run
+-- (always strictly later than the run's watermark), so any open row for the
+-- company whose last_seen_at predates the watermark is one the ATS no longer
+-- lists → close it.
+--
+-- This replaces the old client-side diff (load every active job into Node,
+-- compute a set difference, then PATCH a potentially huge external_id IN-list
+-- over REST). Keeping the sweep server-side and keyed on
+-- (company_id, last_seen_at) means:
+--   • no unbounded IN-list payload per company (the index jobs_active_idx
+--     already covers exactly this predicate),
+--   • it is idempotent — re-running closes nothing new,
+--   • it touches only one company's rows, so a sharded scan that partitions
+--     companies across parallel jobs can never double-close another shard's
+--     jobs. That non-overlap is the prerequisite for matrix-sharding the
+--     scan (f-109).
+--
+-- CALLER CONTRACT: invoke this ONLY for a company whose probe SUCCEEDED this
+-- run, and pass the watermark captured BEFORE any upsert. Calling it for a
+-- company that wasn't probed (or with now() as the watermark) would close
+-- that company's entire active set, since none of its rows were re-stamped.
+-- Returns the number of rows closed so the scanner can keep its totals.
+create or replace function public.close_unseen_jobs(
+  p_company_id uuid,
+  p_scan_start timestamptz
+) returns integer
+language sql
+as $$
+  with closed as (
+    update public.jobs
+       set closed_at = now()
+     where company_id = p_company_id
+       and closed_at is null
+       and last_seen_at < p_scan_start
+    returning 1
+  )
+  select count(*)::integer from closed;
+$$;
 
 -- ── job descriptions ───────────────────────────────────────────────
 -- Plain-text job description, populated by the scanner (for providers where
@@ -212,6 +276,29 @@ alter table public.jobs add column if not exists embedding vector(1536);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
 
+-- ── job relevance classification (f-113) ───────────────────────────
+-- Tags each job with a coarse role family + whether it's a "target" role for
+-- our customer base (tech/IT professionals, knowledge-workers, senior/exec
+-- leadership, students/interns in those fields) vs blue-collar/service/retail/
+-- clinical roles they'd never pay us to find a job for. Classification is by
+-- the ROLE, never the employer's industry. Populated by src/classify.mjs (free
+-- high-precision rules) + gpt-4o-mini for the ambiguous middle, via
+-- scripts/backfill-classification.mjs and the scan's per-job pass.
+--
+-- is_target semantics: true = surface to customers; false = hide (known noise);
+-- NULL = not yet classified — treated as "maybe" and still surfaced, so an
+-- unclassified backlog never hides good jobs. Only is_target=false is filtered
+-- out of matching.
+alter table public.jobs add column if not exists job_family    text;
+alter table public.jobs add column if not exists is_target     boolean;
+alter table public.jobs add column if not exists seniority     text;
+alter table public.jobs add column if not exists classified_at timestamptz;
+alter table public.jobs add column if not exists classified_by text;  -- 'rules' | 'llm'
+
+-- Drives the "active, surfaceable jobs" filter used by matching + dashboards.
+create index if not exists jobs_target_active_idx on public.jobs (job_family)
+  where closed_at is null and is_target is not false;
+
 -- HNSW for cosine similarity. Picked over IVFFlat because:
 --   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
 --   - Latency: p99 ~5-20ms vs IVFFlat's ~30-100ms
@@ -252,7 +339,9 @@ returns table (
     j.comp_currency, j.url
   from public.jobs j
   join public.companies c on c.id = j.company_id
-  where j.closed_at is null and j.embedding is not null
+  -- is_target is not false: surface target roles AND not-yet-classified ones,
+  -- hide only known-noise (blue-collar/service/retail/clinical) per f-113.
+  where j.closed_at is null and j.embedding is not null and j.is_target is not false
   order by j.embedding <=> resume_vec
   limit match_count;
 $$;
@@ -282,7 +371,8 @@ begin
       j.comp_currency, j.url
     from public.jobs j
     join public.companies c on c.id = j.company_id
-    where j.closed_at is null and j.embedding is not null
+    -- is_target is not false: hide only known-noise; keep unclassified visible (f-113).
+    where j.closed_at is null and j.embedding is not null and j.is_target is not false
     order by j.embedding <=> resume_vec
     limit match_count;
 end;
@@ -307,6 +397,19 @@ create table if not exists public.scans (
 );
 
 create index if not exists scans_started_idx on public.scans (started_at desc);
+
+-- Which shard of a matrix-parallel scan cycle wrote this row (f-109). A sharded
+-- cycle produces shard_count rows (one per shard) sharing a near-identical
+-- started_at; the dashboard groups a cycle by that. Default 0/1 = unsharded.
+alter table public.scans add column if not exists shard_index integer not null default 0;
+alter table public.scans add column if not exists shard_count integer not null default 1;
+
+-- Probe succeeded (HTTP+schema ok) but the per-company DB upsert failed. This
+-- is the blind spot that hid the PGRST102 freeze (f-112) for 19 days: such
+-- companies count in neither companies_ok nor companies_error. Tracked as a
+-- first-class metric so the dashboard freeze-detector (query 6b) and the scan's
+-- own fail-fast guardrail can act on it.
+alter table public.scans add column if not exists companies_write_failed integer default 0;
 
 -- ── probe_results ──────────────────────────────────────────────────
 -- One row per (scan, company). Used for monitoring and per-company history.
@@ -602,10 +705,20 @@ returns table (
         lead(started_at) over (order by started_at),
         'infinity'::timestamptz
       ) as next_started_at
+    -- One representative row per scan CYCLE. A sharded cycle (f-109) writes
+    -- shard_count rows seconds apart; windowing over all of them would make
+    -- near-zero-width sibling windows and mis-bucket jobs. shard_index=0 (which
+    -- always runs) is the cycle's boundary; its window spans the whole cycle's
+    -- jobs across all shards. No-op when unsharded (shard_index is always 0).
     from public.scans
-    where status = 'ok'
+    where status = 'ok' and shard_index = 0
   )
-  select w.id, w.started_at, c.ats, count(j.*)::bigint
+  -- count(*) not count(j.*): the latter references the whole composite row,
+  -- which stops the planner doing an index-only scan and makes it heap-fetch
+  -- every matched (wide, embedding-bearing) row just to count it. count(*)
+  -- needs only first_seen_at (range) + company_id (join), both covered by
+  -- jobs_first_seen_company_idx.
+  select w.id, w.started_at, c.ats, count(*)::bigint
   from windowed w
   join public.jobs j
     on j.first_seen_at >= w.started_at
@@ -666,6 +779,14 @@ set statement_timeout = '5min'
 as $$
 begin
   refresh materialized view concurrently public.mv_jobs_totals_by_source;
+exception when others then
+  -- REFRESH ... CONCURRENTLY errors when the MV has never been populated
+  -- (e.g. created WITH NO DATA, or a failed initial load). When that happens
+  -- the concurrent refresh fails on every scan and the MV stays EMPTY — which
+  -- silently zeroed the whole dashboard (ACTIVE JOBS 0, "no scans"). Fall back
+  -- to a plain refresh, which populates it and lets later concurrent refreshes
+  -- work again.
+  refresh materialized view public.mv_jobs_totals_by_source;
 end
 $$;
 

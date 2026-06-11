@@ -1,14 +1,16 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-04",
+  "updated_at": "2026-06-05",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
     "phase-3": "Per-user matching pipeline + inbox + daily digest",
     "phase-4": "On-demand Sonnet A–G deep eval + multi-agent CV-tailor + tracker",
     "phase-5": "Billing + feedback loop + polish",
-    "phase-6": "Growth instrumentation"
+    "phase-6": "Growth instrumentation",
+    "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
+    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -171,6 +173,116 @@
       "status": "planned",
       "rationale": "Store everything; filter in SQL views so different users can apply different filters without re-scanning.",
       "touches": ["supabase/schema.sql", "supabase/dashboard-queries.sql"]
+    },
+
+    {
+      "id": "f-112",
+      "title": "Fix PGRST102 heterogeneous-keys upsert (frozen large companies)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Live audit 2026-06-05: 1,139 companies (incl. SpaceX, OpenAI, Databricks, Carvana, DoorDash) failed their ENTIRE per-company jobs upsert every scan with `db_write: 400 PGRST102 \"All object keys must match\"`. 62,182 active jobs (59% of the index) were frozen — last_seen_at never refreshed, no new postings added — since 2026-05-17.",
+      "root_cause": "PostgREST requires every object in a bulk insert/upsert array to carry an identical key set. The description hash-skip optimisation (landed 2026-05-17) attaches description/description_hash/description_fetched_at only to rows whose text changed, so any company with a MIX of changed + unchanged postings in one batch sent heterogeneous keys → 400 → whole-company write failed. Big boards (always ≥1 changed posting) failed every scan; the existing code fails safe by early-returning before the close-sweep, so jobs froze rather than being closed.",
+      "scope": "src/scan.mjs probeOne(): bucket jobRows by their sorted key signature and upsert each homogeneous group separately. Any group failure still early-returns before the close-sweep (no close on partial write). Self-healing: the next successful scan re-stamps these companies and closes whatever the providers no longer list.",
+      "touches": ["src/scan.mjs"],
+      "evidence": ["Proven on live prod mwcpoaefmggapztkxakp: 1,139 companies failing, 62,182 stale-open jobs, first_seen 2026-05-17 22:31. node --check passes.", "VERIFIED LIVE 2026-06-05: ran the fixed scanner (scan f1a2b319) against prod — PGRST102 db_write failures 1,314 -> 0; 19-day freeze thawed (new=40,684 closed=10,214, stale-open 64,698 -> 10,024 with 0 stale among the 3,511 successful-write companies)."],
+      "verify": "select count(*) from public.probe_results pr join (select id from public.scans where status='ok' order by started_at desc limit 1) s on s.id=pr.scan_id where pr.error like 'db_write:%PGRST102%';  -- 0 on the fixed-code scan",
+      "next": "MERGE PR #33 — the deployed cron still runs the old code, so the next scheduled scan re-freezes the mixed-description boards until merge (no data harm, just re-stales)."
+    },
+    {
+      "id": "f-108",
+      "title": "Server-side close-sweep (last_seen_at watermark RPC)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "1M-scale architecture review (claude-progress.md 2026-06-05): the close-sweep diffed a global in-Node snapshot of every active job and PATCHed a per-company external_id IN-list — O(total jobs) memory and a write wall at 10x, and the reason scans can't be sharded (double-close).",
+      "scope": "Add public.close_unseen_jobs(company_id, scan_start) RPC: UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start. src/scan.mjs captures SCAN_START_ISO before any upsert and calls the RPC per successfully-probed company instead of the client-side diff. Idempotent, per-company → shard-safe (prerequisite for f-109 matrix sharding).",
+      "touches": ["supabase/schema.sql", "src/scan.mjs", "migration add_close_unseen_jobs_rpc (applied to prod)"],
+      "evidence": ["Migration applied to prod 2026-06-05; close_unseen_jobs('<fake-uuid>', now()) returns 0 (runs, non-destructive). Equivalence proven: across all 2,524 companies whose write succeeded last scan, 0 open jobs predate scan_start, so the watermark sweep closes exactly what the old diff did. node --check passes.", "VERIFIED LIVE 2026-06-05 (scan f1a2b319): the RPC closed 10,214 jobs across companies with 0 over-closing — every one of the 3,511 successful-write companies ended with 0 stale-open jobs."],
+      "note": "The in-Node snapshot is still read — it now serves only the description hash-skip and new-job counting, not closing. Dropping it entirely is coupled to the COPY/bulk-write work (f-110).",
+      "verify": "select count(*) from pg_proc where proname='close_unseen_jobs';",
+      "next": "Verify closed_jobs/new_jobs behave sanely on the first post-deploy scan; then build on it for f-109 matrix sharding."
+    },
+    {
+      "id": "f-109",
+      "title": "Matrix-shard the scan (parallel jobs by company-hash)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "The single ~30-min Actions job won't survive 10x company growth toward 1M jobs. Unblocked by f-108 (per-company server-side close-sweep), so parallel shards over disjoint companies never double-close.",
+      "scope": "Stored companies.shard bucket [0,60) (generated, indexed). Shard i of N owns range [floor(i*60/N), floor((i+1)*60/N)) — tiles [0,60) exactly for any N<=60 (disjoint+complete). scan.mjs reads SHARD_INDEX/SHARD_COUNT and scopes the company load, the active-job snapshot (jobs!inner companies.shard), and the description pass to its slice; writes scans.shard_index/shard_count. Workflow uses a matrix; SHARD_COUNT derives from strategy.job-total so only the matrix list changes. Per-provider rate-limit concurrency is NOT divided by N (providers throttle per-IP; each shard runs on its own runner IP → ~N× aggregate throughput; adaptive limiter backs off if globally limited). f_new_jobs_by_scan_source windows on shard_index=0 so a sharded cycle isn't mis-bucketed.",
+      "touches": ["supabase/schema.sql (companies.shard, scans.shard_*, f_new_jobs_by_scan_source)", "src/scan.mjs", ".github/workflows/scan.yml", "migrations add_company_shard_and_scan_shard_columns + f_new_jobs_by_scan_source_shard_aware (applied to prod)"],
+      "evidence": ["Partition validated live (read-only): N=4 shards companies 898+921+887+957=3,663 (0 dupes) and jobs 25,860+25,107+25,138+29,634=105,739 (0 dupes) — disjoint AND complete. node --check passes. PostgREST and()/embedded companies.and() filter syntax verified against prod.", "VERIFIED LIVE END-TO-END at N=2 (scans 5ffb7ec1 + 2fa87d8a): ran in parallel, 0 out-of-range probes either shard, union probed=3,663=total enabled, stale_among_healthy=0, active stable 105,737, new_jobs accurate (300), write_failed=0. Matrix reverted to default [0]."],
+      "status_note": "DEFAULT N=1 (matrix [0]) so production behaviour is unchanged. Capability is ready; flip by listing 0..N-1 in the workflow matrix.",
+      "verify": "select shard_count, count(*) from public.scans where started_at > now() - interval '1 day' group by 1;",
+      "next": "When ready to scale: set matrix to [0,1,2,3], run a cycle, confirm shards stay green and per-provider block-rate doesn't spike; then the discovery push (deepen SR, Workable, Workday) can land the volume."
+    },
+    {
+      "id": "f-113",
+      "title": "Job relevance layer (target-role classification + filtering)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Product is an AI-first staffing agency for tech/IT professionals, knowledge-workers, senior/exec leaders and students in those fields. The index was full of service/manual/retail/clinical noise (waiter, dishwasher, care assistant, automotive technician), mostly from SmartRecruiters' generic keyword seeding — roles our customers would never pay to be matched to.",
+      "scope": "Classify every job by ROLE (not employer industry) into a family + is_target + seniority. Hybrid: src/classify.mjs high-precision rules (free, ~45% coverage) + gpt-4o-mini for the ambiguous middle (scripts/backfill-classification.mjs --llm). is_target NULL stays surfaced (only known-false hidden) so an unclassified backlog never hides good jobs. scan.mjs classifies new jobs at ingest and gates description/embedding spend to is_target is not false. match_resume(_candidates) filter is_target is not false.",
+      "touches": ["src/classify.mjs (new)", "scripts/backfill-classification.mjs (new)", "src/scan.mjs", "supabase/schema.sql (jobs.job_family/is_target/seniority/classified_*; match RPCs)", "migrations add_job_classification_columns + match_rpcs_filter_target_roles (applied to prod)"],
+      "evidence": ["Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."],
+      "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
+      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified. STRATEGY UPDATE 2026-06-05: do NOT prune blue-collar tenants — Product B (NL jobs MCP) wants them; only disable genuinely dead (404/empty) tenants. Relevance becomes a parameterized lens, not a hardcoded filter — see f-114."
+    },
+    {
+      "id": "f-114",
+      "title": "Parameterize relevance in search (target_only/family filters) — two-product backbone",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "Two products share one DB + one search engine (HOSTED_PLATFORM_PLAN.md 'one DB, two lenses'). Staffing wants tech-only; the agent/NL MCP wants the whole index. Relevance must be a query parameter, not baked in.",
+      "scope": "Replace the hardcoded `is_target is not false` in match_resume/match_resume_candidates with parameters (target_only boolean default true, optional family/seniority/location/remote/comp filters). Add a generalised search_jobs(query_vec, filters) RPC both products call. Staffing passes target_only=true (default, so today's path is unchanged); Product B passes target_only=false + any filters.",
+      "touches": ["supabase/schema.sql (match_resume*, new search_jobs RPC)", "status-page/lib/match.js", "status-page/app/api/match"],
+      "next": "Land alongside the launch so staffing keeps target_only=true while the engine is ready for Product B."
+    },
+    {
+      "id": "f-115",
+      "title": "Embeddings across the index (matchability)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "The matcher only sees embedded jobs. Live check 2026-06-05: of 93,847 surfaced target jobs only 7,249 (7.7%) are embedded — clients are matched against 8% of the index. Biggest single lever on product quality and the #1 launch blocker.",
+      "scope": "Run summary + embedding backfill. LAUNCH ORDER: classify (LLM) -> embed the tech/target slice first (~36k, cheap) to launch staffing (Product A); then embed the full index for Product B's NL search. Also decide ongoing freshness: enable LLM passes in cron OR a daily classify->summarize->embed backfill, else new jobs are unmatchable within days.",
+      "touches": ["scripts/backfill-summaries.mjs", "scripts/backfill-embeddings.mjs", ".github/workflows (a daily enrichment workflow)"],
+      "blocked_on": ["OPENAI_API_KEY available to the backfill/CI"],
+      "verify": "select round(100.0*count(*) filter (where embedding is not null)/count(*),1) as pct_matchable from public.jobs where closed_at is null and is_target is not false;"
+    },
+    {
+      "id": "f-116",
+      "title": "Jobs MCP server + REST API (Product B)",
+      "phase": "product-b",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Curated MCP server (+ thin REST) exposing search_jobs(query, filters)/get_job(id)/list_families backed by the f-114 search_jobs RPC. NL query -> LLM extracts structured filters + semantic vector -> hybrid retrieve over the full index. Never raw DB access; rate-limited + per-key for usage-based monetization. Agents become a demand + distribution channel feeding Product A.",
+      "depends_on": ["f-114 (parameterized search)", "f-115 (full-index embeddings)"],
+      "touches": ["new mcp-server/ (or edge function)", "supabase search_jobs RPC"]
+    },
+    {
+      "id": "f-117",
+      "title": "Operator access control on /matches (lock down before client data)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "The /matches résumé-matcher is a PUBLIC Vercel URL (fyj-scanner.vercel.app). Before operators run real client résumés through it for the staffing launch, it must be access-controlled.",
+      "scope": "Add basic protection: Vercel password protection OR middleware basic-auth / a shared-secret header on /matches and /api/match. Cheapest path to a private operator console for day one; proper per-user auth (Clerk, f-201) comes later.",
+      "touches": ["status-page/middleware.js (new) or Vercel project setting", "status-page/app/api/match/route.js"]
+    },
+    {
+      "id": "f-118",
+      "title": "Daily enrichment freshness (classify -> summarize -> embed) so new jobs are matchable",
+      "phase": "product-a",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "Cron runs SKIP_LLM_PASSES=1, so new jobs get rules-classified at ingest but never summarized/embedded — they'd be unmatchable within days of launch even after the one-time backfill (f-115).",
+      "scope": "A scheduled workflow (or re-enable the scan's LLM passes) that runs backfill-classification --llm + backfill-summaries + embed-backfill daily over is_target-not-false rows lacking enrichment. Bounds cost (only target rows, only the day's new backlog).",
+      "depends_on": ["f-115 (initial backfill)", "OPENAI_API_KEY in CI"],
+      "touches": [".github/workflows (new enrichment workflow)", "scripts/backfill-*"]
     },
 
     {

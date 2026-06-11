@@ -4,6 +4,27 @@ Auto-scan-first multi-tenant SaaS version of career-ops.
 
 ---
 
+## Product Strategy — one DB, two lenses (2026-06-05)
+
+The scanned job index is the **moat**. It powers **two products off the same data**, distinguished only by a *filter lens*, not by separate datasets. This is why we **classify and keep every job (tag, never delete)** rather than pruning blue-collar/service roles.
+
+**Product A — AI-first staffing firm (near-term revenue).**
+High-touch, paid placement for tech/IT job seekers (engineers, data/AI, IT, product, design, security, plus senior/exec leadership and students in those fields). Lens = `is_target=true` / tech `job_family`. Operators (and eventually the user) run a client résumé through the matcher, curate a shortlist, and place. High margin, few clients to start.
+
+**Product B — natural-language jobs search for agents & people (platform play).**
+Anyone — an AI agent via **MCP**, or a person via API/UI — searches the *whole* index in natural language ("warehouse jobs in Austin", "remote senior Rust roles with equity"). Lens = whatever the caller asks for, including blue-collar. Monetized by API/MCP usage. Agents become a demand + distribution channel that also feeds Product A.
+
+**Architectural commitments that make both work from one asset:**
+1. **Tag, don't delete.** The relevance layer (`is_target`, `job_family`, `seniority`, f-113) is the shared backbone. Both products read the same tables; they differ only in the `WHERE` clause.
+2. **Don't prune by relevance.** Keep scanning blue-collar/service tenants — Product B wants them. Only disable genuinely dead tenants (404/empty) for hygiene. (Reverses the earlier "prune SR tenants" idea.)
+3. **Parameterize relevance in search, never hardcode it.** The search engine takes `target_only` / `family` / structured filters as arguments. Staffing calls it with `target_only=true`; the MCP passes whatever the agent wants. One engine, two lenses. (Supersedes the hardcoded `is_target is not false` currently in `match_resume*`.)
+4. **Shared backbone, built once:** (a) full classification (rules + LLM), (b) embeddings across the index — tech slice first to launch Product A, full index later for Product B, (c) a hybrid NL→{structured filters + semantic vector} search RPC both products call.
+5. **Interface for Product B = a curated MCP server** (+ thin REST), exposing tools like `search_jobs(query, filters)` / `get_job(id)` backed by the shared RPC — never raw DB access (safe, rate-limitable, monetizable).
+
+**Sequencing:** launch Product A first (classify + embed the tech slice, `target_only=true`), parameterize the search RPC, then embed the full index + ship the MCP for Product B. Same DB, same search engine, two revenue lines. See `feature_list.json` f-114/f-115/f-116.
+
+---
+
 ## Phase 0 — De-risking (DO THESE BEFORE WRITING PRODUCT CODE)
 
 Each item below can kill the product. Resolve them in this order. Budget: 2 weeks, ~$200 in infra/API costs.

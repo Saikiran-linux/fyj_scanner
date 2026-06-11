@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
 import { fetchJobs, fetchJobDescription, fetchJobPosting, hasDescriptionFetcher, hasDetailFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
+import { classifyTitle } from './classify.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
@@ -68,8 +69,44 @@ const PROBE_RESULT_BATCH = 200;
 
 const limiter = new RateLimiter();
 
+// ── sharding (f-109) ───────────────────────────────────────────────
+// The scan can fan out across N parallel matrix jobs (SHARD_COUNT), each
+// owning a disjoint slice of companies by their stored bucket
+// (companies.shard ∈ [0,60)). Shard i owns the contiguous range
+// [floor(i*60/N), floor((i+1)*60/N)), which tiles [0,60) exactly for any
+// N ≤ 60 — the shards are disjoint AND cover every company. Because
+// close_unseen_jobs() is per-company, shards never touch each other's jobs,
+// which is what makes parallel runs safe (the global-snapshot close-sweep was
+// the reason the old code forbade them). Default 0/1 = one shard over the
+// whole range, byte-for-byte the unsharded scan.
+//
+// Concurrency note: we deliberately do NOT divide per-provider rate-limit
+// concurrency by N. ATS providers throttle per source IP and each shard runs
+// on its own GitHub runner IP, so N shards get ~N× aggregate provider
+// throughput (the real win) rather than N× load on one budget. If a provider
+// turns out to be globally limited, the adaptive RateLimiter backs that shard
+// off on >5% blocks independently.
+const SHARD_BUCKETS = 60;
+const SHARD_COUNT = Math.max(1, Math.min(SHARD_BUCKETS, Math.floor(Number(process.env.SHARD_COUNT)) || 1));
+const SHARD_INDEX = Math.max(0, Math.min(SHARD_COUNT - 1, Math.floor(Number(process.env.SHARD_INDEX)) || 0));
+const SHARDED = SHARD_COUNT > 1;
+const SHARD_LO = Math.floor((SHARD_INDEX * SHARD_BUCKETS) / SHARD_COUNT);
+const SHARD_HI = Math.floor(((SHARD_INDEX + 1) * SHARD_BUCKETS) / SHARD_COUNT);
+// PostgREST AND-group selecting this shard's bucket range; null when unsharded.
+const SHARD_AND = SHARDED ? `(shard.gte.${SHARD_LO},shard.lt.${SHARD_HI})` : null;
+const SHARD_TAG = SHARDED ? `[shard ${SHARD_INDEX}/${SHARD_COUNT} buckets ${SHARD_LO}-${SHARD_HI - 1}] ` : '';
+
 const SCAN_ID = await openScan();
-console.log(`Scan ${SCAN_ID} started`);
+console.log(`${SHARD_TAG}Scan ${SCAN_ID} started`);
+
+// Reap zombie scans before doing anything else. closeScan() is best-effort —
+// if the process dies (OOM, runner kill) or a pooler outage eats the final
+// write (we hit a 57P03 compute restart once), the row stays 'running'
+// forever and skews dashboards/alerts. A real run can't exceed the 30-min
+// Actions budget, so anything still 'running' after 45 min is dead. The
+// concurrency:scan group guarantees no genuine peer is running, so this never
+// races a live scan. Excludes our own just-opened row (started_at is now).
+await reapStaleScans();
 
 let companies;
 try {
@@ -78,7 +115,12 @@ try {
   // last_raw_hash is the content hash of the most recently archived raw
   // response for this company — lets archiveRawResponse() skip re-uploading an
   // unchanged board (the dedupe-on-change rule) with no extra per-company query.
-  companies = await selectAll('companies', { enabled: 'eq.true', select: 'id,ats,slug,probe_url,consecutive_errors,last_raw_hash' });
+  companies = await selectAll('companies', {
+    enabled: 'eq.true',
+    select: 'id,ats,slug,probe_url,consecutive_errors,last_raw_hash',
+    // Shard scoping: AND-group on the indexed companies.shard bucket range.
+    ...(SHARD_AND ? { and: SHARD_AND } : {}),
+  });
 } catch (e) {
   await closeScan(SCAN_ID, 'failed', { notes: `failed to load companies: ${e.message}` });
   console.error(e);
@@ -93,9 +135,9 @@ for (let i = companies.length - 1; i > 0; i--) {
   [companies[i], companies[j]] = [companies[j], companies[i]];
 }
 
-console.log(`Loaded ${companies.length} enabled companies`);
+console.log(`${SHARD_TAG}Loaded ${companies.length} enabled companies`);
 if (companies.length === 0) {
-  await closeScan(SCAN_ID, 'ok', { notes: 'no companies enabled' });
+  await closeScan(SCAN_ID, 'ok', { notes: `${SHARD_TAG}no companies in shard` });
   process.exit(0);
 }
 
@@ -110,11 +152,26 @@ if (companies.length === 0) {
 // are handled by the upsert's unique-constraint resolution and the close
 // sweep's "external_id not in current listing" check, respectively. We
 // don't need a consistent snapshot — we just need a recent one.
+// Watermark for the server-side close-sweep (f-108). Any open job whose
+// last_seen_at predates this is one no successful probe re-stamped this run —
+// i.e. the ATS stopped listing it. Captured BEFORE any upsert so every job we
+// see this run gets last_seen_at strictly later than the watermark and is
+// never mistakenly closed.
+const SCAN_START_ISO = new Date().toISOString();
+
 console.log('Pre-fetching active job snapshot...');
 const snapshotStart = Date.now();
 const activeRows = await selectAll('jobs', {
   closed_at: 'is.null',
-  select: 'company_id,external_id,description_hash',
+  // When sharded, scope the snapshot to this shard's companies via an inner
+  // join on companies.shard — so each shard loads only ~1/N of the open jobs,
+  // not the whole table. The snapshot must cover EXACTLY the companies this
+  // shard probes (same bucket range as the companies query above), or
+  // missing-from-snapshot jobs would be miscounted as "new".
+  select: SHARDED
+    ? 'company_id,external_id,description_hash,companies!inner(shard)'
+    : 'company_id,external_id,description_hash',
+  ...(SHARD_AND ? { 'companies.and': SHARD_AND } : {}),
 });
 /** @type {Map<string, Map<string, {description_hash: string|null}>>} */
 const activeByCompany = new Map();
@@ -136,6 +193,12 @@ const totals = {
   companies_probed: 0,
   companies_ok: 0,
   companies_error: 0,
+  // Probe HTTP/schema succeeded but the DB write (upsert) failed — e.g. the
+  // PGRST102 heterogeneous-keys class that silently froze ~1.1k companies for
+  // 19 days (see f-112). These count in neither companies_ok nor
+  // companies_error, so without an explicit counter they're invisible. Surface
+  // them loudly: this is the metric that would have caught that freeze on day 1.
+  companies_write_failed: 0,
   new_jobs: 0,
   closed_jobs: 0,
 };
@@ -311,32 +374,59 @@ async function probeOne(company) {
         row.description_fetched_at = nowIso;
       }
     }
+    // Relevance classification (f-113), NEW jobs only. We never re-write an
+    // existing row's classification here — that would clobber a better LLM
+    // verdict with the free rules pass. The high-precision rules tag the
+    // obvious ~45%; low-confidence rows are left classified_at=null so the
+    // LLM backfill (scripts/backfill-classification.mjs --llm) resolves them.
+    if (!existing.has(j.external_id)) {
+      const cls = classifyTitle(j.title);
+      row.job_family = cls.family;
+      row.is_target = cls.is_target;
+      row.seniority = cls.seniority;
+      if (cls.confidence === 'high') {
+        row.classified_at = nowIso;
+        row.classified_by = 'rules';
+      }
+    }
     return row;
   });
 
   if (jobRows.length) {
+    // PostgREST requires every object in a bulk insert/upsert to carry the
+    // *same* set of keys, or it 400s the whole request with PGRST102
+    // ("All object keys must match"). Our rows are deliberately heterogeneous:
+    // the description-skip optimisation only attaches description /
+    // description_hash / description_fetched_at to rows whose text changed
+    // since the snapshot. Mixing changed + unchanged rows in one request
+    // therefore failed the company's entire write — silently freezing every
+    // company that had at least one changed posting alongside unchanged ones
+    // (~1.1k companies, incl. the largest boards, stuck since 2026-05-17).
+    // Fix: bucket rows by their key signature and upsert each homogeneous
+    // group on its own. Grouping by signature (not a hard-coded with/without-
+    // description split) keeps this correct if a future field becomes
+    // conditional too.
+    const groups = new Map();
+    for (const row of jobRows) {
+      const sig = Object.keys(row).sort().join(',');
+      let g = groups.get(sig);
+      if (!g) { g = []; groups.set(sig, g); }
+      g.push(row);
+    }
     try {
-      // PostgREST bulk insert requires every object in one request to share the
-      // same key set, else the whole batch 400s with PGRST102 "All object keys
-      // must match". Our rows are deliberately heterogeneous — only rows whose
-      // description changed carry description/_hash/_fetched_at (the write-volume
-      // optimization above) — so a company with a mix of changed and unchanged
-      // jobs would fail the entire upsert and silently drop all its writes.
-      // Partition by exact key signature so each request is homogeneous; this is
-      // normally 1–2 groups. Use return=minimal — we don't need the rows back;
-      // we re-derive "new vs reopened" from the snapshot we already have.
-      const groups = new Map();
-      for (const r of jobRows) {
-        const sig = Object.keys(r).sort().join(',');
-        let g = groups.get(sig);
-        if (!g) groups.set(sig, (g = []));
-        g.push(r);
-      }
+      // Use return=minimal — we don't need the rows back. Returning
+      // representation was costing us a full row payload per upsert, which
+      // added up across 3k companies. We re-derive "new vs reopened" from
+      // the snapshot we already have.
       for (const group of groups.values()) {
         await upsert('jobs', group, 'company_id,external_id', { returning: 'minimal' });
       }
     } catch (e) {
       // Record as success of probe but failure of write — surface in notes.
+      // We bail BEFORE the close-sweep below: if any group failed, some seen
+      // jobs weren't re-stamped, and closing on a partial write would wrongly
+      // close still-listed jobs. Next scan retries the whole company.
+      totals.companies_write_failed++;
       await recordProbe(company, {
         http_status: result.http_status,
         latency_ms: result.latency_ms,
@@ -359,31 +449,27 @@ async function probeOne(company) {
   totals.new_jobs += newCount;
 
   // Close jobs previously active for this company but absent from this scan.
-  // Derived from the snapshot — no extra round-trip. We only do this on a
-  // successful scan — never on a partial/error response. Race note: a row
-  // inserted between snapshot and probe won't appear in `existing`, so it
-  // won't get incorrectly closed.
+  // Server-side (f-108): the upserts above stamped every seen job with
+  // last_seen_at >= SCAN_START_ISO, so close_unseen_jobs() closes exactly the
+  // company's still-open rows whose last_seen_at predates the run. This runs
+  // only after every upsert group succeeded (we returned early otherwise), so
+  // we never close on a partial/failed write. Versus the old client-side diff
+  // it drops the potentially-huge external_id IN-list payload, is idempotent,
+  // and — because it touches one company's rows keyed on (company_id,
+  // last_seen_at) — lets the scan be sharded later without double-closing
+  // (f-109). Race note: a row inserted after the watermark gets a newer
+  // last_seen_at, so it is never closed.
   let closedThisCompany = 0;
-  const toCloseExtIds = [];
-  for (const ext of existing.keys()) {
-    if (!seenExternalIds.has(ext)) toCloseExtIds.push(ext);
-  }
-  if (toCloseExtIds.length) {
-    try {
-      // Filter by (company_id, external_id) so we don't need to have
-      // fetched primary-key ids in the snapshot.
-      const extList = toCloseExtIds.map((e) => `"${e.replace(/"/g, '""')}"`).join(',');
-      await update(
-        'jobs',
-        { company_id: `eq.${company.id}`, external_id: `in.(${extList})`, closed_at: 'is.null' },
-        { closed_at: new Date().toISOString() },
-        { returning: 'minimal' },
-      );
-      closedThisCompany = toCloseExtIds.length;
-      totals.closed_jobs += closedThisCompany;
-    } catch (e) {
-      console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
-    }
+  try {
+    const closed = await rpc('close_unseen_jobs', {
+      p_company_id: company.id,
+      p_scan_start: SCAN_START_ISO,
+    });
+    // PostgREST returns the bare scalar for an integer-returning function.
+    closedThisCompany = typeof closed === 'number' ? closed : Number(closed) || 0;
+    totals.closed_jobs += closedThisCompany;
+  } catch (e) {
+    console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
 
   // Archive the raw provider response to R2 (replay / audit / analytics).
@@ -496,8 +582,13 @@ try {
       // every scan would burn the cap on the same persistent-null rows.
       description_fetched_at: 'is.null',
       closed_at: 'is.null',
-      select: 'id,external_id,companies!inner(id,ats,slug)',
+      // Don't spend per-job detail fetches on known-noise roles (f-113);
+      // unclassified (null) still get fetched.
+      is_target: 'not.is.false',
+      select: 'id,external_id,companies!inner(id,ats,slug,shard)',
       'companies.ats': `in.(${fetchableAts.join(',')})`,
+      // Only fetch descriptions for this shard's companies.
+      ...(SHARD_AND ? { 'companies.and': SHARD_AND } : {}),
     }, { maxRows: DESCRIPTION_FETCH_CAP });
     if (candidates.length) {
       console.log(`Fetching descriptions for up to ${candidates.length} jobs (cap=${Number.isFinite(DESCRIPTION_FETCH_CAP) ? DESCRIPTION_FETCH_CAP : 'none'})`);
@@ -618,6 +709,9 @@ if (process.env.SKIP_LLM_PASSES) {
     const missing = await selectAll('jobs', {
       embedding: 'is.null',
       closed_at: 'is.null',
+      // Don't spend embeddings on known-noise roles (f-113); unclassified
+      // (null) still get embedded so matching isn't starved pre-LLM-pass.
+      is_target: 'not.is.false',
       // Keep in sync with buildJobText() in src/embeddings.mjs — any new
       // signal the embedder reads has to be in this select list or it'll
       // silently get embedded as null.
@@ -682,14 +776,40 @@ const embedNote = embedStats
   ? ` || embed: ${embedStats.embedded} ok, ${embedStats.failed} failed (~$${embedStats.costEstimateUsd.toFixed(4)})`
   : '';
 
-await closeScan(SCAN_ID, 'ok', {
+// Write-failure guardrail (f-112 follow-up). A healthy scan writes nearly
+// everything it probes; a spike in write failures (probe ok, DB upsert
+// rejected) is a systemic problem — the PGRST102 freeze, or a pooler /
+// statement-timeout cascade — that must never pass silently again. Above 5%
+// of probed companies AND >25 in absolute terms (so a tiny run can't trip it)
+// we mark the scan `failed` and exit non-zero, turning the Actions run red.
+// Data already written is unaffected; the next scan retries the failed
+// companies. The PGRST102 freeze failed ~31% of companies — this would have
+// gone red on day 1 instead of staying silent for 19 days.
+const writeFailRate = totals.companies_probed ? totals.companies_write_failed / totals.companies_probed : 0;
+const writeFailHigh = totals.companies_write_failed > 25 && writeFailRate > 0.05;
+const writeNote = totals.companies_write_failed
+  ? ` || db-write-failed: ${totals.companies_write_failed} (${(writeFailRate * 100).toFixed(1)}%)`
+  : '';
+
+await closeScan(SCAN_ID, writeFailHigh ? 'failed' : 'ok', {
   ...totals,
   active_jobs_after,
-  notes: sourceNotes + descNote + summaryNote + embedNote,
+  notes: (writeFailHigh ? '⚠️ HIGH DB-WRITE-FAILURE RATE ' : '') + sourceNotes + writeNote + descNote + summaryNote + embedNote,
 });
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-console.log(`Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
+console.log(`${SHARD_TAG}Scan ${SCAN_ID} done in ${elapsed}s: ok=${totals.companies_ok} err=${totals.companies_error} write_failed=${totals.companies_write_failed} new=${totals.new_jobs} closed=${totals.closed_jobs} active_total=${active_jobs_after}`);
 console.log(`Per-source: ${sourceNotes}`);
+if (writeFailHigh) {
+  console.error(
+    `\n⚠️  GUARDRAIL TRIPPED: ${totals.companies_write_failed}/${totals.companies_probed} companies ` +
+    `(${(writeFailRate * 100).toFixed(1)}%) probed ok but failed their DB write. ` +
+    `Scan marked 'failed'. Inspect: select error, count(*) from probe_results ` +
+    `where scan_id='${SCAN_ID}' and error like 'db_write:%' group by 1;`,
+  );
+  // Non-zero exit so the GitHub Actions run goes red. Set exitCode (not
+  // process.exit) so the totals-refresh below still runs before we exit.
+  process.exitCode = 1;
+}
 
 // Refresh the per-source totals MV that backs the dashboard. The live
 // aggregate over jobs is too slow for the authenticator's 8s timeout on a
@@ -704,8 +824,32 @@ try {
 
 // ── helpers ────────────────────────────────────────────────────────
 
+// Mark long-dead 'running' scans as failed. closeScan() is best-effort, so a
+// crashed process or a lost final write (we've seen a pooler 57P03 eat one)
+// leaves a perpetual 'running' row that pollutes dashboards and the v_recent
+// views. 45 min is safely past the 30-min Actions budget, and the
+// concurrency:scan group means no genuine peer can be running, so this never
+// reaps a live scan. Our own row (started just now) is excluded by the cutoff.
+async function reapStaleScans() {
+  try {
+    const cutoff = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    await update(
+      'scans',
+      { status: 'eq.running', started_at: `lt.${cutoff}` },
+      {
+        status: 'failed',
+        ended_at: new Date().toISOString(),
+        notes: 'auto-reaped: left running >45min (process died or final status write lost)',
+      },
+      { returning: 'minimal' },
+    );
+  } catch (e) {
+    console.warn(`stale-scan reap failed (non-fatal): ${e.message}`);
+  }
+}
+
 async function openScan() {
-  const [row] = await insert('scans', [{ status: 'running' }]);
+  const [row] = await insert('scans', [{ status: 'running', shard_index: SHARD_INDEX, shard_count: SHARD_COUNT }]);
   return row.id;
 }
 
