@@ -29,10 +29,12 @@ jobs:
         # Scan sharding (f-109). List 0..N-1 to fan the scan out across N
         # parallel jobs (N ≤ 60); SHARD_COUNT below derives from the matrix
         # length via strategy.job-total, so this list is the ONLY thing to
-        # change. Default [0] = a single shard over the whole company set =
-        # the unsharded scan. Safe to parallelize because close_unseen_jobs()
-        # is per-company, so shards never touch each other's jobs.
-        shard: [0]
+        # change. Safe to parallelize because close_unseen_jobs() is
+        # per-company, so shards never touch each other's jobs. N=4: each shard
+        # owns a 15-bucket slice of the [0,60) company-hash range
+        # (disjoint+complete, validated live). Each runs on its own runner IP,
+        # so per-provider rate limits aren't divided -> ~N x aggregate throughput.
+        shard: [0, 1, 2, 3]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
