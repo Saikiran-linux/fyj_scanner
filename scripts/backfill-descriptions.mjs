@@ -22,7 +22,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { select, update } from '../src/supabase-client.mjs';
+import { select, update, upsert } from '../src/supabase-client.mjs';
 import {
   fetchJobDescription,
   hasDescriptionFetcher,
@@ -90,12 +90,20 @@ async function processRow(row) {
       'jobs',
       { id: `eq.${row.id}` },
       {
-        description: res.description ?? null,
         description_hash: describeHash(res.description ?? null),
         description_fetched_at: new Date().toISOString(),
       },
       { returning: 'minimal' },
     );
+    // Text -> job_descriptions (f-119); jobs no longer has a description column.
+    if (res.description != null) {
+      await upsert(
+        'job_descriptions',
+        [{ job_id: row.id, company_id: row.companies.id, description: res.description, updated_at: new Date().toISOString() }],
+        'job_id',
+        { returning: 'minimal' },
+      );
+    }
     totalOk++;
   } catch (e) {
     totalFailed++;
@@ -111,13 +119,10 @@ while (true) {
   // through the backlog without an explicit offset (and makes this resumable).
   const inClause = `(${fetchableAts.join(',')})`;
   const page = await select('jobs', {
-    description: 'is.null',
-    // Only rows we've never attempted. Without this, postings the provider
-    // returns with no description text stay description=null forever, get
-    // re-selected on every page, and the while-loop never terminates (it just
-    // re-fetches the same persistent-null rows). description_fetched_at is set
-    // on every attempt, so this both makes the pass terminate and stops us
-    // re-hitting the upstream for descriptions that genuinely don't exist.
+    // Only rows we've never attempted. description_fetched_at is set on every
+    // attempt, so this makes the pass advance/terminate and stops re-hitting
+    // the upstream for descriptions that genuinely don't exist. (jobs no longer
+    // has a description column — f-119; text lives in job_descriptions.)
     description_fetched_at: 'is.null',
     closed_at: 'is.null',
     limit: String(PAGE_SIZE),

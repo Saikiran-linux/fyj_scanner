@@ -213,35 +213,25 @@ as $$
 $$;
 
 -- ── job descriptions ───────────────────────────────────────────────
--- Plain-text job description, populated by the scanner (for providers where
--- it ships in the listing response) or by a separate per-job fetch pass.
--- Stored as text rather than in `raw` jsonb so the embedder can read it
--- cheaply without unpacking the full provider payload.
---
--- When a description is written, the row's embedding is nulled at the same
--- time so the next embedding pass re-embeds with description included.
-
-alter table public.jobs add column if not exists description text;
+-- Description metadata kept on jobs. The TEXT itself lives in job_descriptions
+-- (below) — f-119: jobs never stores it. description_hash is an md5 of the
+-- text, written by the scanner at fetch/upsert time; it drives both the skip
+-- optimisation (write the text to job_descriptions only when the hash changes)
+-- and the embedding-invalidation trigger. description_fetched_at records that a
+-- per-job fetch was attempted (so persistent-null postings aren't re-fetched).
 alter table public.jobs add column if not exists description_fetched_at timestamptz;
--- md5 of the description text. The scanner pre-fetches this with every active
--- job at scan-start and skips the `description` field in its per-company
--- upsert when the incoming text hashes to the same value. Avoids re-sending
--- multi-KB description bodies on every scan when nothing changed — that was
--- the dominant write-volume cost on the jobs table.
 alter table public.jobs add column if not exists description_hash text;
 
--- Lets the backfill / scan-time description pass find candidates fast.
+-- Lets the per-job description fetch pass find never-attempted rows fast.
 create index if not exists jobs_description_pending_idx
   on public.jobs (company_id)
-  where description is null and closed_at is null;
+  where description_fetched_at is null and closed_at is null;
 
--- Description text mirrored into its own narrow table, keyed by job_id. This
--- is the first step of the "split storage by access pattern" plan
--- (docs/scaling-architecture.md): the multi-KB description is the TOAST-heavy
--- part of a job row, and keeping a copy out of the hot jobs table lets readers
--- (embedding / summary passes, future Product-B surfaces) fetch it without
--- widening scans of jobs. jobs.description stays canonical for now; this table
--- is kept in lockstep by the sync trigger below.
+-- job_descriptions is the canonical (and only) home for description text
+-- (f-119): the multi-KB text is the TOAST-heavy part of a job row, so keeping
+-- it out of the hot jobs table keeps scans/backups small. The scanner writes
+-- this table directly (src/scan.mjs upsert + per-job fetch pass); readers go
+-- through v_jobs_enriched (below). jobs has NO description column.
 create table if not exists public.job_descriptions (
   job_id      uuid primary key,
   company_id  uuid not null,
@@ -249,34 +239,6 @@ create table if not exists public.job_descriptions (
   updated_at  timestamptz not null default now()
 );
 create index if not exists job_descriptions_company_idx on public.job_descriptions (company_id);
-
--- job_descriptions is the canonical home for description text (f-119 step 3).
--- This BEFORE trigger diverts any write of jobs.description into
--- job_descriptions and NULLs the heap copy, so the text never bloats the hot
--- jobs table. The scanner still writes jobs.description in its upsert; the
--- trigger transparently relocates it. Readers go through v_jobs_enriched
--- (below) which sources description from job_descriptions. Scoped to
--- "OF description" so unrelated jobs updates don't fire it.
-create or replace function public.sync_job_description() returns trigger
-language plpgsql as $$
-begin
-  if new.description is not null then
-    insert into public.job_descriptions (job_id, company_id, description, updated_at)
-    values (new.id, new.company_id, new.description, now())
-    on conflict (job_id) do update
-      set description = excluded.description,
-          company_id  = excluded.company_id,
-          updated_at  = now();
-    new.description := null;   -- keep the text out of the hot jobs heap
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists jobs_sync_description on public.jobs;
-create trigger jobs_sync_description
-  before insert or update of description on public.jobs
-  for each row execute function public.sync_job_description();
 
 -- Readers select from this instead of jobs so `description` resolves from
 -- job_descriptions, decoupled from whether jobs.description is populated.
@@ -341,10 +303,12 @@ alter table public.jobs add column if not exists description_summary       text;
 alter table public.jobs add column if not exists description_summary_model text;
 alter table public.jobs add column if not exists description_summary_at    timestamptz;
 
+-- Speeds the summary pass's candidate scan (it then joins job_descriptions via
+-- v_jobs_enriched to require description-present). No description ref here —
+-- the text isn't on jobs (f-119).
 create index if not exists jobs_description_summary_pending_idx
   on public.jobs (company_id)
   where description_summary is null
-    and description is not null
     and closed_at is null;
 
 -- ── job embeddings ─────────────────────────────────────────────────
