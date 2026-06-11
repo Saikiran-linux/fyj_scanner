@@ -730,7 +730,10 @@ async function doFetch(url, timeoutMs, provider) {
     } catch {
       return { ok: false, http_status: res.status, latency_ms, error: 'invalid_json', url };
     }
-    return { ok: true, http_status: res.status, latency_ms, json, url };
+    // raw_text is the exact response body (pre-parse). The scanner archives it
+    // to R2 (src/r2.mjs) for replay/audit; kept separate from `json` so we
+    // store the provider's original bytes, not a re-serialized copy.
+    return { ok: true, http_status: res.status, latency_ms, json, raw_text: text, url };
   } catch (e) {
     return {
       ok: false,

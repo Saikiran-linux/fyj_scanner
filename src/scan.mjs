@@ -24,6 +24,7 @@ import { classifyTitle } from './classify.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
+import { isEnabled as r2Enabled, contentHash, putGzipJson } from './r2.mjs';
 
 // md5 hex of the description text. Postgres' md5() emits the same encoding,
 // so a hash computed here can be compared bit-for-bit against the value
@@ -111,9 +112,12 @@ let companies;
 try {
   // selectAll paginates past PostgREST's 1k max-rows cap — a bare select()
   // silently truncates to 1,000 even though the table has more rows.
+  // last_raw_hash is the content hash of the most recently archived raw
+  // response for this company — lets archiveRawResponse() skip re-uploading an
+  // unchanged board (the dedupe-on-change rule) with no extra per-company query.
   companies = await selectAll('companies', {
     enabled: 'eq.true',
-    select: 'id,ats,slug,probe_url,consecutive_errors',
+    select: 'id,ats,slug,probe_url,consecutive_errors,last_raw_hash',
     // Shard scoping: AND-group on the indexed companies.shard bucket range.
     ...(SHARD_AND ? { and: SHARD_AND } : {}),
   });
@@ -216,6 +220,68 @@ async function flushProbeResults(force = false) {
     await insert('probe_results', batch, { returning: 'minimal' });
   } catch (e) {
     console.error(`probe_results insert failed (${batch.length} rows): ${e.message}`);
+  }
+}
+
+// Stable, canonical JSON: object keys sorted recursively so the serialization
+// is deterministic run-to-run. Used to hash the *parsed* job content for the
+// archive dedupe decision.
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+// The content hash that drives archive dedupe. We hash the PARSED jobs, not the
+// raw response bytes: HTML-scraping providers (e.g. workatastartup) embed a
+// fresh per-request CSRF token in every response, so the raw bytes change on
+// every fetch even when the listing is identical — hashing them would defeat
+// dedupe and re-upload a near-duplicate every scan. The parsed jobs are stable,
+// so they're the right signal for "did the board actually change?". If parsing
+// failed (jobs null), fall back to the raw bytes so we still archive something.
+function archiveContentHash(result) {
+  return result.jobs != null ? contentHash(canonicalJson(result.jobs)) : contentHash(result.raw_text);
+}
+
+// Archive a company's raw ATS response to R2 for replay / audit / analytics.
+// Deduped on the parsed-content hash (see archiveContentHash): an unchanged
+// board (matched against companies.last_raw_hash) is a no-op, and only a
+// CHANGED listing triggers an upload + row. The object key and raw_archive
+// primary key are that content hash, so a board flapping back to a previously
+// archived version merges instead of duplicating. We still store the exact raw
+// response bytes as the object body for full-fidelity replay. Gated on R2 being
+// configured; fully NON-FATAL — any failure logs and the scan proceeds.
+async function archiveRawResponse(company, result, jobCount, nowIso) {
+  if (!r2Enabled() || !result.raw_text) return;
+  const hash = archiveContentHash(result);
+  if (hash === company.last_raw_hash) return; // unchanged since last archive
+  const key = `raw/ats=${company.ats}/company=${company.slug}/${hash}.json.gz`;
+  try {
+    const { bytes } = await putGzipJson(key, result.raw_text);
+    // merge-duplicates handles a board flapping back to a previously-archived
+    // version: the (company_id, content_hash) row already exists, so we just
+    // bump last_seen_at / last_scan_id. created_at (not sent) is preserved as
+    // the first-archived timestamp.
+    await upsert(
+      'raw_archive',
+      [{
+        company_id: company.id,
+        ats: company.ats,
+        content_hash: hash,
+        r2_key: key,
+        bytes,
+        job_count: jobCount,
+        last_scan_id: SCAN_ID,
+        last_seen_at: nowIso,
+      }],
+      'company_id,content_hash',
+      { returning: 'minimal' },
+    );
+    await update('companies', { id: `eq.${company.id}` }, { last_raw_hash: hash }, { returning: 'minimal' });
+  } catch (e) {
+    console.error(`raw archive failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
 }
 
@@ -405,6 +471,10 @@ async function probeOne(company) {
   } catch (e) {
     console.error(`close-job sweep failed for ${company.ats}/${company.slug}: ${e.message}`);
   }
+
+  // Archive the raw provider response to R2 (replay / audit / analytics).
+  // Non-fatal and deduped — see archiveRawResponse.
+  await archiveRawResponse(company, result, jobRows.length, nowIso);
 
   await recordProbe(company, {
     http_status: result.http_status,
