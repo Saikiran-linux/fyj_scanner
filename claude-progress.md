@@ -18,6 +18,8 @@ A live N=4 sharded run (f-109) wrote 4 `scans` rows for one cycle (23:19:32, sha
 
 **Verified on prod:** 23:19 cycle now one row — shard_count 4, probed 3,652, new 571 = by-source 571, closed 606, active 106,264. Unsharded cycles unchanged.
 
+**Follow-up:** added a `reopened` column to RECENT SCANS (`v_recent_scans` + overview UI). Explains why active can rise when closed > new: `active_after = active_before + new + reopened − closed`. Derived from the active-count delta (not the raw counter), so it's sane (6–96/cycle) even for the older snapshot-bug rows. Reconciles exactly on every ok cycle.
+
 ---
 
 ## 2026-06-11 · FIX — dashboard "new jobs" mismatch (RECENT SCANS vs by-source)

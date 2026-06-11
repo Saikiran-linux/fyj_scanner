@@ -295,6 +295,7 @@ export default async function Page({ searchParams }) {
                   <Th className="text-right">probed</Th>
                   <Th className="text-right">ok/err</Th>
                   <Th className="text-right">new</Th>
+                  <Th className="text-right">reopened</Th>
                   <Th className="text-right">closed</Th>
                   <Th className="text-right">active after</Th>
                   <Th></Th>
@@ -302,7 +303,7 @@ export default async function Page({ searchParams }) {
               </thead>
               <tbody>
                 {recentScans.length === 0 ? (
-                  <Empty cols={9}>no scans yet</Empty>
+                  <Empty cols={10}>no scans yet</Empty>
                 ) : (
                   recentScans.map((s) => (
                     <tr key={s.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
@@ -312,6 +313,9 @@ export default async function Page({ searchParams }) {
                       <Td className="text-right">{Number(s.companies_probed ?? 0).toLocaleString()}</Td>
                       <Td className="text-right">{s.companies_ok}/{s.companies_error}</Td>
                       <Td className="text-right text-emerald-400">{Number(s.new_jobs ?? 0).toLocaleString()}</Td>
+                      {/* reopened: closed→active again this cycle. Explains why active
+                          can rise when closed > new (active Δ = new + reopened − closed). */}
+                      <Td className="text-right text-amber-400">{s.reopened == null ? '—' : Number(s.reopened).toLocaleString()}</Td>
                       <Td className="text-right text-pink-400">{Number(s.closed_jobs ?? 0).toLocaleString()}</Td>
                       <Td className="text-right">{s.active_jobs_after?.toLocaleString() ?? '—'}</Td>
                       <Td><Link href={`/scans/${s.id}`} className="text-sky-300 hover:underline text-xs">detail →</Link></Td>

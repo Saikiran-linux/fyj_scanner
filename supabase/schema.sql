@@ -657,33 +657,54 @@ with agg as (
 ),
 recent as (
   select * from agg order by started_at desc limit 30
+),
+withnew as (
+  select
+    r.*,
+    coalesce(
+      case when r.status = 'ok' then (
+        select count(*)
+        from public.jobs j
+        where j.first_seen_at >= r.started_at
+          and j.first_seen_at <= r.ended_at
+      ) end,
+      r.new_jobs_reported
+    )::int as new_jobs,
+    -- active count after the immediately-preceding ok cycle. partition by
+    -- (status='ok') isolates ok cycles so an interleaved failed/running row
+    -- (active_jobs_after = 0) can't be mistaken for the previous value.
+    case when r.status = 'ok' then
+      lag(r.active_jobs_after) over (partition by (r.status = 'ok') order by r.started_at)
+    end as active_before
+  from recent r
 )
 select
-  r.id,
-  r.started_at,
-  r.ended_at,
-  extract(epoch from (r.ended_at - r.started_at))::int as duration_s,
-  r.status,
-  r.companies_probed,
-  r.companies_ok,
-  r.companies_error,
-  coalesce(
-    case when r.status = 'ok' then (
-      select count(*)
-      from public.jobs j
-      where j.first_seen_at >= r.started_at
-        and j.first_seen_at <= r.ended_at
-    ) end,
-    r.new_jobs_reported
-  )::int as new_jobs,
-  r.closed_jobs,
-  r.active_jobs_after,
-  -- new_jobs_reported kept before shard_count so existing column positions are
-  -- preserved (create-or-replace can't reorder); shard_count appended last.
-  r.new_jobs_reported,
-  r.shard_count
-from recent r
-order by r.started_at desc;
+  w.id,
+  w.started_at,
+  w.ended_at,
+  extract(epoch from (w.ended_at - w.started_at))::int as duration_s,
+  w.status,
+  w.companies_probed,
+  w.companies_ok,
+  w.companies_error,
+  w.new_jobs,
+  w.closed_jobs,
+  w.active_jobs_after,
+  -- new_jobs_reported kept before the appended columns so existing column
+  -- positions are preserved (create-or-replace can't reorder).
+  w.new_jobs_reported,
+  w.shard_count,
+  -- reopened = postings that flipped closed→active this cycle. They aren't "new"
+  -- (their first_seen_at is old) but they DO raise active_after, which is why
+  -- active can climb even when closed > new. Derived from the authoritative active
+  -- delta — active_after = active_before + new_jobs + reopened − closed_jobs — so
+  -- it stays correct even for older rows whose raw new_jobs_reported was unreliable.
+  -- Null for the oldest in-window cycle (no prior) and for non-ok cycles.
+  case when w.status = 'ok' and w.active_before is not null
+    then greatest(0, w.active_jobs_after - w.active_before - w.new_jobs + w.closed_jobs)
+  end as reopened
+from withnew w
+order by w.started_at desc;
 
 create or replace view public.v_jobs_last_24h as
 select
