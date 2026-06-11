@@ -87,8 +87,16 @@ create index if not exists companies_shard_idx on public.companies (shard) where
 
 create extension if not exists pg_trgm;
 
+-- HASH-partitioned by company_id (16 ways). Postgres requires the partition
+-- key to be part of every unique/PK constraint; the scanner upserts on
+-- (company_id, external_id), so company_id is the only viable key — and it
+-- keeps dedup exact (a company's rows all live in one partition) and never
+-- moves a row between partitions (company_id is immutable). The PK is
+-- therefore (id, company_id). Existing databases were converted in place by
+-- supabase/migrations/0001_partition_jobs_by_company.sql; on a fresh database
+-- this CREATE + the partition statements below build it directly.
 create table if not exists public.jobs (
-  id                uuid primary key default gen_random_uuid(),
+  id                uuid not null default gen_random_uuid(),
   company_id        uuid not null references public.companies(id) on delete cascade,
   external_id       text not null,
   title             text not null,
@@ -106,8 +114,18 @@ create table if not exists public.jobs (
   -- without a DB migration — bump it and old rows just won't dedup against
   -- new ones until they're re-scanned.
   fingerprint       text,
+  primary key (id, company_id),
   unique (company_id, external_id)
-);
+) partition by hash (company_id);
+
+do $$
+begin
+  for i in 0..15 loop
+    execute format(
+      'create table if not exists public.jobs_p%1$s partition of public.jobs for values with (modulus 16, remainder %1$s)',
+      i);
+  end loop;
+end $$;
 
 create index if not exists jobs_company_idx on public.jobs (company_id);
 create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at desc);
@@ -216,6 +234,46 @@ alter table public.jobs add column if not exists description_hash text;
 create index if not exists jobs_description_pending_idx
   on public.jobs (company_id)
   where description is null and closed_at is null;
+
+-- Description text mirrored into its own narrow table, keyed by job_id. This
+-- is the first step of the "split storage by access pattern" plan
+-- (docs/scaling-architecture.md): the multi-KB description is the TOAST-heavy
+-- part of a job row, and keeping a copy out of the hot jobs table lets readers
+-- (embedding / summary passes, future Product-B surfaces) fetch it without
+-- widening scans of jobs. jobs.description stays canonical for now; this table
+-- is kept in lockstep by the sync trigger below.
+create table if not exists public.job_descriptions (
+  job_id      uuid primary key,
+  company_id  uuid not null,
+  description text not null,
+  updated_at  timestamptz not null default now()
+);
+create index if not exists job_descriptions_company_idx on public.job_descriptions (company_id);
+
+-- Keep job_descriptions in lockstep with jobs.description: upsert on write,
+-- delete when the description is cleared. AFTER trigger so it sees the final
+-- row; scoped to "OF description" so unrelated jobs updates don't fire it.
+create or replace function public.sync_job_description() returns trigger
+language plpgsql as $$
+begin
+  if new.description is null then
+    delete from public.job_descriptions where job_id = new.id;
+  else
+    insert into public.job_descriptions (job_id, company_id, description, updated_at)
+    values (new.id, new.company_id, new.description, now())
+    on conflict (job_id) do update
+      set description = excluded.description,
+          company_id  = excluded.company_id,
+          updated_at  = now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists jobs_sync_description on public.jobs;
+create trigger jobs_sync_description
+  after insert or update of description on public.jobs
+  for each row execute function public.sync_job_description();
 
 -- ── compensation / remote / source timestamps ──────────────────────
 -- Structured fields the providers expose but we weren't capturing. The

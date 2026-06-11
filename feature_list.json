@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-05",
+  "updated_at": "2026-06-11",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -283,6 +283,18 @@
       "scope": "A scheduled workflow (or re-enable the scan's LLM passes) that runs backfill-classification --llm + backfill-summaries + embed-backfill daily over is_target-not-false rows lacking enrichment. Bounds cost (only target rows, only the day's new backlog).",
       "depends_on": ["f-115 (initial backfill)", "OPENAI_API_KEY in CI"],
       "touches": [".github/workflows (new enrichment workflow)", "scripts/backfill-*"]
+    },
+    {
+      "id": "f-119",
+      "title": "Split storage by access pattern: job_descriptions table + jobs hash-partitioned by company_id",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "Adding scan coverage will grow the index toward millions of jobs. The multi-KB description is the TOAST-heavy part of a jobs row (jobs total ~891MB: 112MB heap + 179MB index + ~600MB TOAST), driving update-amplification and the backup/PITR bill (docs/scaling-architecture.md). Do the structural moves while the table is still small (157k rows) and cheap to rewrite.",
+      "scope": "Step 1 (DONE): mirror jobs.description into a narrow public.job_descriptions(job_id pk, company_id, description, updated_at), kept in lockstep by an AFTER INSERT OR UPDATE OF description trigger (sync_job_description). 148,417 rows backfilled (every job with a non-empty description; still_missing=0). Step 2 (DONE): convert public.jobs to 16-way HASH partitioning on company_id — the only key compatible with the scanner's ON CONFLICT (company_id, external_id) upsert, keeps dedup exact and never moves a row between partitions. One-time atomic migration (supabase/migrations/0001_partition_jobs_by_company.sql): build partitioned table, copy under ACCESS EXCLUSIVE lock, swap, recreate every dependent index/trigger/view/MV/grant from the LIVE definitions (prod had drifted: jobs_sync_description, v_scans, jobs-aware v_recent_scans). schema.sql updated so fresh installs reproduce it.",
+      "evidence": ["jobs: partstrat=HASH, 16 partitions, 157,508 rows preserved, PK (id,company_id), UNIQUE (company_id,external_id) intact, 9,114 embeddings preserved.", "Verified live post-swap: scanner ON CONFLICT (company_id,external_id) resolves; HNSW vector search returns across partitions; match_resume_candidates RPC returns 10; v_active_jobs=106,299; f_refresh_totals_by_source() concurrent-refresh OK, mv total=157,508; both triggers re-attached.", "Security advisor: no new regressions — findings (security-definer views, RLS-disabled public tables, mutable search_path) are pre-existing project-wide postures now enumerated per partition child."],
+      "next": "Step 3 (planned): cut readers (buildJobText / summarize / embed passes, future Product-B) over to job_descriptions, then drop jobs.description to realize the hot-table/backup win. Cold-archival of closed jobs (drop-by-month) is NOT delivered by hash partitioning — revisit a closed-jobs archive separately. Reconcile pre-existing schema.sql view drift (v_scans, v_recent_scans).",
+      "touches": ["supabase/migrations/0001_partition_jobs_by_company.sql", "supabase/schema.sql", "docs/scaling-architecture.md"]
     },
 
     {
