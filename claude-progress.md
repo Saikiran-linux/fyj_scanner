@@ -6,6 +6,18 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · f-109 — scan fanned out to N=4 shards, validated live (PR open)
+
+Flipped the scan workflow matrix `shard: [0]` → `[0, 1, 2, 3]` (`.github/workflows/scan.yml`). `SHARD_COUNT` derives from `strategy.job-total`, so the matrix list was the only change. The full sharding machinery (companies.shard, per-slice company/snapshot/description scoping, scans.shard_*) was already in place from prior f-109 sessions; this session is the capacity flip + live validation.
+
+**Validated live** (dispatched on branch `claude/f109-scale-shards-n4`, 23:19Z, clean window before 00:17 cron):
+- All 4 shards `status=ok`, `companies_write_failed=0`. Probed 895+918+885+954 = 3,652 = enabled set at scan-start.
+- **Partition disjoint + complete**: owned-enabled per slice `[0,15)/[15,30)/[30,45)/[45,60)` = 895/918/884/954 = 3,651 total enabled; shard hashes span 0..59. No overlap, no out-of-range.
+- **Block-rate 0** — no 403/429/rate errors despite 4× parallel throughput (each shard = own runner IP, per-provider conc intentionally NOT divided). Only error all cycle: 1 `HTTP 404` (shard-2 slug drift → auto-disabled; the documented case, unrelated to sharding — accounts for probed 885 vs owned 884).
+- **Active jobs 106,264** (baseline ~105,737 → no drop; close-sweep stayed per-company). Wall-clock **~3.5 min** (slowest shard 214s) vs ~6.5 min unsharded.
+
+**State:** change is on the branch + draft PR; `f-109` status stays `in_progress` (status_note/evidence updated) and flips to `shipped` when the PR merges to main so the scheduled cron runs sharded. Hard rule #2 (no parallel scans) still holds — `concurrency: scan` serializes whole runs; the 4 shards are within one run over disjoint company slices.
+
 ## 2026-06-11 · f-119 COMPLETE — jobs.description column dropped (applied + verified)
 
 PR #46 (scanner writes `job_descriptions` directly) merged. Then, to safely drop the column:
