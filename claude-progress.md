@@ -6,6 +6,27 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · Storage split — job_descriptions backfill + jobs hash-partitioned by company_id (f-119)
+
+Structural moves to take the index toward millions of jobs while it's still small (157,508 rows) and cheap to rewrite. Both steps **verified live**.
+
+**Step 1 — description split (DONE).** `public.job_descriptions(job_id pk, company_id, description, updated_at)` now mirrors `jobs.description`, kept in lockstep by the `jobs_sync_description` AFTER INSERT OR UPDATE OF description trigger (`sync_job_description()`). Backfill complete: **148,417 rows** = every job with a non-empty description; `still_missing=0`. The single 412MB `INSERT…SELECT` exceeded the MCP 60s API gateway but **kept running server-side and committed** — confirmed via `pg_stat_activity`. Idempotent (`job_id` PK, `ON CONFLICT DO NOTHING`).
+
+**Step 2 — hash partitioning (DONE).** `public.jobs` is now **16-way HASH partitioned on company_id**. Why company_id: Postgres requires the partition key in every unique/PK constraint, and the scanner upserts `ON CONFLICT (company_id, external_id)` — company_id is the only key that preserves that (chosen by the user over closed_at hot/cold, which would have forced scan.mjs changes + row movement). It also keeps dedup exact (a company's rows all in one partition) and never moves a row on close. One-time atomic migration `supabase/migrations/0001_partition_jobs_by_company.sql`: build partitioned table → copy under ACCESS EXCLUSIVE lock → swap names → recreate every dependent index/trigger/view/MV/grant. PK is now `(id, company_id)`.
+
+**Gotchas hit (all recoverable; atomicity held — each failure rolled back with jobs untouched):**
+- First try: constraint/index names (`jobs_pkey`, …) collide with the still-live table. Fix: create with auto names, build secondary indexes *after* the drop, rename PK/unique indexes to canonical.
+- Second try: the `INSERT…SELECT` was killed at 119s by `statement_timeout`. `set_config(...,is_local)` *inside* the DO block is too late — statement_timeout is latched when the top-level DO statement starts. Fix: `set statement_timeout = 0;` as a separate session statement before the DO.
+- **Prod had drifted from schema.sql** — discovered via `pg_depend`: the `jobs_sync_description` trigger, a `v_scans` view, and a jobs-aware `v_recent_scans` were never in schema.sql. Recreated dependents from the LIVE definitions, not schema.sql, so the drift wasn't silently reverted.
+
+**Verified live post-swap:** partstrat=HASH / 16 partitions / 157,508 rows / 9,114 embeddings preserved; PK `(id,company_id)` + UNIQUE `(company_id,external_id)` intact; scanner conflict target resolves; HNSW vector search returns across partitions; `match_resume_candidates` returns 10; `v_active_jobs`=106,299; `f_refresh_totals_by_source()` concurrent refresh OK (mv total 157,508); both triggers re-attached. Security advisor: **no new regressions** (security-definer views, RLS-disabled public tables, mutable search_path are all pre-existing project-wide postures, now just enumerated per partition child).
+
+**schema.sql updated** so fresh installs reproduce the partitioned `jobs` + `job_descriptions` + sync trigger. `scan.mjs` needed **zero changes** (conflict target unchanged).
+
+**Queued next (f-119 step 3):** cut readers (buildJobText / summarize / embed, future Product B) over to `job_descriptions`, then drop `jobs.description` to realize the hot-table/backup win. Hash partitioning does NOT give cold-archival (drop closed jobs by month) — revisit a closed-jobs archive separately. Reconcile the pre-existing schema.sql view drift (`v_scans`, `v_recent_scans`) — **now codified on `main` by PR #43, which this branch merges in.**
+
+---
+
 ## 2026-06-11 · FIX — dashboard "new jobs" mismatch (RECENT SCANS vs by-source)
 
 **Symptom:** On the overview, NEW JOBS BY SOURCE per-scan totals (e.g. 107, 659) didn't match the RECENT SCANS "new" column (16,157, 16,414; one scan even 34,131) for the same scan.
