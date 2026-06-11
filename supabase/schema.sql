@@ -443,10 +443,18 @@ create table if not exists public.scans (
 create index if not exists scans_started_idx on public.scans (started_at desc);
 
 -- Which shard of a matrix-parallel scan cycle wrote this row (f-109). A sharded
--- cycle produces shard_count rows (one per shard) sharing a near-identical
--- started_at; the dashboard groups a cycle by that. Default 0/1 = unsharded.
+-- cycle produces shard_count rows (one per shard) sharing a cycle_id (below).
+-- Default 0/1 = unsharded.
 alter table public.scans add column if not exists shard_index integer not null default 0;
 alter table public.scans add column if not exists shard_count integer not null default 1;
+
+-- Cycle identifier shared by every shard of one matrix-parallel run, so the
+-- dashboard can roll a sharded cycle's N rows up into a single logical scan
+-- (summed probed/closed, one new-jobs window spanning the whole cycle). The
+-- scanner stamps it from the GitHub Actions run id (constant across matrix jobs);
+-- null for unsharded/local runs, where each row is its own cycle. Grouping key is
+-- coalesce(cycle_id, id::text), so unsharded behaviour is unchanged.
+alter table public.scans add column if not exists cycle_id text;
 
 -- Probe succeeded (HTTP+schema ok) but the per-company DB upsert failed. This
 -- is the blind spot that hid the PGRST102 freeze (f-112) for 19 days: such
@@ -686,41 +694,91 @@ select
   s.new_jobs as new_jobs_reported
 from public.scans s;
 
--- The 30 most recent scans with a derived duration — same corrected new_jobs
--- definition as v_scans (runtime window [started_at, ended_at]), so the overview's
--- RECENT SCANS table and sparkline match the by-source panel. This is the
--- overview's hot path (auto-refreshes every 30s), so it is deliberately NOT a thin
--- wrapper over v_scans: it picks the 30 rows FIRST (the `recent` CTE) and only then
--- runs the windowed count, so the cost is fixed at 30 subquery evaluations
--- regardless of how large the scans table grows. (Reading through v_scans would
--- evaluate the subquery for every scan ever run.)
+-- The 30 most recent scan CYCLES with a derived duration. A sharded cycle (f-109)
+-- writes shard_count rows; this rolls them up into one logical scan so the overview
+-- doesn't show N near-duplicate rows. Per cycle: probed/ok/err/closed are summed,
+-- duration spans the whole cycle, active_after is the last-finishing shard's value,
+-- and new_jobs is counted once over the cycle's full runtime window (see
+-- f_new_jobs_by_scan_source for the rationale). Unsharded rows (cycle_id null) group
+-- as themselves, so behaviour there is unchanged.
+--
+-- Hot path (overview auto-refreshes every 30s): the `agg` CTE only aggregates the
+-- scans table (cheap, no jobs join), then `recent` keeps 30 cycles, and only then
+-- does the jobs-window count run — fixed at 30 evaluations regardless of table size.
 create or replace view public.v_recent_scans as
-with recent as (
-  select * from public.scans order by started_at desc limit 30
+with agg as (
+  select
+    coalesce(cycle_id, id::text)                  as cycle_key,
+    (array_agg(id order by shard_index, id))[1]   as id,
+    min(started_at)                               as started_at,
+    max(ended_at)                                 as ended_at,
+    sum(companies_probed)::int                    as companies_probed,
+    sum(companies_ok)::int                        as companies_ok,
+    sum(companies_error)::int                     as companies_error,
+    sum(closed_jobs)::int                         as closed_jobs,
+    sum(new_jobs)::int                            as new_jobs_reported,
+    max(shard_count)                              as shard_count,
+    -- ok only when every shard is ok; running if any still running; else failed.
+    case
+      when bool_or(status = 'running') then 'running'
+      when bool_and(status = 'ok')     then 'ok'
+      else 'failed'
+    end                                           as status,
+    -- active count after the cycle = the shard that finished last.
+    (array_agg(active_jobs_after order by ended_at desc nulls last))[1] as active_jobs_after
+  from public.scans
+  group by coalesce(cycle_id, id::text)
+),
+recent as (
+  select * from agg order by started_at desc limit 30
+),
+withnew as (
+  select
+    r.*,
+    coalesce(
+      case when r.status = 'ok' then (
+        select count(*)
+        from public.jobs j
+        where j.first_seen_at >= r.started_at
+          and j.first_seen_at <= r.ended_at
+      ) end,
+      r.new_jobs_reported
+    )::int as new_jobs,
+    -- active count after the immediately-preceding ok cycle. partition by
+    -- (status='ok') isolates ok cycles so an interleaved failed/running row
+    -- (active_jobs_after = 0) can't be mistaken for the previous value.
+    case when r.status = 'ok' then
+      lag(r.active_jobs_after) over (partition by (r.status = 'ok') order by r.started_at)
+    end as active_before
+  from recent r
 )
 select
-  r.id,
-  r.started_at,
-  r.ended_at,
-  extract(epoch from (r.ended_at - r.started_at))::int as duration_s,
-  r.status,
-  r.companies_probed,
-  r.companies_ok,
-  r.companies_error,
-  coalesce(
-    case when r.status = 'ok' and r.shard_index = 0 then (
-      select count(*)
-      from public.jobs j
-      where j.first_seen_at >= r.started_at
-        and j.first_seen_at <= r.ended_at
-    ) end,
-    r.new_jobs
-  )::int as new_jobs,
-  r.closed_jobs,
-  r.active_jobs_after,
-  r.new_jobs as new_jobs_reported
-from recent r
-order by r.started_at desc;
+  w.id,
+  w.started_at,
+  w.ended_at,
+  extract(epoch from (w.ended_at - w.started_at))::int as duration_s,
+  w.status,
+  w.companies_probed,
+  w.companies_ok,
+  w.companies_error,
+  w.new_jobs,
+  w.closed_jobs,
+  w.active_jobs_after,
+  -- new_jobs_reported kept before the appended columns so existing column
+  -- positions are preserved (create-or-replace can't reorder).
+  w.new_jobs_reported,
+  w.shard_count,
+  -- reopened = postings that flipped closed→active this cycle. They aren't "new"
+  -- (their first_seen_at is old) but they DO raise active_after, which is why
+  -- active can climb even when closed > new. Derived from the authoritative active
+  -- delta — active_after = active_before + new_jobs + reopened − closed_jobs — so
+  -- it stays correct even for older rows whose raw new_jobs_reported was unreliable.
+  -- Null for the oldest in-window cycle (no prior) and for non-ok cycles.
+  case when w.status = 'ok' and w.active_before is not null
+    then greatest(0, w.active_jobs_after - w.active_before - w.new_jobs + w.closed_jobs)
+  end as reopened
+from withnew w
+order by w.started_at desc;
 
 create or replace view public.v_jobs_last_24h as
 select
@@ -798,17 +856,18 @@ returns table (
   order by c.ats;
 $$;
 
--- Per-scan, per-source new-jobs breakdown. A "new job" is one whose
--- first_seen_at falls inside the scan's OWN RUNTIME: [started_at, ended_at].
--- Jobs are only ever inserted while a scan is probing, so each posting is
--- attributed to exactly the scan that discovered it.
+-- Per-CYCLE, per-source new-jobs breakdown. A "new job" is one whose
+-- first_seen_at falls inside the cycle's runtime window: [min(started_at),
+-- max(ended_at)] across all of the cycle's shards. Jobs are only ever inserted
+-- while a scan is probing (and the concurrency:scan group forbids overlapping
+-- cycles), so every posting inserted in that window belongs to this cycle and is
+-- counted exactly once — even though the cycle's companies were split across
+-- shards. For an unsharded cycle this is just the single scan's [started, ended].
 --
 -- We deliberately do NOT window as [started_at, next_scan.started_at): that made
--- the most-recent ok scan's window run to "now"/infinity, so it swallowed every
--- job the *next, still-running* scan inserted before it flipped to ok — inflating
--- the latest row (observed 4,250 vs a true 1,499) and breaking new − closed ≈
--- Δactive. Runtime-bounding is exact for back-to-back scans (identical result)
--- and correct for the latest one.
+-- the most-recent ok scan's window run to "now"/infinity and swallow every job the
+-- next, still-running scan inserted before it flipped to ok (observed 4,250 vs a
+-- true 1,499). Runtime-bounding avoids that and is exact for back-to-back cycles.
 create or replace function public.f_new_jobs_by_scan_source(p_window interval default interval '7 days')
 returns table (
   scan_id uuid,
@@ -816,25 +875,32 @@ returns table (
   ats text,
   new_jobs bigint
 ) language sql stable as $$
-  -- count(*) not count(j.*): the latter references the whole composite row,
-  -- which stops the planner doing an index-only scan and makes it heap-fetch
-  -- every matched (wide, embedding-bearing) row just to count it. count(*)
-  -- needs only first_seen_at (range) + company_id (join), both covered by
-  -- jobs_first_seen_company_idx.
-  --
-  -- shard_index = 0 only: a sharded cycle (f-109) writes shard_count rows; shard 0
-  -- always runs and represents the cycle. Unsharded (the current deployment) it's
-  -- a no-op since shard_index is always 0.
-  select s.id, s.started_at, c.ats, count(*)::bigint
-  from public.scans s
+  -- Collapse a sharded cycle's rows into one window. cycle_key groups shards
+  -- (coalesce(cycle_id, id) → unsharded rows stay 1:1). rep id = shard 0's, so
+  -- the returned scan_id matches v_recent_scans' representative row.
+  with cyc as (
+    select
+      coalesce(cycle_id, id::text)              as cycle_key,
+      min(started_at)                           as started_at,
+      max(ended_at)                             as ended_at,
+      (array_agg(id order by shard_index, id))[1] as rep_id
+    from public.scans
+    where status = 'ok'
+    group by coalesce(cycle_id, id::text)
+  )
+  -- count(*) not count(j.*): the latter references the whole composite row, which
+  -- stops the planner doing an index-only scan and heap-fetches every matched
+  -- (wide, embedding-bearing) row just to count it. count(*) needs only
+  -- first_seen_at (range) + company_id (join), both on jobs_first_seen_company_idx.
+  select cyc.rep_id, cyc.started_at, c.ats, count(*)::bigint
+  from cyc
   join public.jobs j
-    on j.first_seen_at >= s.started_at
-   and j.first_seen_at <= s.ended_at
+    on j.first_seen_at >= cyc.started_at
+   and j.first_seen_at <= cyc.ended_at
   join public.companies c on c.id = j.company_id
-  where s.status = 'ok' and s.shard_index = 0
-    and s.started_at > now() - p_window
-  group by s.id, s.started_at, c.ats
-  order by s.started_at desc, c.ats;
+  where cyc.started_at > now() - p_window
+  group by cyc.rep_id, cyc.started_at, c.ats
+  order by cyc.started_at desc, c.ats;
 $$;
 
 -- Lifetime + trailing-window totals per source. One row per ats, even if the
