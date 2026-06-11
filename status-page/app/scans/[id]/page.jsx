@@ -22,7 +22,8 @@ export default async function ScanDetail({ params, searchParams }) {
   let error = null;
 
   try {
-    const scanRows = await pgSelect('scans', { id: `eq.${id}`, limit: '1' });
+    // v_scans, not scans: truthful first_seen_at-window new_jobs. See schema.sql.
+    const scanRows = await pgSelect('v_scans', { id: `eq.${id}`, limit: '1' });
     if (!scanRows[0]) return notFound();
     scan = scanRows[0];
 

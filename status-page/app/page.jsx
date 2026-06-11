@@ -43,7 +43,10 @@ export default async function Page({ searchParams }) {
       pgSelect('scans', { select: 'ended_at', status: 'eq.ok', order: 'ended_at.desc', limit: '1' }),
       pgCount('jobs', { closed_at: 'is.null' }),
       pgCount('jobs', { first_seen_at: `gte.${isoMinus(24 * 3600)}` }),
-      pgSelect('scans', {
+      // Sparkline new-jobs series reads from v_recent_scans (first_seen_at-window
+      // count), NOT scans.new_jobs — the raw counter over-counts reopened
+      // postings and would spike the chart by 10-30k on some scans.
+      pgSelect('v_recent_scans', {
         select: 'started_at,new_jobs,closed_jobs,active_jobs_after',
         status: 'eq.ok',
         order: 'started_at.desc',

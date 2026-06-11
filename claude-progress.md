@@ -6,6 +6,22 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · FIX — dashboard "new jobs" mismatch (RECENT SCANS vs by-source)
+
+**Symptom:** On the overview, NEW JOBS BY SOURCE per-scan totals (e.g. 107, 659) didn't match the RECENT SCANS "new" column (16,157, 16,414; one scan even 34,131) for the same scan.
+
+**Root cause:** Two independent "new" metrics. RECENT SCANS read `scans.new_jobs` — the live per-scan counter (`src/scan.mjs` ~L375-383) that tallies every listed posting absent from the pre-scan *open-job* snapshot, which by design also re-counts **reopened** postings. When a batch of jobs is transiently closed and re-listed, it over-counts by 10–30k. Verified against prod: for those scans only ~100–700 postings had a fresh `first_seen_at`, and the active-index delta (new − closed) matched the `first_seen_at` count, not the raw counter. The by-source panel was already correct (`f_new_jobs_by_scan_source`, first_seen_at windows).
+
+**Fix (schema + status-page, no scanner behavior change, no backfill):**
+- `supabase/schema.sql`: new canonical `v_scans` view = `scans` 1:1 but with `new_jobs` recomputed as the first_seen_at-window count (same boundary calc as `f_new_jobs_by_scan_source`); raw counter preserved as `new_jobs_reported`. `v_recent_scans` rewritten to the same definition, kept self-contained + bounded to 30 rows (hot path, 30s auto-refresh; ~45ms regardless of scan-table size).
+- `status-page`: overview sparkline now reads `v_recent_scans`; `/scans` list, scan detail, and trend charts read `v_scans`. All scan surfaces now agree by construction.
+
+**Verified:** Applied both views to prod (project `fyj`/mwcpoaefmggapztkxakp). `v_recent_scans.new_jobs` == per-scan by-source total for every scan (310=310, 107=107, 659=659, 864=864…). EXPLAIN: overview path 45ms, subquery evaluated only for the 30 returned rows.
+
+**Queued next:** the *scanner* still writes the inflated raw counter (now only surfaced as `new_jobs_reported`). The underlying churn — ~16–34k jobs false-closed then reopened on some runs — is a close-sweep/provider-transient concern worth a separate look (likely providers returning short/empty listings → `close_unseen_jobs` closes, next scan reopens).
+
+---
+
 ## 2026-06-05 · LAUNCH CHECKLIST — staffing (Product A) goes live tomorrow
 
 Ordered next steps to operate the AI-first staffing firm. Owner in brackets; ✅=done this session.

@@ -594,22 +594,113 @@ from public.companies c
 left join public.probe_results pr on pr.company_id = c.id
 group by c.id;
 
-create or replace view public.v_recent_scans as
+-- Canonical scans projection. Identical to the scans table EXCEPT `new_jobs`,
+-- which we recompute as the first_seen_at-window count — the SAME definition the
+-- "new jobs by source" panel uses (f_new_jobs_by_scan_source). Every dashboard
+-- surface (overview, recent scans, all-scans list, scan detail, trend charts)
+-- reads scan rows through this view so they can never disagree on "new".
+--
+-- Why not scans.new_jobs (the live per-scan counter)? It tallies every listed
+-- posting absent from the pre-scan open-job snapshot, which by design also
+-- re-counts *reopened* postings (closed, then re-listed by the ATS). When a batch
+-- of jobs is transiently closed and reappears, the counter over-counts — we
+-- observed single scans reporting 16k–34k "new" while the active index
+-- (new − closed) barely moved and only ~100–700 postings had a fresh
+-- first_seen_at. The window count is anchored to first_seen_at, a persisted fact,
+-- so it stays truthful and matches the active-jobs delta. The raw counter is kept
+-- as new_jobs_reported for ops debugging.
+--
+-- Window: [started_at, next ok scan's started_at), over ok shard_index=0 scans
+-- only — byte-for-byte the same boundary calc as f_new_jobs_by_scan_source, so
+-- per-scan totals line up across panels. The correlated count is index-backed
+-- (jobs_first_seen_company_idx) and only evaluated for rows a query actually
+-- returns (PostgREST applies LIMIT/Range before the select-list subquery runs),
+-- so paginated reads stay cheap. Columns mirror scans 1:1 in order/type so
+-- `select *` callers and `create or replace` are both unaffected; the derived
+-- new_jobs_reported is appended last.
+create or replace view public.v_scans as
+with ok_bounds as (
+  select id, started_at,
+    coalesce(
+      lead(started_at) over (order by started_at),
+      'infinity'::timestamptz
+    ) as next_started_at
+  from public.scans
+  where status = 'ok' and shard_index = 0
+)
 select
   s.id,
   s.started_at,
   s.ended_at,
-  extract(epoch from (s.ended_at - s.started_at))::int as duration_s,
   s.status,
   s.companies_probed,
   s.companies_ok,
   s.companies_error,
-  s.new_jobs,
+  coalesce(
+    case when s.status = 'ok' and s.shard_index = 0 then (
+      select count(*)
+      from ok_bounds b
+      join public.jobs j
+        on j.first_seen_at >= b.started_at
+       and j.first_seen_at <  b.next_started_at
+      where b.id = s.id
+    ) end,
+    s.new_jobs
+  )::int as new_jobs,
   s.closed_jobs,
-  s.active_jobs_after
-from public.scans s
-order by s.started_at desc
-limit 30;
+  s.active_jobs_after,
+  s.notes,
+  s.companies_write_failed,
+  s.shard_index,
+  s.shard_count,
+  s.new_jobs as new_jobs_reported
+from public.scans s;
+
+-- The 30 most recent scans with a derived duration — same corrected new_jobs
+-- definition as v_scans, so the overview's RECENT SCANS table and sparkline match
+-- the by-source panel. This is the overview's hot path (auto-refreshes every 30s),
+-- so it is deliberately NOT a thin wrapper over v_scans: it picks the 30 rows
+-- FIRST (the `recent` CTE) and only then runs the windowed count, so the cost is
+-- fixed at 30 subquery evaluations regardless of how large the scans table grows.
+-- (Reading through v_scans would evaluate the subquery for every scan ever run.)
+create or replace view public.v_recent_scans as
+with ok_bounds as (
+  select id, started_at,
+    coalesce(
+      lead(started_at) over (order by started_at),
+      'infinity'::timestamptz
+    ) as next_started_at
+  from public.scans
+  where status = 'ok' and shard_index = 0
+),
+recent as (
+  select * from public.scans order by started_at desc limit 30
+)
+select
+  r.id,
+  r.started_at,
+  r.ended_at,
+  extract(epoch from (r.ended_at - r.started_at))::int as duration_s,
+  r.status,
+  r.companies_probed,
+  r.companies_ok,
+  r.companies_error,
+  coalesce(
+    case when r.status = 'ok' and r.shard_index = 0 then (
+      select count(*)
+      from ok_bounds b
+      join public.jobs j
+        on j.first_seen_at >= b.started_at
+       and j.first_seen_at <  b.next_started_at
+      where b.id = r.id
+    ) end,
+    r.new_jobs
+  )::int as new_jobs,
+  r.closed_jobs,
+  r.active_jobs_after,
+  r.new_jobs as new_jobs_reported
+from recent r
+order by r.started_at desc;
 
 create or replace view public.v_jobs_last_24h as
 select
