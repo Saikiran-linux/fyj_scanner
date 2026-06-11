@@ -652,24 +652,14 @@ group by c.id;
 -- so it stays truthful and matches the active-jobs delta. The raw counter is kept
 -- as new_jobs_reported for ops debugging.
 --
--- Window: [started_at, next ok scan's started_at), over ok shard_index=0 scans
--- only — byte-for-byte the same boundary calc as f_new_jobs_by_scan_source, so
--- per-scan totals line up across panels. The correlated count is index-backed
--- (jobs_first_seen_company_idx) and only evaluated for rows a query actually
--- returns (PostgREST applies LIMIT/Range before the select-list subquery runs),
--- so paginated reads stay cheap. Columns mirror scans 1:1 in order/type so
--- `select *` callers and `create or replace` are both unaffected; the derived
--- new_jobs_reported is appended last.
+-- Window: the scan's OWN runtime [started_at, ended_at] — the same definition as
+-- f_new_jobs_by_scan_source, so per-scan totals line up across panels. The
+-- correlated count is index-backed (jobs_first_seen_company_idx) and only
+-- evaluated for rows a query actually returns (PostgREST applies LIMIT/Range
+-- before the select-list subquery runs), so paginated reads stay cheap. Columns
+-- mirror scans 1:1 in order/type so `select *` callers and `create or replace`
+-- are both unaffected; the derived new_jobs_reported is appended last.
 create or replace view public.v_scans as
-with ok_bounds as (
-  select id, started_at,
-    coalesce(
-      lead(started_at) over (order by started_at),
-      'infinity'::timestamptz
-    ) as next_started_at
-  from public.scans
-  where status = 'ok' and shard_index = 0
-)
 select
   s.id,
   s.started_at,
@@ -681,11 +671,9 @@ select
   coalesce(
     case when s.status = 'ok' and s.shard_index = 0 then (
       select count(*)
-      from ok_bounds b
-      join public.jobs j
-        on j.first_seen_at >= b.started_at
-       and j.first_seen_at <  b.next_started_at
-      where b.id = s.id
+      from public.jobs j
+      where j.first_seen_at >= s.started_at
+        and j.first_seen_at <= s.ended_at
     ) end,
     s.new_jobs
   )::int as new_jobs,
@@ -699,23 +687,15 @@ select
 from public.scans s;
 
 -- The 30 most recent scans with a derived duration — same corrected new_jobs
--- definition as v_scans, so the overview's RECENT SCANS table and sparkline match
--- the by-source panel. This is the overview's hot path (auto-refreshes every 30s),
--- so it is deliberately NOT a thin wrapper over v_scans: it picks the 30 rows
--- FIRST (the `recent` CTE) and only then runs the windowed count, so the cost is
--- fixed at 30 subquery evaluations regardless of how large the scans table grows.
--- (Reading through v_scans would evaluate the subquery for every scan ever run.)
+-- definition as v_scans (runtime window [started_at, ended_at]), so the overview's
+-- RECENT SCANS table and sparkline match the by-source panel. This is the
+-- overview's hot path (auto-refreshes every 30s), so it is deliberately NOT a thin
+-- wrapper over v_scans: it picks the 30 rows FIRST (the `recent` CTE) and only then
+-- runs the windowed count, so the cost is fixed at 30 subquery evaluations
+-- regardless of how large the scans table grows. (Reading through v_scans would
+-- evaluate the subquery for every scan ever run.)
 create or replace view public.v_recent_scans as
-with ok_bounds as (
-  select id, started_at,
-    coalesce(
-      lead(started_at) over (order by started_at),
-      'infinity'::timestamptz
-    ) as next_started_at
-  from public.scans
-  where status = 'ok' and shard_index = 0
-),
-recent as (
+with recent as (
   select * from public.scans order by started_at desc limit 30
 )
 select
@@ -730,11 +710,9 @@ select
   coalesce(
     case when r.status = 'ok' and r.shard_index = 0 then (
       select count(*)
-      from ok_bounds b
-      join public.jobs j
-        on j.first_seen_at >= b.started_at
-       and j.first_seen_at <  b.next_started_at
-      where b.id = r.id
+      from public.jobs j
+      where j.first_seen_at >= r.started_at
+        and j.first_seen_at <= r.ended_at
     ) end,
     r.new_jobs
   )::int as new_jobs,
@@ -821,10 +799,16 @@ returns table (
 $$;
 
 -- Per-scan, per-source new-jobs breakdown. A "new job" is one whose
--- first_seen_at falls inside the scan's window: [started_at, next_scan.started_at).
--- The lead() runs over all ok scans (not just recent) so the window for the
--- most-recent scan correctly extends to "now" (via 'infinity'::timestamptz).
--- Window-filtered after the fact so the boundary calc stays correct.
+-- first_seen_at falls inside the scan's OWN RUNTIME: [started_at, ended_at].
+-- Jobs are only ever inserted while a scan is probing, so each posting is
+-- attributed to exactly the scan that discovered it.
+--
+-- We deliberately do NOT window as [started_at, next_scan.started_at): that made
+-- the most-recent ok scan's window run to "now"/infinity, so it swallowed every
+-- job the *next, still-running* scan inserted before it flipped to ok — inflating
+-- the latest row (observed 4,250 vs a true 1,499) and breaking new − closed ≈
+-- Δactive. Runtime-bounding is exact for back-to-back scans (identical result)
+-- and correct for the latest one.
 create or replace function public.f_new_jobs_by_scan_source(p_window interval default interval '7 days')
 returns table (
   scan_id uuid,
@@ -832,34 +816,25 @@ returns table (
   ats text,
   new_jobs bigint
 ) language sql stable as $$
-  with windowed as (
-    select id, started_at,
-      coalesce(
-        lead(started_at) over (order by started_at),
-        'infinity'::timestamptz
-      ) as next_started_at
-    -- One representative row per scan CYCLE. A sharded cycle (f-109) writes
-    -- shard_count rows seconds apart; windowing over all of them would make
-    -- near-zero-width sibling windows and mis-bucket jobs. shard_index=0 (which
-    -- always runs) is the cycle's boundary; its window spans the whole cycle's
-    -- jobs across all shards. No-op when unsharded (shard_index is always 0).
-    from public.scans
-    where status = 'ok' and shard_index = 0
-  )
   -- count(*) not count(j.*): the latter references the whole composite row,
   -- which stops the planner doing an index-only scan and makes it heap-fetch
   -- every matched (wide, embedding-bearing) row just to count it. count(*)
   -- needs only first_seen_at (range) + company_id (join), both covered by
   -- jobs_first_seen_company_idx.
-  select w.id, w.started_at, c.ats, count(*)::bigint
-  from windowed w
+  --
+  -- shard_index = 0 only: a sharded cycle (f-109) writes shard_count rows; shard 0
+  -- always runs and represents the cycle. Unsharded (the current deployment) it's
+  -- a no-op since shard_index is always 0.
+  select s.id, s.started_at, c.ats, count(*)::bigint
+  from public.scans s
   join public.jobs j
-    on j.first_seen_at >= w.started_at
-   and j.first_seen_at <  w.next_started_at
+    on j.first_seen_at >= s.started_at
+   and j.first_seen_at <= s.ended_at
   join public.companies c on c.id = j.company_id
-  where w.started_at > now() - p_window
-  group by w.id, w.started_at, c.ats
-  order by w.started_at desc, c.ats;
+  where s.status = 'ok' and s.shard_index = 0
+    and s.started_at > now() - p_window
+  group by s.id, s.started_at, c.ats
+  order by s.started_at desc, c.ats;
 $$;
 
 -- Lifetime + trailing-window totals per source. One row per ats, even if the

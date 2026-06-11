@@ -76,6 +76,8 @@ Structural moves to take the index toward millions of jobs while it's still smal
 
 **Verified:** Applied both views to prod (project `fyj`/mwcpoaefmggapztkxakp). `v_recent_scans.new_jobs` == per-scan by-source total for every scan (310=310, 107=107, 659=659, 864=864…). EXPLAIN: overview path 45ms, subquery evaluated only for the 30 returned rows.
 
+**Follow-up fix (same session):** the window was initially `[started_at, next ok scan)`, which made the *most-recent* ok scan's window run to infinity and swallow the next (still-running) scan's inserts — inflating the latest row (e.g. 4,250 vs a true 1,499) and breaking new − closed ≈ Δactive. Switched the window to each scan's OWN runtime `[started_at, ended_at]` in `f_new_jobs_by_scan_source`, `v_scans`, and `v_recent_scans` (jobs are only inserted while a scan probes, so this is exact and identical for back-to-back scans). Re-verified on prod: latest scan 1,499 across both panels, net new−closed now reconciles with the active delta (residuals = reopens). Also simplified the views (dropped the `lead()`/`ok_bounds` CTE).
+
 **Queued next:** the *scanner* still writes the inflated raw counter (now only surfaced as `new_jobs_reported`). The underlying churn — ~16–34k jobs false-closed then reopened on some runs — is a close-sweep/provider-transient concern worth a separate look (likely providers returning short/empty listings → `close_unseen_jobs` closes, next scan reopens).
 
 ---
