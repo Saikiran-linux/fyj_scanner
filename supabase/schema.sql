@@ -58,6 +58,12 @@ create table if not exists public.companies (
 create index if not exists companies_enabled_idx on public.companies (enabled) where enabled = true;
 create index if not exists companies_ats_idx on public.companies (ats);
 
+-- Content hash (sha256) of the most recently archived raw ATS response for this
+-- company. The scanner compares the incoming response's hash against this to
+-- skip re-uploading an unchanged board to R2 (dedupe-on-change). See
+-- archiveRawResponse() in src/scan.mjs and src/r2.mjs.
+alter table public.companies add column if not exists last_raw_hash text;
+
 -- Sharding key for matrix-parallel scans (f-109). A stable hash of the company
 -- id into 60 buckets [0,60). The scan workflow can fan out into N parallel
 -- shards (N ≤ 60); shard i owns the contiguous bucket range
@@ -81,8 +87,16 @@ create index if not exists companies_shard_idx on public.companies (shard) where
 
 create extension if not exists pg_trgm;
 
+-- HASH-partitioned by company_id (16 ways). Postgres requires the partition
+-- key to be part of every unique/PK constraint; the scanner upserts on
+-- (company_id, external_id), so company_id is the only viable key — and it
+-- keeps dedup exact (a company's rows all live in one partition) and never
+-- moves a row between partitions (company_id is immutable). The PK is
+-- therefore (id, company_id). Existing databases were converted in place by
+-- supabase/migrations/0001_partition_jobs_by_company.sql; on a fresh database
+-- this CREATE + the partition statements below build it directly.
 create table if not exists public.jobs (
-  id                uuid primary key default gen_random_uuid(),
+  id                uuid not null default gen_random_uuid(),
   company_id        uuid not null references public.companies(id) on delete cascade,
   external_id       text not null,
   title             text not null,
@@ -90,7 +104,6 @@ create table if not exists public.jobs (
   url               text,
   department        text,
   employment_type   text,
-  raw               jsonb,
   first_seen_at     timestamptz not null default now(),
   last_seen_at      timestamptz not null default now(),
   closed_at         timestamptz,
@@ -101,8 +114,18 @@ create table if not exists public.jobs (
   -- without a DB migration — bump it and old rows just won't dedup against
   -- new ones until they're re-scanned.
   fingerprint       text,
+  primary key (id, company_id),
   unique (company_id, external_id)
-);
+) partition by hash (company_id);
+
+do $$
+begin
+  for i in 0..15 loop
+    execute format(
+      'create table if not exists public.jobs_p%1$s partition of public.jobs for values with (modulus 16, remainder %1$s)',
+      i);
+  end loop;
+end $$;
 
 create index if not exists jobs_company_idx on public.jobs (company_id);
 create index if not exists jobs_first_seen_idx on public.jobs (first_seen_at desc);
@@ -120,6 +143,33 @@ create index if not exists jobs_fingerprint_idx on public.jobs (company_id, fing
 -- jobs_first_seen_idx above can't skip closed rows so the planner ends up
 -- scanning thousands of closed rows to fill a 50-row LIMIT.
 create index if not exists jobs_active_first_seen_idx on public.jobs (first_seen_at desc) where closed_at is null;
+
+-- The `raw jsonb` column was declared but never populated (raw responses now
+-- live in R2, archived per-company by the scanner — see raw_archive below).
+-- Drop it on existing databases; harmless if already gone.
+alter table public.jobs drop column if exists raw;
+
+-- ── raw response archive ────────────────────────────────────────────
+-- One row per DISTINCT raw ATS response we've stored, per company. The scanner
+-- writes the gzipped response bytes to Cloudflare R2 (src/r2.mjs) and records a
+-- pointer here. Content-addressed: the primary key is (company_id, sha256 of the
+-- response bytes), so identical re-fetches dedupe to a single object/row and
+-- only a CHANGED board adds a new version. This is the replay / audit /
+-- analytics source — re-parsing reads r2_key back through provider.parse().
+create table if not exists public.raw_archive (
+  company_id    uuid not null references public.companies(id) on delete cascade,
+  ats           text not null,
+  content_hash  text not null,                       -- sha256 of the raw response bytes
+  r2_key        text not null,                       -- object path in the R2 bucket
+  bytes         integer,                             -- gzipped object size
+  job_count     integer,                             -- jobs parsed from this response
+  last_scan_id  uuid,                                -- most recent scan that saw this exact payload
+  created_at    timestamptz not null default now(),  -- first time this version was archived
+  last_seen_at  timestamptz not null default now(),  -- most recent time it was seen
+  primary key (company_id, content_hash)
+);
+create index if not exists raw_archive_company_idx on public.raw_archive (company_id, last_seen_at desc);
+create index if not exists raw_archive_ats_idx on public.raw_archive (ats, created_at desc);
 
 -- ── server-side close-sweep (f-108) ─────────────────────────────────
 -- Close every still-open job for ONE company that the current scan didn't
@@ -163,27 +213,51 @@ as $$
 $$;
 
 -- ── job descriptions ───────────────────────────────────────────────
--- Plain-text job description, populated by the scanner (for providers where
--- it ships in the listing response) or by a separate per-job fetch pass.
--- Stored as text rather than in `raw` jsonb so the embedder can read it
--- cheaply without unpacking the full provider payload.
---
--- When a description is written, the row's embedding is nulled at the same
--- time so the next embedding pass re-embeds with description included.
-
-alter table public.jobs add column if not exists description text;
+-- Description metadata kept on jobs. The TEXT itself lives in job_descriptions
+-- (below) — f-119: jobs never stores it. description_hash is an md5 of the
+-- text, written by the scanner at fetch/upsert time; it drives both the skip
+-- optimisation (write the text to job_descriptions only when the hash changes)
+-- and the embedding-invalidation trigger. description_fetched_at records that a
+-- per-job fetch was attempted (so persistent-null postings aren't re-fetched).
 alter table public.jobs add column if not exists description_fetched_at timestamptz;
--- md5 of the description text. The scanner pre-fetches this with every active
--- job at scan-start and skips the `description` field in its per-company
--- upsert when the incoming text hashes to the same value. Avoids re-sending
--- multi-KB description bodies on every scan when nothing changed — that was
--- the dominant write-volume cost on the jobs table.
 alter table public.jobs add column if not exists description_hash text;
 
--- Lets the backfill / scan-time description pass find candidates fast.
+-- Lets the per-job description fetch pass find never-attempted rows fast.
 create index if not exists jobs_description_pending_idx
   on public.jobs (company_id)
-  where description is null and closed_at is null;
+  where description_fetched_at is null and closed_at is null;
+
+-- job_descriptions is the canonical (and only) home for description text
+-- (f-119): the multi-KB text is the TOAST-heavy part of a job row, so keeping
+-- it out of the hot jobs table keeps scans/backups small. The scanner writes
+-- this table directly (src/scan.mjs upsert + per-job fetch pass); readers go
+-- through v_jobs_enriched (below). jobs has NO description column.
+create table if not exists public.job_descriptions (
+  job_id      uuid primary key,
+  company_id  uuid not null,
+  description text not null,
+  updated_at  timestamptz not null default now()
+);
+create index if not exists job_descriptions_company_idx on public.job_descriptions (company_id);
+
+-- Readers select from this instead of jobs so `description` resolves from
+-- job_descriptions, decoupled from whether jobs.description is populated.
+-- Column list mirrors jobs EXCEPT description (sourced from the join).
+create or replace view public.v_jobs_enriched as
+select
+  j.id, j.company_id, j.external_id, j.title, j.location, j.url,
+  j.department, j.employment_type,
+  j.first_seen_at, j.last_seen_at, j.closed_at, j.fingerprint,
+  j.embedding, j.embedding_model, j.embedded_at,
+  j.description_fetched_at, j.description_hash,
+  j.comp_min, j.comp_max, j.comp_currency, j.comp_interval, j.comp_text,
+  j.remote, j.source_updated_at, j.source_published_at,
+  j.description_summary, j.description_summary_model, j.description_summary_at,
+  j.job_family, j.is_target, j.seniority, j.classified_at, j.classified_by,
+  jd.description
+from public.jobs j
+left join public.job_descriptions jd on jd.job_id = j.id;
+grant select on public.v_jobs_enriched to anon, authenticated, service_role;
 
 -- ── compensation / remote / source timestamps ──────────────────────
 -- Structured fields the providers expose but we weren't capturing. The
@@ -229,10 +303,12 @@ alter table public.jobs add column if not exists description_summary       text;
 alter table public.jobs add column if not exists description_summary_model text;
 alter table public.jobs add column if not exists description_summary_at    timestamptz;
 
+-- Speeds the summary pass's candidate scan (it then joins job_descriptions via
+-- v_jobs_enriched to require description-present). No description ref here —
+-- the text isn't on jobs (f-119).
 create index if not exists jobs_description_summary_pending_idx
   on public.jobs (company_id)
   where description_summary is null
-    and description is not null
     and closed_at is null;
 
 -- ── job embeddings ─────────────────────────────────────────────────
@@ -418,19 +494,17 @@ drop trigger if exists companies_updated_at on public.companies;
 create trigger companies_updated_at before update on public.companies
   for each row execute function public.touch_updated_at();
 
--- When a job's description text changes, null its embedding so the next
--- embedding pass re-embeds with the new content. Identical-description
--- writes (the common case — scanner re-sends the same text every scan)
--- pass through untouched, so we don't burn re-embedding cost on every run.
+-- When a job's description text changes, null its embedding + summary so the
+-- next enrichment passes regenerate them. Keyed off description_hash, not the
+-- text itself: the text no longer lives on jobs (f-119 step 3 — it's diverted
+-- to job_descriptions), but the scanner still stamps a fresh description_hash
+-- whenever the text changes, so the hash is the durable change signal.
+-- Identical-description writes leave the hash unchanged and pass through
+-- untouched, so we don't burn re-embedding cost on every scan.
 create or replace function public.invalidate_embedding_on_description_change()
 returns trigger as $$
 begin
-  -- When the description text changes, every derivative artifact has to
-  -- be regenerated: the LLM-extracted summary (so it reflects the new
-  -- description) AND the embedding (which would otherwise embed the
-  -- stale summary). Done in one trigger to keep the invariant atomic —
-  -- nothing else nulls these fields.
-  if old.description is distinct from new.description then
+  if old.description_hash is distinct from new.description_hash then
     new.embedding := null;
     new.embedding_model := null;
     new.embedded_at := null;

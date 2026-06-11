@@ -22,6 +22,90 @@ A live N=4 sharded run (f-109) wrote 4 `scans` rows for one cycle (23:19:32, sha
 
 ---
 
+## 2026-06-11 · f-109 — scan fanned out to N=4 shards, validated live (PR open)
+
+Flipped the scan workflow matrix `shard: [0]` → `[0, 1, 2, 3]` (`.github/workflows/scan.yml`). `SHARD_COUNT` derives from `strategy.job-total`, so the matrix list was the only change. The full sharding machinery (companies.shard, per-slice company/snapshot/description scoping, scans.shard_*) was already in place from prior f-109 sessions; this session is the capacity flip + live validation.
+
+**Validated live** (dispatched on branch `claude/f109-scale-shards-n4`, 23:19Z, clean window before 00:17 cron):
+- All 4 shards `status=ok`, `companies_write_failed=0`. Probed 895+918+885+954 = 3,652 = enabled set at scan-start.
+- **Partition disjoint + complete**: owned-enabled per slice `[0,15)/[15,30)/[30,45)/[45,60)` = 895/918/884/954 = 3,651 total enabled; shard hashes span 0..59. No overlap, no out-of-range.
+- **Block-rate 0** — no 403/429/rate errors despite 4× parallel throughput (each shard = own runner IP, per-provider conc intentionally NOT divided). Only error all cycle: 1 `HTTP 404` (shard-2 slug drift → auto-disabled; the documented case, unrelated to sharding — accounts for probed 885 vs owned 884).
+- **Active jobs 106,264** (baseline ~105,737 → no drop; close-sweep stayed per-company). Wall-clock **~3.5 min** (slowest shard 214s) vs ~6.5 min unsharded.
+
+**State:** change is on the branch + draft PR; `f-109` status stays `in_progress` (status_note/evidence updated) and flips to `shipped` when the PR merges to main so the scheduled cron runs sharded. Hard rule #2 (no parallel scans) still holds — `concurrency: scan` serializes whole runs; the 4 shards are within one run over disjoint company slices.
+
+## 2026-06-11 · f-119 COMPLETE — jobs.description column dropped (applied + verified)
+
+PR #46 (scanner writes `job_descriptions` directly) merged. Then, to safely drop the column:
+1. Triggered a scan on the **new** code (the prior 16:28 cron run had started before #46 merged at 16:45, so it ran old code). New scan: **status=ok, 3653 probed, `companies_write_failed=0`** (the new main-upsert `job_descriptions` write path is clean), `jd` grew +161 during the run.
+2. Applied **migration 0004** → dropped `jobs_sync_description` + `sync_job_description()`, the description-referencing partial indexes (recreated without the ref), and the **`jobs.description` column**.
+
+**Verified post-drop:** `jobs` has no `description` column; only `jobs_invalidate_embedding_on_description_change` (hash-keyed) remains; `v_jobs_enriched` still resolves 152,805 descriptions from `job_descriptions` (153,480 rows).
+
+**Follow-up fix (this branch):** two eval scripts (`embedding-experiments`, `reranker-test`) still *filtered* `description` on `jobs` (filter-only, so the earlier sweep missed them) → repointed to `v_jobs_enriched`. Repo-wide grep confirms no remaining raw `jobs.description` reads (provider `parse()` `description:` fields and `job.description` on view-sourced rows are fine).
+
+**Note:** ~675 orphan `job_descriptions` rows (no matching job) — harmless, GC candidate.
+
+---
+
+## 2026-06-11 · f-119 cleanup — scanner writes job_descriptions directly + drop jobs.description (PR pending)
+
+Finishes the three deferred f-119 follow-ups.
+
+- **Item 3 (view drift) was already done** — PR #43 codified `v_scans` + the jobs-aware `v_recent_scans` into `schema.sql`. Nothing to do.
+- **Item 2 (scripts repointed):** `backfill-descriptions` now writes `job_descriptions` (was `jobs.description`); `tailor-resume` reads description from `job_descriptions`; the `voyage-*/matching-bench/abembeddingtest` eval scripts read `v_jobs_enriched`. (`backfill-summaries`/`backfill-embeddings` were already on the view from PR #45.)
+- **Item 1 (drop the column):** the scanner now writes `job_descriptions` **directly** instead of leaning on the BEFORE-divert trigger:
+  - main upsert: the changed-description group is upserted with `returning=representation` to get row ids (payload stays small — those rows' embeddings are nulled by the invalidate trigger in the same write), then `job_descriptions` is upserted by `job_id`. `jobs` rows carry only `description_hash`/`description_fetched_at`.
+  - per-job fetch pass: upserts `job_descriptions` by `row.id`; the candidate filter drops the (now-gone) `description is null` predicate, gating on `description_fetched_at is null`.
+  - With no writer of `jobs.description` left, **migration 0004** drops `jobs_sync_description` + `sync_job_description()`, the description-referencing partial indexes (recreated without the ref), and the `jobs.description` column. `schema.sql` updated to the no-column steady state.
+
+**Sequencing:** migration 0004 must be applied **after** this PR merges + a scan runs on the new code — if applied while old code is live, that code's `description` upsert key is silently dropped by PostgREST (column gone, divert trigger removed) → description loss. Not applied yet.
+
+**Verified:** all touched JS passes `node --check`; `schema.sql` has no `jobs.description` refs left (view sources `jd.description`, invalidate trigger keys off `description_hash`).
+
+---
+
+## 2026-06-11 · f-119 step 3 — description text out of the jobs heap (PR #45)
+
+Finished the storage split: job description text now lives **only** in `job_descriptions`; the hot `jobs` table no longer stores it. **Applied to prod + verified.**
+
+**Storage win:** `jobs` 883 MB → **259 MB** (−624 MB / −71%) after `VACUUM FULL`; the 484 MB of description text is isolated in `job_descriptions`. `jobs.description` heap_remaining=0, all 149,007 descriptions preserved, embeddings preserved (9,109).
+
+**Approach (low-risk):** kept the scanner's PGRST102-sensitive batched upsert **unchanged**. Instead:
+- **Readers** (scan summary+embedding passes, `backfill-summaries`, `backfill-embeddings`) now read a new `v_jobs_enriched` view (`jobs` LEFT JOIN `job_descriptions`, `description` from the join). migration 0002.
+- **Writes**: flipped `jobs_sync_description` AFTER-copy → **BEFORE-divert** — any write of `jobs.description` is routed into `job_descriptions` and the heap copy NULLed. Scanner keeps writing `jobs.description`; the trigger relocates it transparently. migration 0003.
+- `invalidate_embedding_on_description_change` rekeyed off `description_hash` (the text is no longer on `jobs`; the hash is the durable change signal).
+- One-time null-out of 149,007 heap copies + `VACUUM FULL`.
+
+**Gotcha:** multi-statement migrations that outrun the 60s SQL-gateway get **rolled back** (the gateway abandons the txn). First 0003 attempt rolled back silently (triggers unchanged). Fix: wrap the whole migration in ONE `DO` block (autocommits server-side like the partition migration) preceded by `set statement_timeout=0`.
+
+**Verified:** divert works end-to-end (rolled-back txn: `UPDATE jobs.description` → heap NULL, `job_descriptions`=payload); view resolves all 149,007; both triggers BEFORE; deployed paths safe (Vercel app reads `description_summary` via RPC, not `description`; cron has SKIP_LLM_PASSES=1).
+
+**Queued next:** outright `DROP COLUMN jobs.description` deferred (needs the scanner to stop sending it). Repoint manual scripts (`tailor-resume`, experiment/bench) off `jobs.description`. `jobs.description` column kept in place at ~0 storage.
+
+---
+
+## 2026-06-11 · Storage split — job_descriptions backfill + jobs hash-partitioned by company_id (f-119)
+
+Structural moves to take the index toward millions of jobs while it's still small (157,508 rows) and cheap to rewrite. Both steps **verified live**.
+
+**Step 1 — description split (DONE).** `public.job_descriptions(job_id pk, company_id, description, updated_at)` now mirrors `jobs.description`, kept in lockstep by the `jobs_sync_description` AFTER INSERT OR UPDATE OF description trigger (`sync_job_description()`). Backfill complete: **148,417 rows** = every job with a non-empty description; `still_missing=0`. The single 412MB `INSERT…SELECT` exceeded the MCP 60s API gateway but **kept running server-side and committed** — confirmed via `pg_stat_activity`. Idempotent (`job_id` PK, `ON CONFLICT DO NOTHING`).
+
+**Step 2 — hash partitioning (DONE).** `public.jobs` is now **16-way HASH partitioned on company_id**. Why company_id: Postgres requires the partition key in every unique/PK constraint, and the scanner upserts `ON CONFLICT (company_id, external_id)` — company_id is the only key that preserves that (chosen by the user over closed_at hot/cold, which would have forced scan.mjs changes + row movement). It also keeps dedup exact (a company's rows all in one partition) and never moves a row on close. One-time atomic migration `supabase/migrations/0001_partition_jobs_by_company.sql`: build partitioned table → copy under ACCESS EXCLUSIVE lock → swap names → recreate every dependent index/trigger/view/MV/grant. PK is now `(id, company_id)`.
+
+**Gotchas hit (all recoverable; atomicity held — each failure rolled back with jobs untouched):**
+- First try: constraint/index names (`jobs_pkey`, …) collide with the still-live table. Fix: create with auto names, build secondary indexes *after* the drop, rename PK/unique indexes to canonical.
+- Second try: the `INSERT…SELECT` was killed at 119s by `statement_timeout`. `set_config(...,is_local)` *inside* the DO block is too late — statement_timeout is latched when the top-level DO statement starts. Fix: `set statement_timeout = 0;` as a separate session statement before the DO.
+- **Prod had drifted from schema.sql** — discovered via `pg_depend`: the `jobs_sync_description` trigger, a `v_scans` view, and a jobs-aware `v_recent_scans` were never in schema.sql. Recreated dependents from the LIVE definitions, not schema.sql, so the drift wasn't silently reverted.
+
+**Verified live post-swap:** partstrat=HASH / 16 partitions / 157,508 rows / 9,114 embeddings preserved; PK `(id,company_id)` + UNIQUE `(company_id,external_id)` intact; scanner conflict target resolves; HNSW vector search returns across partitions; `match_resume_candidates` returns 10; `v_active_jobs`=106,299; `f_refresh_totals_by_source()` concurrent refresh OK (mv total 157,508); both triggers re-attached. Security advisor: **no new regressions** (security-definer views, RLS-disabled public tables, mutable search_path are all pre-existing project-wide postures, now just enumerated per partition child).
+
+**schema.sql updated** so fresh installs reproduce the partitioned `jobs` + `job_descriptions` + sync trigger. `scan.mjs` needed **zero changes** (conflict target unchanged).
+
+**Queued next (f-119 step 3):** cut readers (buildJobText / summarize / embed, future Product B) over to `job_descriptions`, then drop `jobs.description` to realize the hot-table/backup win. Hash partitioning does NOT give cold-archival (drop closed jobs by month) — revisit a closed-jobs archive separately. Reconcile the pre-existing schema.sql view drift (`v_scans`, `v_recent_scans`) — **now codified on `main` by PR #43, which this branch merges in.**
+
+---
+
 ## 2026-06-11 · FIX — dashboard "new jobs" mismatch (RECENT SCANS vs by-source)
 
 **Symptom:** On the overview, NEW JOBS BY SOURCE per-scan totals (e.g. 107, 659) didn't match the RECENT SCANS "new" column (16,157, 16,414; one scan even 34,131) for the same scan.

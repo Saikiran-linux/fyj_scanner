@@ -219,7 +219,7 @@ if (!process.env.OPENAI_API_KEY || !process.env.SUPABASE_URL || !process.env.SUP
   console.error('Need OPENAI_API_KEY + SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY'); process.exit(1);
 }
 console.log(`Fetching ${SAMPLE_SIZE} active jobs...`);
-const rows = await selectAll('jobs', {
+const rows = await selectAll('v_jobs_enriched', {
   closed_at: 'is.null', description: 'not.is.null', description_summary: 'not.is.null',
   select: ['id', 'title', 'department', 'location', 'description', 'description_summary', 'comp_min', 'comp_max', 'comp_currency', 'comp_interval', 'comp_text', 'remote', 'employment_type'].join(','),
   order: 'id.desc',

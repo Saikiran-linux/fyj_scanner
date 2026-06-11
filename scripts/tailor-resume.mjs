@@ -76,21 +76,26 @@ async function resolveJob() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) die(1, 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing for --job-id');
-  const select = 'title,location,department,url,description,description_summary,companies(slug)';
+  const headers = { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' };
+  const select = 'title,location,department,url,description_summary,companies(slug)';
   const endpoint = `${url}/rest/v1/jobs?select=${encodeURIComponent(select)}&id=eq.${args['job-id']}`;
-  const res = await fetch(endpoint, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
-  });
+  const res = await fetch(endpoint, { headers });
   if (!res.ok) die(2, `fetching job ${args['job-id']}: HTTP ${res.status} ${(await res.text()).slice(0,200)}`);
   const rows = await res.json();
   if (!rows.length) die(1, `job ${args['job-id']} not found`);
   const j = rows[0];
+  // Description text lives in job_descriptions (f-119), not on jobs.
+  const descRes = await fetch(
+    `${url}/rest/v1/job_descriptions?select=description&job_id=eq.${args['job-id']}`,
+    { headers },
+  );
+  const descRows = descRes.ok ? await descRes.json() : [];
   return {
     title: j.title,
     company: j.companies?.slug || null,
     location: j.location,
     url: j.url,
-    description: j.description,
+    description: descRows[0]?.description ?? null,
     description_summary: j.description_summary,
   };
 }

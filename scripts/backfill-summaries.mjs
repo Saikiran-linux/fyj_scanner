@@ -89,7 +89,7 @@ while (true) {
   const remaining = BACKFILL_LIMIT == null ? PAGE_SIZE : BACKFILL_LIMIT - rows.length;
   if (remaining <= 0) break;
   const pageSize = Math.min(PAGE_SIZE, remaining);
-  const page = await select('jobs', {
+  const page = await select('v_jobs_enriched', {
     ...baseQuery,
     limit: String(pageSize),
     offset: String(rows.length),

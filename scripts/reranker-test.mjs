@@ -147,7 +147,7 @@ if (!process.env.OPENAI_API_KEY) { console.error('OPENAI_API_KEY not set'); proc
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) { console.error('SUPABASE_* not set'); process.exit(1); }
 
 console.log(`Fetching ${SAMPLE_SIZE} active jobs with description_summary...`);
-const rows = await selectAll('jobs', {
+const rows = await selectAll('v_jobs_enriched', {
   closed_at: 'is.null', description: 'not.is.null', description_summary: 'not.is.null',
   select: ['id', 'title', 'department', 'location', 'description_summary', 'comp_min', 'comp_max', 'comp_currency', 'comp_interval', 'comp_text', 'remote', 'employment_type'].join(','),
   order: 'id.desc',
