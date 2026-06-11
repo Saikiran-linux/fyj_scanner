@@ -250,21 +250,24 @@ create table if not exists public.job_descriptions (
 );
 create index if not exists job_descriptions_company_idx on public.job_descriptions (company_id);
 
--- Keep job_descriptions in lockstep with jobs.description: upsert on write,
--- delete when the description is cleared. AFTER trigger so it sees the final
--- row; scoped to "OF description" so unrelated jobs updates don't fire it.
+-- job_descriptions is the canonical home for description text (f-119 step 3).
+-- This BEFORE trigger diverts any write of jobs.description into
+-- job_descriptions and NULLs the heap copy, so the text never bloats the hot
+-- jobs table. The scanner still writes jobs.description in its upsert; the
+-- trigger transparently relocates it. Readers go through v_jobs_enriched
+-- (below) which sources description from job_descriptions. Scoped to
+-- "OF description" so unrelated jobs updates don't fire it.
 create or replace function public.sync_job_description() returns trigger
 language plpgsql as $$
 begin
-  if new.description is null then
-    delete from public.job_descriptions where job_id = new.id;
-  else
+  if new.description is not null then
     insert into public.job_descriptions (job_id, company_id, description, updated_at)
     values (new.id, new.company_id, new.description, now())
     on conflict (job_id) do update
       set description = excluded.description,
           company_id  = excluded.company_id,
           updated_at  = now();
+    new.description := null;   -- keep the text out of the hot jobs heap
   end if;
   return new;
 end;
@@ -272,8 +275,27 @@ $$;
 
 drop trigger if exists jobs_sync_description on public.jobs;
 create trigger jobs_sync_description
-  after insert or update of description on public.jobs
+  before insert or update of description on public.jobs
   for each row execute function public.sync_job_description();
+
+-- Readers select from this instead of jobs so `description` resolves from
+-- job_descriptions, decoupled from whether jobs.description is populated.
+-- Column list mirrors jobs EXCEPT description (sourced from the join).
+create or replace view public.v_jobs_enriched as
+select
+  j.id, j.company_id, j.external_id, j.title, j.location, j.url,
+  j.department, j.employment_type,
+  j.first_seen_at, j.last_seen_at, j.closed_at, j.fingerprint,
+  j.embedding, j.embedding_model, j.embedded_at,
+  j.description_fetched_at, j.description_hash,
+  j.comp_min, j.comp_max, j.comp_currency, j.comp_interval, j.comp_text,
+  j.remote, j.source_updated_at, j.source_published_at,
+  j.description_summary, j.description_summary_model, j.description_summary_at,
+  j.job_family, j.is_target, j.seniority, j.classified_at, j.classified_by,
+  jd.description
+from public.jobs j
+left join public.job_descriptions jd on jd.job_id = j.id;
+grant select on public.v_jobs_enriched to anon, authenticated, service_role;
 
 -- ── compensation / remote / source timestamps ──────────────────────
 -- Structured fields the providers expose but we weren't capturing. The
@@ -500,19 +522,17 @@ drop trigger if exists companies_updated_at on public.companies;
 create trigger companies_updated_at before update on public.companies
   for each row execute function public.touch_updated_at();
 
--- When a job's description text changes, null its embedding so the next
--- embedding pass re-embeds with the new content. Identical-description
--- writes (the common case — scanner re-sends the same text every scan)
--- pass through untouched, so we don't burn re-embedding cost on every run.
+-- When a job's description text changes, null its embedding + summary so the
+-- next enrichment passes regenerate them. Keyed off description_hash, not the
+-- text itself: the text no longer lives on jobs (f-119 step 3 — it's diverted
+-- to job_descriptions), but the scanner still stamps a fresh description_hash
+-- whenever the text changes, so the hash is the durable change signal.
+-- Identical-description writes leave the hash unchanged and pass through
+-- untouched, so we don't burn re-embedding cost on every scan.
 create or replace function public.invalidate_embedding_on_description_change()
 returns trigger as $$
 begin
-  -- When the description text changes, every derivative artifact has to
-  -- be regenerated: the LLM-extracted summary (so it reflects the new
-  -- description) AND the embedding (which would otherwise embed the
-  -- stale summary). Done in one trigger to keep the invariant atomic —
-  -- nothing else nulls these fields.
-  if old.description is distinct from new.description then
+  if old.description_hash is distinct from new.description_hash then
     new.embedding := null;
     new.embedding_model := null;
     new.embedded_at := null;

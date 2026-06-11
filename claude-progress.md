@@ -6,6 +6,26 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · f-119 step 3 — description text out of the jobs heap (PR #45)
+
+Finished the storage split: job description text now lives **only** in `job_descriptions`; the hot `jobs` table no longer stores it. **Applied to prod + verified.**
+
+**Storage win:** `jobs` 883 MB → **259 MB** (−624 MB / −71%) after `VACUUM FULL`; the 484 MB of description text is isolated in `job_descriptions`. `jobs.description` heap_remaining=0, all 149,007 descriptions preserved, embeddings preserved (9,109).
+
+**Approach (low-risk):** kept the scanner's PGRST102-sensitive batched upsert **unchanged**. Instead:
+- **Readers** (scan summary+embedding passes, `backfill-summaries`, `backfill-embeddings`) now read a new `v_jobs_enriched` view (`jobs` LEFT JOIN `job_descriptions`, `description` from the join). migration 0002.
+- **Writes**: flipped `jobs_sync_description` AFTER-copy → **BEFORE-divert** — any write of `jobs.description` is routed into `job_descriptions` and the heap copy NULLed. Scanner keeps writing `jobs.description`; the trigger relocates it transparently. migration 0003.
+- `invalidate_embedding_on_description_change` rekeyed off `description_hash` (the text is no longer on `jobs`; the hash is the durable change signal).
+- One-time null-out of 149,007 heap copies + `VACUUM FULL`.
+
+**Gotcha:** multi-statement migrations that outrun the 60s SQL-gateway get **rolled back** (the gateway abandons the txn). First 0003 attempt rolled back silently (triggers unchanged). Fix: wrap the whole migration in ONE `DO` block (autocommits server-side like the partition migration) preceded by `set statement_timeout=0`.
+
+**Verified:** divert works end-to-end (rolled-back txn: `UPDATE jobs.description` → heap NULL, `job_descriptions`=payload); view resolves all 149,007; both triggers BEFORE; deployed paths safe (Vercel app reads `description_summary` via RPC, not `description`; cron has SKIP_LLM_PASSES=1).
+
+**Queued next:** outright `DROP COLUMN jobs.description` deferred (needs the scanner to stop sending it). Repoint manual scripts (`tailor-resume`, experiment/bench) off `jobs.description`. `jobs.description` column kept in place at ~0 storage.
+
+---
+
 ## 2026-06-11 · Storage split — job_descriptions backfill + jobs hash-partitioned by company_id (f-119)
 
 Structural moves to take the index toward millions of jobs while it's still small (157,508 rows) and cheap to rewrite. Both steps **verified live**.

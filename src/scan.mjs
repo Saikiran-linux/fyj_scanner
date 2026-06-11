@@ -670,7 +670,10 @@ if (process.env.SKIP_LLM_PASSES) {
   console.log('Skipping summarisation pass (SKIP_LLM_PASSES set)');
 } else if (summariesEnabled()) {
   try {
-    const candidates = await select('jobs', {
+    // Read description from v_jobs_enriched (sourced from job_descriptions),
+    // not the jobs heap — f-119 step 3. The id still keys the UPDATE back to
+    // jobs in summarizeAndPersistJobs().
+    const candidates = await select('v_jobs_enriched', {
       description_summary: 'is.null',
       description: 'not.is.null',
       closed_at: 'is.null',
@@ -706,7 +709,9 @@ if (process.env.SKIP_LLM_PASSES) {
   console.log('Skipping embedding pass (SKIP_LLM_PASSES set)');
 } else if (embeddingsEnabled()) {
   try {
-    const missing = await selectAll('jobs', {
+    // Read description from v_jobs_enriched (sourced from job_descriptions),
+    // not the jobs heap — f-119 step 3. embedAndPersistJobs() UPDATEs jobs by id.
+    const missing = await selectAll('v_jobs_enriched', {
       embedding: 'is.null',
       closed_at: 'is.null',
       // Don't spend embeddings on known-noise roles (f-113); unclassified

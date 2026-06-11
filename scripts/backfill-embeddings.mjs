@@ -58,7 +58,7 @@ if (SUMMARIZED_ONLY) {
   // fallback, which is fine but pollutes the eval comparison.
   query.description_summary = 'not.is.null';
 }
-const rows = await selectAll('jobs', query);
+const rows = await selectAll('v_jobs_enriched', query);
 
 console.log(`Found ${rows.length} jobs to embed`);
 if (rows.length === 0) {
