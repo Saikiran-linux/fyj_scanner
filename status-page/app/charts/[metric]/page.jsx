@@ -55,7 +55,9 @@ export default async function ChartPage({ params, searchParams }) {
   let scans = [];
   let error = null;
   try {
-    scans = await pgSelect('scans', {
+    // v_scans, not scans: the new_jobs trend uses the truthful
+    // first_seen_at-window count (raw counter over-counts reopens). See schema.sql.
+    scans = await pgSelect('v_scans', {
       select: `id,started_at,${spec.field}`,
       status: 'eq.ok',
       order: 'started_at.desc',

@@ -24,7 +24,9 @@ export default async function ScansPage({ searchParams }) {
   let total = 0;
   let error = null;
   try {
-    const r = await pgSelectRange('scans', query, { from, to });
+    // v_scans, not scans: exposes the truthful first_seen_at-window new_jobs
+    // (the raw counter over-counts reopened postings). See schema.sql v_scans.
+    const r = await pgSelectRange('v_scans', query, { from, to });
     rows = r.rows;
     total = r.total;
   } catch (e) {
