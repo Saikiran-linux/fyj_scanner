@@ -6,6 +6,23 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · f-119 cleanup — scanner writes job_descriptions directly + drop jobs.description (PR pending)
+
+Finishes the three deferred f-119 follow-ups.
+
+- **Item 3 (view drift) was already done** — PR #43 codified `v_scans` + the jobs-aware `v_recent_scans` into `schema.sql`. Nothing to do.
+- **Item 2 (scripts repointed):** `backfill-descriptions` now writes `job_descriptions` (was `jobs.description`); `tailor-resume` reads description from `job_descriptions`; the `voyage-*/matching-bench/abembeddingtest` eval scripts read `v_jobs_enriched`. (`backfill-summaries`/`backfill-embeddings` were already on the view from PR #45.)
+- **Item 1 (drop the column):** the scanner now writes `job_descriptions` **directly** instead of leaning on the BEFORE-divert trigger:
+  - main upsert: the changed-description group is upserted with `returning=representation` to get row ids (payload stays small — those rows' embeddings are nulled by the invalidate trigger in the same write), then `job_descriptions` is upserted by `job_id`. `jobs` rows carry only `description_hash`/`description_fetched_at`.
+  - per-job fetch pass: upserts `job_descriptions` by `row.id`; the candidate filter drops the (now-gone) `description is null` predicate, gating on `description_fetched_at is null`.
+  - With no writer of `jobs.description` left, **migration 0004** drops `jobs_sync_description` + `sync_job_description()`, the description-referencing partial indexes (recreated without the ref), and the `jobs.description` column. `schema.sql` updated to the no-column steady state.
+
+**Sequencing:** migration 0004 must be applied **after** this PR merges + a scan runs on the new code — if applied while old code is live, that code's `description` upsert key is silently dropped by PostgREST (column gone, divert trigger removed) → description loss. Not applied yet.
+
+**Verified:** all touched JS passes `node --check`; `schema.sql` has no `jobs.description` refs left (view sources `jd.description`, invalidate trigger keys off `description_hash`).
+
+---
+
 ## 2026-06-11 · f-119 step 3 — description text out of the jobs heap (PR #45)
 
 Finished the storage split: job description text now lives **only** in `job_descriptions`; the hot `jobs` table no longer stores it. **Applied to prod + verified.**

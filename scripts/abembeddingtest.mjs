@@ -187,7 +187,7 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 console.log(`Fetching ${SAMPLE_SIZE} active jobs with both description and summary...`);
-const rows = await selectAll('jobs', {
+const rows = await selectAll('v_jobs_enriched', {
   closed_at: 'is.null',
   description: 'not.is.null',
   description_summary: 'not.is.null',

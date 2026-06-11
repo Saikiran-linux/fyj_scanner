@@ -324,6 +324,10 @@ async function probeOne(company) {
   // scan-start). Used for both the description-hash skip and the close-sweep.
   // Missing entry means "no open jobs for this company yet" — treat as empty.
   const existing = activeByCompany.get(company.id) || new Map();
+  // external_id -> changed description text this scan. Written to
+  // job_descriptions (keyed by job id) after the jobs upsert — descriptions
+  // no longer live on jobs (f-119). Only rows whose hash changed are included.
+  const changedDescriptions = new Map();
   const jobRows = result.jobs.map((j) => {
     seenExternalIds.add(j.external_id);
     const row = {
@@ -369,9 +373,12 @@ async function probeOne(company) {
       const newHash = describeHash(j.description);
       const prevHash = existing.get(j.external_id)?.description_hash ?? null;
       if (newHash !== prevHash) {
-        row.description = j.description;
+        // Text goes to job_descriptions after the upsert (we need the row id);
+        // jobs keeps only the hash + fetched_at, which still drive the skip and
+        // the embedding-invalidation trigger.
         row.description_hash = newHash;
         row.description_fetched_at = nowIso;
+        changedDescriptions.set(j.external_id, j.description);
       }
     }
     // Relevance classification (f-113), NEW jobs only. We never re-write an
@@ -418,8 +425,31 @@ async function probeOne(company) {
       // representation was costing us a full row payload per upsert, which
       // added up across 3k companies. We re-derive "new vs reopened" from
       // the snapshot we already have.
-      for (const group of groups.values()) {
-        await upsert('jobs', group, 'company_id,external_id', { returning: 'minimal' });
+      const idByExternalId = new Map();
+      for (const [sig, group] of groups) {
+        // Only the group carrying changed descriptions needs row ids back (to
+        // write job_descriptions). Ask for representation just for it — the
+        // hash-skip keeps it to actually-changed rows, and any row with a
+        // changed description has its embedding nulled by the invalidate
+        // trigger in this same write, so the returned payload stays small.
+        const needIds = sig.includes('description_hash');
+        const res = await upsert('jobs', group, 'company_id,external_id', {
+          returning: needIds ? 'representation' : 'minimal',
+        });
+        if (needIds && Array.isArray(res)) {
+          for (const r of res) idByExternalId.set(r.external_id, r.id);
+        }
+      }
+      // Persist changed description text to job_descriptions (keyed by job id).
+      if (changedDescriptions.size) {
+        const jdRows = [];
+        for (const [ext, desc] of changedDescriptions) {
+          const id = idByExternalId.get(ext);
+          if (id) jdRows.push({ job_id: id, company_id: company.id, description: desc, updated_at: nowIso });
+        }
+        if (jdRows.length) {
+          await upsert('job_descriptions', jdRows, 'job_id', { returning: 'minimal' });
+        }
       }
     } catch (e) {
       // Record as success of probe but failure of write — surface in notes.
@@ -576,10 +606,9 @@ try {
     // to the cap — otherwise raising the cap above 1,000 would silently do
     // nothing. maxRows=Infinity (cap removed) drains the whole backlog.
     const candidates = await selectAll('jobs', {
-      description: 'is.null',
-      // Skip rows we've already attempted (description_fetched_at set) — some
-      // postings legitimately have no description text, and re-fetching them
-      // every scan would burn the cap on the same persistent-null rows.
+      // description_fetched_at IS NULL is the gate: rows we've never attempted.
+      // (jobs no longer has a description column — f-119; the text lives in
+      // job_descriptions and a fetched row records its hash + fetched_at here.)
       description_fetched_at: 'is.null',
       closed_at: 'is.null',
       // Don't spend per-job detail fetches on known-noise roles (f-113);
@@ -625,7 +654,6 @@ try {
           // present) are written alongside, but only when non-null so we never
           // clobber good data with a null.
           const patch = {
-            description: res.description ?? null,
             description_hash: describeHash(res.description ?? null),
             description_fetched_at: new Date().toISOString(),
           };
@@ -638,6 +666,18 @@ try {
             patch,
             { returning: 'minimal' },
           );
+          // Persist the text to job_descriptions (f-119). row.companies.id is
+          // the company_id (candidates embed companies!inner(id,...)). A null
+          // description (provider had none) writes no row — the fetched_at
+          // stamp above is what stops re-fetching.
+          if (res.description != null) {
+            await upsert(
+              'job_descriptions',
+              [{ job_id: row.id, company_id: row.companies.id, description: res.description, updated_at: new Date().toISOString() }],
+              'job_id',
+              { returning: 'minimal' },
+            );
+          }
           descStats.ok++;
         } catch (e) {
           descStats.failed++;

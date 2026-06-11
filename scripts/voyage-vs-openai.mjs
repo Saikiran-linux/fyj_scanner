@@ -223,7 +223,7 @@ if (!HAS_VOY) { console.error('VOYAGE_API_KEY is required'); process.exit(1); }
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) { console.error('Need Supabase creds'); process.exit(1); }
 
 console.log(`Fetching ${SAMPLE_SIZE} active jobs (summary + description)...`);
-const rows = await selectAll('jobs', {
+const rows = await selectAll('v_jobs_enriched', {
   closed_at: 'is.null', description: 'not.is.null', description_summary: 'not.is.null',
   select: ['id', 'title', 'department', 'location', 'description', 'description_summary', 'comp_min', 'comp_max', 'comp_currency', 'comp_interval', 'comp_text', 'remote', 'employment_type'].join(','),
   order: 'id.desc',
