@@ -6,6 +6,20 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 · f-119 COMPLETE — jobs.description column dropped (applied + verified)
+
+PR #46 (scanner writes `job_descriptions` directly) merged. Then, to safely drop the column:
+1. Triggered a scan on the **new** code (the prior 16:28 cron run had started before #46 merged at 16:45, so it ran old code). New scan: **status=ok, 3653 probed, `companies_write_failed=0`** (the new main-upsert `job_descriptions` write path is clean), `jd` grew +161 during the run.
+2. Applied **migration 0004** → dropped `jobs_sync_description` + `sync_job_description()`, the description-referencing partial indexes (recreated without the ref), and the **`jobs.description` column**.
+
+**Verified post-drop:** `jobs` has no `description` column; only `jobs_invalidate_embedding_on_description_change` (hash-keyed) remains; `v_jobs_enriched` still resolves 152,805 descriptions from `job_descriptions` (153,480 rows).
+
+**Follow-up fix (this branch):** two eval scripts (`embedding-experiments`, `reranker-test`) still *filtered* `description` on `jobs` (filter-only, so the earlier sweep missed them) → repointed to `v_jobs_enriched`. Repo-wide grep confirms no remaining raw `jobs.description` reads (provider `parse()` `description:` fields and `job.description` on view-sourced rows are fine).
+
+**Note:** ~675 orphan `job_descriptions` rows (no matching job) — harmless, GC candidate.
+
+---
+
 ## 2026-06-11 · f-119 cleanup — scanner writes job_descriptions directly + drop jobs.description (PR pending)
 
 Finishes the three deferred f-119 follow-ups.
