@@ -6,6 +6,20 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-11 (b) · FIX — RECENT SCANS showed 4 rows per sharded cycle
+
+A live N=4 sharded run (f-109) wrote 4 `scans` rows for one cycle (23:19:32, shard_index 0-3), so the overview's RECENT SCANS listed 4 near-duplicate rows with mixed new-counts (one shard windowed = 571, the rest raw), and the by-source panel only saw shard 0.
+
+**Fix — roll shards up into one logical cycle:**
+- `scans.cycle_id` (new column): stamped by the scanner from `GITHUB_RUN_ID` (constant across matrix jobs), null for local/unsharded. Grouping key is `coalesce(cycle_id, id)`, so unsharded behaviour is unchanged. Backfilled the two historical sharded cycles (06-05 N=2, 06-11 N=4).
+- `v_recent_scans` + `f_new_jobs_by_scan_source` now aggregate per cycle: probed/ok/err/closed summed, duration spans the cycle, active_after = last-finishing shard, and new_jobs counted once over the cycle's full window `[min(started), max(ended)]` (every job is inserted by exactly one shard inside that window). Hot path stays bounded (~30ms, 30 cycles).
+- `src/scan.mjs` `openScan()` writes `cycle_id`.
+- Left `v_scans` (the `/scans` "all scans" list + detail) per-shard on purpose — that page is the diagnostic drill-down. Could roll up later if desired.
+
+**Verified on prod:** 23:19 cycle now one row — shard_count 4, probed 3,652, new 571 = by-source 571, closed 606, active 106,264. Unsharded cycles unchanged.
+
+---
+
 ## 2026-06-11 · FIX — dashboard "new jobs" mismatch (RECENT SCANS vs by-source)
 
 **Symptom:** On the overview, NEW JOBS BY SOURCE per-scan totals (e.g. 107, 659) didn't match the RECENT SCANS "new" column (16,157, 16,414; one scan even 34,131) for the same scan.

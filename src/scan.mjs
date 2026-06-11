@@ -779,7 +779,19 @@ async function reapStaleScans() {
 }
 
 async function openScan() {
-  const [row] = await insert('scans', [{ status: 'running', shard_index: SHARD_INDEX, shard_count: SHARD_COUNT }]);
+  // cycle_id ties a matrix-sharded run's N rows together so the dashboard can roll
+  // them into one logical scan. GITHUB_RUN_ID is constant across matrix jobs in a
+  // run (run_attempt distinguishes re-runs); null for local runs, where each scan
+  // is its own cycle. See supabase/schema.sql (scans.cycle_id) + v_recent_scans.
+  const cycleId = process.env.GITHUB_RUN_ID
+    ? `gh-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT ?? '1'}`
+    : null;
+  const [row] = await insert('scans', [{
+    status: 'running',
+    shard_index: SHARD_INDEX,
+    shard_count: SHARD_COUNT,
+    cycle_id: cycleId,
+  }]);
   return row.id;
 }
 
