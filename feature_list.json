@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-11",
+  "updated_at": "2026-06-12",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -325,7 +325,9 @@
         "Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."
       ],
       "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
-      "next": "Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 57.7k unclassified. STRATEGY UPDATE 2026-06-05: do NOT prune blue-collar tenants — Product B (NL jobs MCP) wants them; only disable genuinely dead (404/empty) tenants. Relevance becomes a parameterized lens, not a hardcoded filter — see f-114."
+      "coverage_2026_06_12": "Live: of 106,264 active jobs — 35,937 target (34%), 12,063 non-target/blue-collar already filtered (11%), 58,264 unclassified (55%). The 55% null bucket is where blue-collar still leaks (sampled misses: 'Food and Beverage Attendant', 'Auto Body Repair Technician', 'Licensed Practical Nurse', 'Mental Health Therapist', 'Distribution Technician'). Blue-collar caught by family: clinical 5,170 / trades 1,753 / manual 1,750 / service 1,629 / retail 1,558. See docs/blue-collar-filtering.md.",
+      "rule_gaps_found": "classify.mjs regex misses to add (free recall win): 'Food and Beverage' (only 'food & beverage' w/ ampersand matches), 'mental health therapist'/'spa therapist'/'diversional therapist', spelled-out 'licensed practical nurse'/'practical nurse' (\\blpn\\b doesn't match), 'distribution technician', 'auto body', 'reconditioning', 'maintenance technician'.",
+      "next": "1) Harden classify.mjs rules (rule_gaps_found, free). 2) Capture SmartRecruiters function/industry as a blue-collar prior (f-121). 3) Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 58k unclassified. STRATEGY (2026-06-05): do NOT prune blue-collar tenants — Product B wants them; relevance is a parameterized lens (f-114), not a hardcoded filter."
     },
     {
       "id": "f-114",
@@ -335,6 +337,7 @@
       "status": "planned",
       "trigger": "Two products share one DB + one search engine (HOSTED_PLATFORM_PLAN.md 'one DB, two lenses'). Staffing wants tech-only; the agent/NL MCP wants the whole index. Relevance must be a query parameter, not baked in.",
       "scope": "Replace the hardcoded `is_target is not false` in match_resume/match_resume_candidates with parameters (target_only boolean default true, optional family/seniority/location/remote/comp filters). Add a generalised search_jobs(query_vec, filters) RPC both products call. Staffing passes target_only=true (default, so today's path is unchanged); Product B passes target_only=false + any filters.",
+      "hard_filter_note": "These hard constraints (seniority band, comp floor, location, work-auth) must be SQL predicates, NOT embedded text — today they're embedded in buildJobText so seniority/comp get soft-matched (the 'senior roles to a new grad' risk). With tight filters on the 1M HNSW, use pgvector 0.8 iterative index scan or partial indexes to avoid the pre/post-filter recall cliff (we already lift hnsw.ef_search). See docs/matching-embedding-assessment.md.",
       "touches": [
         "supabase/schema.sql (match_resume*, new search_jobs RPC)",
         "status-page/lib/match.js",
@@ -350,6 +353,7 @@
       "status": "in_progress",
       "trigger": "The matcher only sees embedded jobs. Live check 2026-06-05: of 93,847 surfaced target jobs only 7,249 (7.7%) are embedded — clients are matched against 8% of the index. Biggest single lever on product quality and the #1 launch blocker.",
       "scope": "Run summary + embedding backfill. LAUNCH ORDER: classify (LLM) -> embed the tech/target slice first (~36k, cheap) to launch staffing (Product A); then embed the full index for Product B's NL search. Also decide ongoing freshness: enable LLM passes in cron OR a daily classify->summarize->embed backfill, else new jobs are unmatchable within days.",
+      "note_2026_06_12": "Embedding coverage alone is necessary but NOT the biggest accuracy lever — the bake-off shows the two-stage reranker (f-122) is +10.9 meanFit / +30 recall over dense cosine, which is dead-last of 10 methods. Embed the TARGET slice first (don't embed blue-collar that's filtered out) then ship f-122. See docs/matching-embedding-assessment.md.",
       "touches": [
         "scripts/backfill-summaries.mjs",
         "scripts/backfill-embeddings.mjs",
@@ -442,6 +446,64 @@
       ]
     },
     {
+      "id": "f-120",
+      "title": "Scale Supabase compute for 50k-company onboarding",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "A ~50k active-company list (~13.7x today) is queued. Live audit 2026-06-12: DB is on the entry Micro instance (~1 GB RAM, ~2 shared vCPU, 60 conns, shared_buffers 256 MB). DB already 987 MB > effective_cache_size 768 MB, so cold queries don't fit cache (the reason the dashboard needed an MV to dodge the 8 s authenticator timeout). 14x data on Micro will not hold.",
+      "scope": "Move compute to ~Large-XL (8-16 GB RAM, dedicated vCPU) so the working set + HNSW index stay resident; max_connections scales 60 -> 200+ for sharded writers. Re-baseline dashboard + match latency after the bump. ~$110-210/mo compute. See docs/scale-50k-assessment.md.",
+      "touches": [
+        "Supabase compute add-on (infra, not code)"
+      ],
+      "verify": "select setting from pg_settings where name='shared_buffers';  -- 32768 (256MB) on Micro today"
+    },
+    {
+      "id": "f-121",
+      "title": "Capture SmartRecruiters function/industry/experienceLevel structured fields",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "The SR postings blob carries standardized enums (function, industry, experienceLevel) that the parser drops today (verified live 2026-06-12). function is a fixed taxonomy incl. Warehouse / Skilled Labor & Trades / Restaurant-Food Service / Retail / Transportation / Production / Health Care Provider — a clean blue-collar signal on the most blue-collar-heavy source. Helps relevance (f-113) and matching seniority (experienceLevel).",
+      "scope": "Extend SR parse()/fetchDetail() in src/providers.mjs to emit function/industry/experience_level; add nullable columns on jobs; use function as a positive blue-collar prior in classify (caveat: SR often sets function='Other', so a prior, not a gate). See docs/blue-collar-filtering.md.",
+      "touches": [
+        "src/providers.mjs",
+        "supabase/schema.sql (jobs columns)",
+        "src/classify.mjs"
+      ]
+    },
+    {
+      "id": "f-122",
+      "title": "Ship the validated matching pipeline to /matches (reranker + hybrid retrieval feed)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "The two-stage retrieve->rerank pipeline (src/match-resume.mjs + src/rerank.mjs) is BUILT and is the validated winner of the bake-off (+10.9 meanFit@10, +30 pts recall@10 over dense-only), but the live /matches path is still raw dense cosine over a ~9%-embedded index — the benchmark's worst of 10 methods. Biggest accuracy win is shipping what's built.",
+      "scope": "(1) Wire match-resume.mjs (reranker) into the live /matches app path; needs OPENAI_API_KEY in the app env + the target-slice embedded (f-115). (2) Add a hybrid lexical arm to FEED the reranker (bake-off rec #2: LEXICAL skill-overlap was the #2 retrieval method): tsvector/BM25 or skills[] GIN column, RRF-fuse with dense, pass the union to rerank. See docs/matching-embedding-assessment.md.",
+      "depends_on": [
+        "f-115 (target-slice embeddings)",
+        "OPENAI_API_KEY in the app/CI env"
+      ],
+      "touches": [
+        "status-page/app/api/match",
+        "src/match-resume.mjs",
+        "supabase/schema.sql (tsvector/skills column + hybrid RPC)"
+      ]
+    },
+    {
+      "id": "f-124",
+      "title": "Vector quantization + active-only HNSW for the 1M index",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "At ~1.45M embedded active jobs, vector(1536) + HNSW ~= 20 GB, which forces a big-RAM compute tier (f-120). Today only 9k are embedded so it's latent, but it sizes the instance once the index is embedded.",
+      "scope": "(1) Quantize: halfvec (2x) or binary (up to 32x) retrieve -> exact rerank (precision recovered by the existing f-122 rerank pass) — pgvector 0.7+. (2) Hot/cold: partial HNSW WHERE closed_at IS NULL (or pin active to a hot partition) so closed rows don't bloat the index. See docs/matching-embedding-assessment.md + docs/scaling-architecture.md.",
+      "touches": [
+        "supabase/schema.sql (halfvec/binary index, partial HNSW)",
+        "src/embeddings.mjs"
+      ]
+    },
+    {
       "id": "f-201",
       "title": "Auth + onboarding + aha moment",
       "phase": "phase-2",
@@ -519,12 +581,12 @@
     },
     {
       "id": "f-904",
-      "title": "Vacuum old probe_results",
+      "title": "Retention/rollup for probe_results (unbounded growth)",
       "phase": "phase-1",
-      "priority": "P2",
+      "priority": "P1",
       "status": "planned",
-      "trigger": "probe_results > 500k rows. At 4 scans/day × 3k companies ≈ 12k/day = 4.4M/year if unbounded.",
-      "scope": "Keep last 90 days, archive the rest via SQL function."
+      "trigger": "probe_results has no retention. Now 321k rows / 62 MB at 3.6k companies. At the queued 50k companies x ~4 scans/day = ~200k rows/day = ~73M/year, it dwarfs everything and bloats backups. MUST fix before 50k onboarding. See docs/scale-50k-assessment.md gate 2.",
+      "scope": "Keep last 7-30 days raw (or roll up into daily per-source aggregates then drop) via a scheduled SQL function."
     }
   ]
 }
