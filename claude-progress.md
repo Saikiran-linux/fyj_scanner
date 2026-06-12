@@ -6,6 +6,22 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-12 (b) · f-121 — SmartRecruiters structured signals wired into classification (parser + classifier + tests)
+
+Tore down every field returned by all 5 ATSes (live probes). Verdict: **title is the only reliable cross-ATS role signal; the one clean structured signal in the whole pipeline is SmartRecruiters' `function`/`experienceLevel`/`industry` enums — and they're in the LISTING blob at zero extra fetch cost** (the parser was dropping them). Quantified live: `function` is 100% populated, only 10% `'Other'`.
+
+**Critical correction (from the user, then live-verified):** SR `function` is the **org bucket the req lives in, not the role**. A Production unit hires Project Managers, BI Analysts, PCB Engineers. A naive `function=blue→is_target=false` gate mislabels **~7.4%** of blue-collar-function postings (real target roles hidden). So `function` can never be a gate.
+
+**Shipped (branch `claude/lucid-allen-139j1g`):**
+- `src/classify.mjs` — new `classifyJob({title, srFunction, srExperienceLevel})`. **Title is authoritative.** `function` is only a NEGATIVE prior on title-NULL rows, and only when the title carries no knowledge-worker token (`manager|engineer|analyst|scientist|developer|...`) — so PM/BI-Analyst/PCB-Engineer in a blue bucket stay null → LLM, never auto-hidden. `experienceLevel`→`seniority` fill (role-orthogonal; never overrides a title-set seniority). `classifyTitle` unchanged (backward compat).
+- `src/providers.mjs` — SR `parse()` + `fetchDetail()` now emit `sr_function`/`sr_industry`/`sr_experience_level`.
+- `src/scan.mjs` — ingest classification calls `classifyJob` with the SR fields; `classified_by` now reflects `rules`|`sr_function`|`low`.
+- `test/classify.test.mjs` (+ `npm test` → `node --test test/*.test.mjs`) — **16 tests, all green**, using the real live SR samples as fixtures (the user's PM/BI-Analyst cases pinned). Live e2e on `Expeditors`: 60/60 `sr_function` populated; "Air Import Agent"/"Air & Ocean Coordinator" flip to non-target, "Managing Consultant"/"Senior Ocean Export Analyst" correctly protected.
+
+**Remaining (NOT done — flagged):** persist `sr_*` columns on `jobs` (schema.sql migration) + backfill the existing ~58k unclassified from R2 blobs. No prod schema change made this session. `industry` captured but unused (employer-level, not role).
+
+---
+
 ## 2026-06-12 · RESEARCH — captured 3 scale/quality assessments as tracked docs
 
 Wrote up three analyses from this session into `docs/` + `feature_list.json` (no code/prod changes):

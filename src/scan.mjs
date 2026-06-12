@@ -20,7 +20,7 @@ import { createHash } from 'node:crypto';
 import { select, selectAll, insert, upsert, update, rpc } from './supabase-client.mjs';
 import { fetchJobs, fetchJobDescription, fetchJobPosting, hasDescriptionFetcher, hasDetailFetcher, PROVIDER_NAMES } from './providers.mjs';
 import { fingerprint } from './fingerprint.mjs';
-import { classifyTitle } from './classify.mjs';
+import { classifyJob } from './classify.mjs';
 import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
@@ -387,13 +387,22 @@ async function probeOne(company) {
     // obvious ~45%; low-confidence rows are left classified_at=null so the
     // LLM backfill (scripts/backfill-classification.mjs --llm) resolves them.
     if (!existing.has(j.external_id)) {
-      const cls = classifyTitle(j.title);
+      // Title is authoritative; SmartRecruiters' structured signals (f-121)
+      // only fill gaps — `function` as a blue-collar prior on title-null rows
+      // (guarded so it never hides white-collar roles sitting in a blue-collar
+      // org bucket), `experienceLevel` as a seniority fill. Non-SR rows pass
+      // undefined for these and behave exactly like the old title-only rules.
+      const cls = classifyJob({
+        title: j.title,
+        srFunction: j.sr_function,
+        srExperienceLevel: j.sr_experience_level,
+      });
       row.job_family = cls.family;
       row.is_target = cls.is_target;
       row.seniority = cls.seniority;
       if (cls.confidence === 'high') {
         row.classified_at = nowIso;
-        row.classified_by = 'rules';
+        row.classified_by = cls.classified_by;
       }
     }
     return row;

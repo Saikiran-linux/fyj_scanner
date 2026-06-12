@@ -463,13 +463,16 @@
       "title": "Capture SmartRecruiters function/industry/experienceLevel structured fields",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "planned",
+      "status": "in_progress",
       "trigger": "The SR postings blob carries standardized enums (function, industry, experienceLevel) that the parser drops today (verified live 2026-06-12). function is a fixed taxonomy incl. Warehouse / Skilled Labor & Trades / Restaurant-Food Service / Retail / Transportation / Production / Health Care Provider — a clean blue-collar signal on the most blue-collar-heavy source. Helps relevance (f-113) and matching seniority (experienceLevel).",
       "scope": "Extend SR parse()/fetchDetail() in src/providers.mjs to emit function/industry/experience_level; add nullable columns on jobs; use function as a positive blue-collar prior in classify (caveat: SR often sets function='Other', so a prior, not a gate). See docs/blue-collar-filtering.md.",
+      "status_note": "DONE (parser + classifier + ingest, branch claude/lucid-allen-139j1g): SR parse()/fetchDetail() now emit sr_function/sr_industry/sr_experience_level. New classifyJob() in classify.mjs resolves with title-precedence + a guarded blue-collar-function prior — CRITICAL finding (user, live-verified): SR `function` is the ORG BUCKET not the role (Production hires PMs/BI Analysts/PCB Engineers), so a naive function→is_target=false gate mislabels ~7.4% of blue-function postings. Guard: function only flips title-NULL rows, and only when the title has NO knowledge-worker token (manager/engineer/analyst/...); else left for the LLM. experienceLevel→seniority fill (role-orthogonal, never overrides title). scan.mjs ingest wired. 16 unit tests (test/classify.test.mjs, live SR fixtures) green; live e2e on Expeditors confirms parse+classify flow. REMAINING: persist sr_* columns on jobs (schema.sql migration) + backfill the existing 58k unclassified from R2 blobs (needs migration apply + backfill run; not done — no prod schema change this session). industry left captured-but-unused (employer-level).",
       "touches": [
         "src/providers.mjs",
-        "supabase/schema.sql (jobs columns)",
-        "src/classify.mjs"
+        "src/classify.mjs",
+        "src/scan.mjs",
+        "test/classify.test.mjs",
+        "supabase/schema.sql (jobs columns — REMAINING)"
       ]
     },
     {

@@ -372,6 +372,13 @@ export const PROVIDERS = {
             locationStr: location,
           }),
           source_published_at: toIso(j.releasedDate),
+          // SR-only structured taxonomy (f-121). Present in the listing at zero
+          // extra fetch cost; consumed by classifyJob() as a relevance prior
+          // (function), a seniority fill (experienceLevel), and metadata
+          // (industry). Other providers don't expose these — left undefined.
+          sr_function: j.function?.label || null,
+          sr_industry: j.industry?.label || null,
+          sr_experience_level: j.experienceLevel?.label || null,
         };
       });
     },
@@ -424,6 +431,10 @@ export const PROVIDERS = {
           employment_type: j.typeOfEmployment?.label || null,
           location: loc.fullLocation || [loc.city, loc.country].filter(Boolean).join(', ') || null,
           source_published_at: toIso(j.releasedDate),
+          // Structured taxonomy (f-121) — also present on the detail payload.
+          sr_function: j.function?.label || null,
+          sr_industry: j.industry?.label || null,
+          sr_experience_level: j.experienceLevel?.label || null,
         },
       };
     },
