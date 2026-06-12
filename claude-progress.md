@@ -6,6 +6,28 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-12 (b) · f-121 — SmartRecruiters structured signals wired into classification (parser + classifier + tests)
+
+Tore down every field returned by all 5 ATSes (live probes). Verdict: **title is the only reliable cross-ATS role signal; the one clean structured signal in the whole pipeline is SmartRecruiters' `function`/`experienceLevel`/`industry` enums — and they're in the LISTING blob at zero extra fetch cost** (the parser was dropping them). Quantified live: `function` is 100% populated, only 10% `'Other'`.
+
+**Critical correction (from the user, then live-verified):** SR `function` is the **org bucket the req lives in, not the role**. A Production unit hires Project Managers, BI Analysts, PCB Engineers. A naive `function=blue→is_target=false` gate mislabels **~7.4%** of blue-collar-function postings (real target roles hidden). So `function` can never be a gate.
+
+**Shipped (branch `claude/lucid-allen-139j1g`):**
+- `src/classify.mjs` — new `classifyJob({title, srFunction, srExperienceLevel})`. **Title is authoritative.** `function` is only a NEGATIVE prior on title-NULL rows, and only when the title carries no knowledge-worker token (`manager|engineer|analyst|scientist|developer|...`) — so PM/BI-Analyst/PCB-Engineer in a blue bucket stay null → LLM, never auto-hidden. `experienceLevel`→`seniority` fill (role-orthogonal; never overrides a title-set seniority). `classifyTitle` unchanged (backward compat).
+- `src/providers.mjs` — SR `parse()` + `fetchDetail()` now emit `sr_function`/`sr_industry`/`sr_experience_level`.
+- `src/scan.mjs` — ingest classification calls `classifyJob` with the SR fields; `classified_by` now reflects `rules`|`sr_function`|`low`.
+- `test/classify.test.mjs` (+ `npm test` → `node --test test/*.test.mjs`) — **16 tests, all green**, using the real live SR samples as fixtures (the user's PM/BI-Analyst cases pinned). Live e2e on `Expeditors`: 60/60 `sr_function` populated; "Air Import Agent"/"Air & Ocean Coordinator" flip to non-target, "Managing Consultant"/"Senior Ocean Export Analyst" correctly protected.
+
+**Columns + backfill (this session, prod):**
+- **Schema:** `sr_function`/`sr_industry`/`sr_experience_level` columns added to `jobs` — `schema.sql` (idempotent) + applied migration `add_smartrecruiters_structured_fields`. Verified live.
+- **Backfill script:** `scripts/backfill-sr-signals.mjs` (+ `npm run backfill-sr-signals`) — re-fetches each SR company's listing, writes `sr_*` unconditionally, and re-classifies only still-unclassified rows with `classifyJob` (high-confidence only; never clobbers an existing rules/LLM verdict). **Caught a real bug here:** `classifyJob` returns `family` (not `job_family`) — the first draft read `cls.job_family` (undefined), which would have made the whole backfill a silent no-op. Fixed + the generator that revealed it.
+- **Verified on 300 live SR jobs** (Expeditors/EnviriCorp/TheTileShop1): 222 high-confidence (133 title-rules, **89 function-guard flips**), 78 left null; protected cases (Managing Consultant, Ocean Export Analyst) correctly stay null.
+- **Applied a real prod slice** (TheTileShop1, via MCP): no-clobber guard skipped 11/12 already-classified rows; end-state shows title-precedence holding live — "VP, Global Supply Chain" under `sr_function=Manufacturing` stays **target/executive_leadership**, "Warehouse Manager/Associate" → manual_labor.
+
+**Remaining:** full backfill of the **23,722 unclassified active SR rows** — run `npm run backfill-sr-signals` with `SUPABASE_SERVICE_ROLE_KEY` (absent in this container; MCP-only writes can't do 23k cleanly). `industry` captured but unused (employer-level). Residual ambiguous (protected pro-token rows) still need the `--llm` pass (f-115/f-118).
+
+---
+
 ## 2026-06-12 · RESEARCH — captured 3 scale/quality assessments as tracked docs
 
 Wrote up three analyses from this session into `docs/` + `feature_list.json` (no code/prod changes):

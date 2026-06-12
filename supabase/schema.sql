@@ -337,7 +337,18 @@ alter table public.jobs add column if not exists job_family    text;
 alter table public.jobs add column if not exists is_target     boolean;
 alter table public.jobs add column if not exists seniority     text;
 alter table public.jobs add column if not exists classified_at timestamptz;
-alter table public.jobs add column if not exists classified_by text;  -- 'rules' | 'llm'
+alter table public.jobs add column if not exists classified_by text;  -- 'rules' | 'sr_function' | 'llm'
+
+-- SmartRecruiters structured taxonomy (f-121). SR uniquely ships these enums in
+-- its listing blob; the other ATSes have no standardized role/seniority field.
+-- sr_function is the ORG BUCKET the requisition lives in (NOT the role), so it's
+-- consumed by classifyJob() only as a guarded blue-collar prior, never a gate
+-- (see src/classify.mjs). sr_experience_level fills the seniority column.
+-- sr_industry is employer-level metadata (captured, not used to gate). Null for
+-- every non-SR job.
+alter table public.jobs add column if not exists sr_function         text;
+alter table public.jobs add column if not exists sr_industry         text;
+alter table public.jobs add column if not exists sr_experience_level text;
 
 -- Drives the "active, surfaceable jobs" filter used by matching + dashboards.
 create index if not exists jobs_target_active_idx on public.jobs (job_family)

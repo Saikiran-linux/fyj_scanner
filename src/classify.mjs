@@ -66,6 +66,100 @@ function seniorityOf(title) {
   return null;
 }
 
+// ── SmartRecruiters structured-signal resolution (f-121) ───────────────────
+//
+// SR uniquely ships `function`, `experienceLevel`, and `industry` enums in its
+// listing blob (the other ATSes have no standardized role/seniority taxonomy).
+// They're tempting as a classifier, but `function` is the ORG BUCKET the
+// requisition lives in, NOT the role — a Production unit hires Project Managers,
+// BI Analysts, and PCB Engineers. Measured live (203 postings in blue-collar
+// functions): a naive function→is_target=false gate mislabels ~7.4% of them
+// (real target roles wrongly hidden). So `function` is used only as a NEGATIVE
+// prior on titles the rules can't resolve, never overrides a title verdict, and
+// stands down when the title carries a knowledge-worker token. `experienceLevel`
+// is genuinely role-orthogonal, so it fills the seniority column where the title
+// is silent. `industry` is employer-level (a Data Scientist at a logistics firm
+// is still target) — not used to gate.
+
+// Collapse enum punctuation/spacing variants to a comparison key
+// ("Restaurant - Food Service" / "Restaurant – Food Service" → "restaurant food service").
+function normEnum(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
+}
+
+// Blue-collar SR `function` labels → the NON_TARGET family to assign when the
+// guard fires. Keyed by normEnum() output. (Customer Service is intentionally
+// absent — call-centre roles are not blue-collar.)
+const SR_FUNCTION_FAMILY = new Map([
+  ['production', 'manual_labor'],
+  ['manufacturing', 'manual_labor'],
+  ['supply chain', 'manual_labor'],
+  ['warehouse', 'manual_labor'],
+  ['transportation', 'manual_labor'],
+  ['health care provider', 'clinical_healthcare'],
+  ['skilled labor trades', 'skilled_trades'],
+  ['restaurant food service', 'service_hospitality'],
+  ['retail', 'retail'],
+]);
+
+// Knowledge-worker role nouns. A blue-collar `function` must NOT flip a title
+// carrying one of these — it's a white-collar role in a blue-collar org bucket
+// (Project Manager in Production, PCB Layout Engineer in Manufacturing). Those
+// rows stay ambiguous for the LLM pass. Deliberately excludes weak/ambiguous
+// tokens (associate/coordinator/specialist) that read either colour.
+const PRO_ROLE_TOKEN = /\b(manager|engineer|analyst|scientist|developer|designer|architect|consultant|accountant|counsel|attorney|controller|comptroller|recruiter|director|programmer|administrator|economist|strateg)/i;
+
+// SR `experienceLevel` enum → our seniority vocabulary. 'Not Applicable' and
+// any unknown value leave seniority untouched.
+const SR_SENIORITY = new Map([
+  ['internship', 'intern'],
+  ['entry level', 'junior'],
+  ['associate', 'junior'],
+  ['mid senior level', 'senior'],
+  ['director', 'director'],
+  ['executive', 'exec'],
+]);
+
+/**
+ * Classify a job from its title plus any structured SmartRecruiters signals.
+ * Title is ALWAYS authoritative; SR signals only fill gaps the title can't
+ * resolve. Non-SR jobs (no srFunction/srExperienceLevel) behave exactly like
+ * classifyTitle().
+ *
+ * @param {{title?: string, srFunction?: string|null, srExperienceLevel?: string|null}} job
+ * @returns {{family: string|null, is_target: boolean|null, seniority: string|null,
+ *            confidence: 'high'|'low', classified_by: 'rules'|'sr_function'|'low'}}
+ *   classified_by tells the caller which signal resolved is_target:
+ *   'rules' = the title rules; 'sr_function' = the blue-collar function guard;
+ *   'low' = still ambiguous, leave for the LLM pass.
+ */
+export function classifyJob({ title = '', srFunction = null, srExperienceLevel = null } = {}) {
+  const base = classifyTitle(title);
+  let { family, is_target, seniority, confidence } = base;
+  let classified_by = confidence === 'high' ? 'rules' : 'low';
+
+  // experienceLevel → seniority, only where the title gave us nothing. This is
+  // orthogonal to the relevance verdict, so it never changes confidence.
+  if (!seniority && srExperienceLevel) {
+    const mapped = SR_SENIORITY.get(normEnum(srExperienceLevel));
+    if (mapped) seniority = mapped;
+  }
+
+  // function: a NEGATIVE prior on the title-null bucket only, and only when the
+  // title has no knowledge-worker token. Never touches a title-resolved verdict.
+  if (is_target === null && srFunction) {
+    const blueFamily = SR_FUNCTION_FAMILY.get(normEnum(srFunction));
+    if (blueFamily && !PRO_ROLE_TOKEN.test(title)) {
+      family = blueFamily;
+      is_target = false;
+      confidence = 'high';
+      classified_by = 'sr_function';
+    }
+  }
+
+  return { family, is_target, seniority, confidence, classified_by };
+}
+
 /**
  * Classify a single title.
  * @returns {{family: string|null, is_target: boolean|null, seniority: string|null, confidence: 'high'|'low'}}
