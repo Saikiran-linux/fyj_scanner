@@ -16,6 +16,7 @@
     "embed-backfill": "node --env-file=.env scripts/backfill-embeddings.mjs",
     "backfill-descriptions": "node --env-file=.env scripts/backfill-descriptions.mjs",
     "backfill-enrichment": "node --env-file=.env scripts/backfill-enrichment.mjs",
+    "backfill-sr-signals": "node --env-file=.env scripts/backfill-sr-signals.mjs",
     "backfill-summaries": "node --env-file=.env scripts/backfill-summaries.mjs",
     "tailor": "node --env-file=.env scripts/tailor-resume.mjs",
     "render": "node scripts/render-resume.mjs",

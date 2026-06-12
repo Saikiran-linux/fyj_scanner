@@ -18,7 +18,13 @@ Tore down every field returned by all 5 ATSes (live probes). Verdict: **title is
 - `src/scan.mjs` — ingest classification calls `classifyJob` with the SR fields; `classified_by` now reflects `rules`|`sr_function`|`low`.
 - `test/classify.test.mjs` (+ `npm test` → `node --test test/*.test.mjs`) — **16 tests, all green**, using the real live SR samples as fixtures (the user's PM/BI-Analyst cases pinned). Live e2e on `Expeditors`: 60/60 `sr_function` populated; "Air Import Agent"/"Air & Ocean Coordinator" flip to non-target, "Managing Consultant"/"Senior Ocean Export Analyst" correctly protected.
 
-**Remaining (NOT done — flagged):** persist `sr_*` columns on `jobs` (schema.sql migration) + backfill the existing ~58k unclassified from R2 blobs. No prod schema change made this session. `industry` captured but unused (employer-level, not role).
+**Columns + backfill (this session, prod):**
+- **Schema:** `sr_function`/`sr_industry`/`sr_experience_level` columns added to `jobs` — `schema.sql` (idempotent) + applied migration `add_smartrecruiters_structured_fields`. Verified live.
+- **Backfill script:** `scripts/backfill-sr-signals.mjs` (+ `npm run backfill-sr-signals`) — re-fetches each SR company's listing, writes `sr_*` unconditionally, and re-classifies only still-unclassified rows with `classifyJob` (high-confidence only; never clobbers an existing rules/LLM verdict). **Caught a real bug here:** `classifyJob` returns `family` (not `job_family`) — the first draft read `cls.job_family` (undefined), which would have made the whole backfill a silent no-op. Fixed + the generator that revealed it.
+- **Verified on 300 live SR jobs** (Expeditors/EnviriCorp/TheTileShop1): 222 high-confidence (133 title-rules, **89 function-guard flips**), 78 left null; protected cases (Managing Consultant, Ocean Export Analyst) correctly stay null.
+- **Applied a real prod slice** (TheTileShop1, via MCP): no-clobber guard skipped 11/12 already-classified rows; end-state shows title-precedence holding live — "VP, Global Supply Chain" under `sr_function=Manufacturing` stays **target/executive_leadership**, "Warehouse Manager/Associate" → manual_labor.
+
+**Remaining:** full backfill of the **23,722 unclassified active SR rows** — run `npm run backfill-sr-signals` with `SUPABASE_SERVICE_ROLE_KEY` (absent in this container; MCP-only writes can't do 23k cleanly). `industry` captured but unused (employer-level). Residual ambiguous (protected pro-token rows) still need the `--llm` pass (f-115/f-118).
 
 ---
 
