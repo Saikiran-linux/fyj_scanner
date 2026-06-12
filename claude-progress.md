@@ -6,6 +6,18 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-12 · RESEARCH — captured 3 scale/quality assessments as tracked docs
+
+Wrote up three analyses from this session into `docs/` + `feature_list.json` (no code/prod changes):
+
+- **`docs/scale-50k-assessment.md`** — measured capacity gap for 3.6k→50k companies (~13.7×). Verdict: data model ready (partitioned + R2 + description split + sharding), but the **Micro 1 GB instance** isn't. Gates: scale compute (f-120), `probe_results` retention (f-904, raised P1), shard/scale the SmartRecruiters per-job fetch (f-109), embedding scope (f-115). Storage $ is trivial; ~$400–500/mo run-rate at 50k.
+- **`docs/blue-collar-filtering.md`** — the relevance layer (f-113) already filters blue-collar (`is_target=false`), but only **45% of active jobs are classified** (55% null leaks). Title is the only reliable cross-ATS signal; **SmartRecruiters `function`/`industry`/`experienceLevel` enums** (verified live) are a strong untapped blue-collar prior the parser drops (f-121). Logged concrete `classify.mjs` regex gaps to harden.
+- **`docs/matching-embedding-assessment.md`** — scorecard of the embedding impl vs the retrieval design space. We've banked the two highest-leverage things (normalization + eval harness) and the reranker is the validated bake-off winner — but it isn't shipped to live `/matches` and only ~9k/106k are embedded. Roadmap: ship reranker + target-slice embed (f-122), hybrid lexical feed (f-122), hard SQL filters (f-114), quantization + active-only HNSW (f-124).
+
+New tracker items: **f-120** (compute), **f-121** (SR structured fields), **f-122** (ship reranker + hybrid), **f-124** (quantization/hot-cold). Extended f-904/f-113/f-115/f-114 with the findings.
+
+---
+
 ## 2026-06-11 (b) · FIX — RECENT SCANS showed 4 rows per sharded cycle
 
 A live N=4 sharded run (f-109) wrote 4 `scans` rows for one cycle (23:19:32, shard_index 0-3), so the overview's RECENT SCANS listed 4 near-duplicate rows with mixed new-counts (one shard windowed = 571, the rest raw), and the by-source panel only saw shard 0.
