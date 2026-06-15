@@ -6,6 +6,37 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-15 · f-102 — slug expansion + scan: index 106k → 169k jobs, pool 5,165 → 7,783 companies
+
+**Discovery (two passes this session):**
+- `scrape-github` (GITHUB_TOKEN, code-search + curated-raw): GH +556→+152, Lever +431→+175, Ashby +46→+157, SR +58→+150 across two rate-limit-separated runs.
+- `scrape-smartrecruiters` deep (SR_MAX_PAGES=30, ~150 keywords incl. German + blue-collar + healthcare): 1,182 unique SR slugs discovered, +637 net new.
+- Final slug counts: GH 1,652 / Lever 1,179 / Ashby 799 / SR 1,450 = **5,080 total** (was 2,844).
+- `build-seeds TARGET_SIZE=10000` + `load-companies`: companies table **5,165 → 7,783** (+2,618 net new, all enabled=true).
+
+**Validation (live probe of 160 sampled new companies, 40/ATS):**
+- SR 85% live / 0% 404, Ashby 68% / 28% 404, GH 57% / 43% 404, Lever 43% / 55% 404.
+- GitHub-sourced GH/Lever slugs are ~50% stale (expected; scraped from old config repos). They auto-disable after 5 consecutive errors — self-cleaning.
+
+**recover-greenhouse:** swept 457 disabled-404 GH companies → 2 recovered via cross-ATS migration (diminishing returns; first harvest was 65 on 06-04).
+
+**Scan 1fd89ee0 (local, unsharded, full 6,270 enabled companies):**
+- new=**64,299** closed=792 write_failed=**0** active_total=**169,375** (was ~105,868)
+- Duration 36.4 min (cron will do same in ~9 min at N=4 sharded)
+- Block-rate 0% all sources. Description pass 2,986/3,000 ok. LLM passes skipped (no OPENAI_API_KEY).
+- 673 errors = stale GH/Lever 404 slugs from GitHub code-search (expected, self-healing).
+
+**Files touched:** `data/slugs-*.json`, `data/seeds.json` — committed + pushed on `claude/vibrant-newton-h7rzzp`, PR #53 merged to main.
+
+**Verified state:** 7,783 companies in DB; 169,375 active jobs; N=4 sharding already on main (PR #49, merged 2026-06-11); write integrity clean.
+
+**What's next:**
+1. `OPENAI_API_KEY` → classify (LLM) + summarize + embed the 64k new jobs so the matcher can see them (f-113/f-115 — biggest remaining blocker)
+2. Slug pool still ~2,200 short of 10k target — diminishing returns from current sources; workatastartup/Workable adapter or more curated GitHub repos needed
+3. Access-control /matches before client résumés go through (f-117)
+
+---
+
 ## 2026-06-12 (b) · f-121 — SmartRecruiters structured signals wired into classification (parser + classifier + tests)
 
 Tore down every field returned by all 5 ATSes (live probes). Verdict: **title is the only reliable cross-ATS role signal; the one clean structured signal in the whole pipeline is SmartRecruiters' `function`/`experienceLevel`/`industry` enums — and they're in the LISTING blob at zero extra fetch cost** (the parser was dropping them). Quantified live: `function` is 100% populated, only 10% `'Other'`.
