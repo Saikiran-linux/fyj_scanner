@@ -196,15 +196,21 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "current": "Slug files: Greenhouse 883 · Lever 1217 · Ashby 350 · SmartRecruiters 558 (was 15). DB SR tenants 18 → 561 enabled (companies total 4,622 → 5,165), loaded 2026-06-04.",
-      "finding": "SmartRecruiters has a public, unauthenticated job-search API (jobs.smartrecruiters.com/sr-jobs/search) returning company.identifier — the exact postings-API slug. Read SR's own index instead of a static curated list: 543 new slugs in 45s, all self-verifying (live postings today). Sample probe 24/25 live, 1.8k jobs, 0% block. Better than the planned 'curated bootstrap'. grep.app (auth-free GitHub index) is now behind a security checkpoint, and REST code-search needs a token — so the GitHub path is token-gated.",
-      "next": "Run scrape-github with a GITHUB_TOKEN to harvest GH/Lever/Ashby slugs from code-search (curated-raw mode runs token-free but is low-yield). Consider similar public-search discovery for other ATSes. Next scan folds the 543 new SR tenants (~tens of k jobs) into the index.",
+      "current": "Slug files: GH 1,652 · Lever 1,179 · Ashby 799 · SR 1,450 = 5,080 total. DB companies 5,165 → 7,783 (+2,618), loaded 2026-06-15. Index 106k → 169k active jobs on first post-expansion scan (scan 1fd89ee0, write_failed=0, 0% block-rate all sources).",
+      "finding": "Two-pass discovery this session: (1) scrape-github with GITHUB_TOKEN (code-search + curated-raw) harvested GH/Lever/Ashby/SR slugs — GitHub-sourced GH/Lever ~50% stale (old config repos) but the live ones are large boards (98–117 avg jobs). (2) scrape-smartrecruiters deep (SR_MAX_PAGES=30, ~150 keywords) discovered 1,182 unique SR slugs, 85% live, 0% 404 — self-verifying since it reads SR's own live index. SR is the highest-quality source. recover-greenhouse swept 457 disabled-404 rows, recovered 2 (diminishing returns post-06-04 harvest).",
+      "next": "Gap to 10k: ~2,200 companies. Current sources near-exhausted at current depth. Options: (a) workatastartup/Workable adapter (1,370 companies already tracked but not discoverable via scrapers), (b) additional curated GitHub config-repo lists, (c) re-run scrape-github after next rate-limit reset for more Lever/Ashby slugs.",
+      "evidence": [
+        "2026-06-15: companies 5,165→7,783; scan 1fd89ee0: new=64,299, active=169,375, write_failed=0, block_rate=0%, duration=36.4min unsharded"
+      ],
       "touches": [
-        "seed/lib.mjs (new, shared extractors+merge)",
-        "seed/scrape-smartrecruiters.mjs (new, run+loaded)",
-        "seed/scrape-github.mjs (new, token-gated)",
-        "package.json",
-        "data/slugs-smartrecruiters.json"
+        "seed/lib.mjs",
+        "seed/scrape-smartrecruiters.mjs",
+        "seed/scrape-github.mjs",
+        "data/slugs-greenhouse.json",
+        "data/slugs-lever.json",
+        "data/slugs-ashby.json",
+        "data/slugs-smartrecruiters.json",
+        "data/seeds.json"
       ]
     },
     {
