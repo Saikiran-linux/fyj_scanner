@@ -163,6 +163,8 @@ naming in `HOSTED_PLATFORM_PLAN.md`.)
 
 - **`ops-console/`** in the monorepo, Next.js 15 + TypeScript + App Router/RSC, its own
   `package.json`, deployed independently on Vercel (root directory = `ops-console`).
+- **Visual design:** light/airy, Clay-inspired shell (slim icon rail, hero command bar, quick-action
+  cards, clean data tables). Full token set + component spec in [`ops-console-ui.md`](ops-console-ui.md).
 - **Auth:** Supabase Auth (magic-link + Google, already enabled) → org bootstrap on first signup → invites.
 - **Data access:** RLS-scoped `@supabase/ssr` client for tenant reads/writes; **service-role client
   (server-only)** for embed/match/eval. Service role never reaches the browser.

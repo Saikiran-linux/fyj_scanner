@@ -638,8 +638,8 @@
       "priority": "P0",
       "status": "planned",
       "depends_on": ["f-131"],
-      "scope": "ops-console/ Next.js 15 + TS + App Router/RSC, own package.json, Vercel root-dir deploy. @supabase/ssr RLS-scoped client + server-only service-role client. Generated lib/database.types.ts + CI drift check. Org-create-on-first-signup + members/invite/role screen (admin).",
-      "notes": "P1 foundation. Keeps status-page untouched."
+      "scope": "ops-console/ Next.js 15 + TS + App Router/RSC, own package.json, Vercel root-dir deploy. @supabase/ssr RLS-scoped client + server-only service-role client. Generated lib/database.types.ts + CI drift check. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind v4 tokens).",
+      "notes": "P1 foundation. Keeps status-page untouched. Visual spec: docs/ops-console-ui.md."
     },
     {
       "id": "f-134",
