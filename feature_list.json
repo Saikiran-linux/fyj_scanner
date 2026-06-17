@@ -626,9 +626,12 @@
       "title": "search_jobs/get_job RPC (parameterized) — index read-API for ops-console",
       "phase": "ops-console",
       "priority": "P0",
-      "status": "planned",
+      "status": "shipped",
       "depends_on": ["f-114"],
       "scope": "On the fyj job index (Supabase): search_jobs(query_vec, filters jsonb) RPC (target_only lens + family/seniority/remote/comp/recency filters) + get_job(id). Backward-compatible additive args. Exposed for HTTPS calls from Cloudflare Workers. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
+      "evidence": [
+        "supabase/schema.sql: search_jobs(query_vec vector, filters jsonb) + get_job(p_job_id, p_company_id). Applied to prod (migration add_search_jobs_and_get_job_rpcs) 2026-06-17 and verified live: targetOnly/families/since paths correct (self-match 1.0000); get_job returns the 7 camelCase keys + slug + 1771-char description, null on miss. Grants to anon/authenticated/service_role. Matches the fyj Worker contract src/index-client.ts. fyj_scanner PR #57."
+      ],
       "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape + the read-only contract the ops-console repo depends on. Lives in fyj_scanner."
     },
     {
@@ -636,9 +639,10 @@
       "title": "ops-console scaffold (new repo: Cloudflare Workers/Pages + Neon/Hyperdrive + Better Auth)",
       "phase": "ops-console",
       "priority": "P0",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": ["f-131"],
       "scope": "New repo. Next.js (TS, App Router) on Cloudflare Pages/Workers. Workers API; Drizzle over Neon via Hyperdrive; Better Auth (users in Neon); per-request SET LOCAL app.* GUC middleware + mandatory org-scoped Drizzle repository layer; non-BYPASSRLS DB role. Thin typed search_jobs/get_job index client. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind tokens).",
+      "status_note": "BACKEND LANDED (fyj repo, PR #1): Better Auth factory (Drizzle adapter over Hyperdrive, per-request; app-owned orgs via SECURITY DEFINER signup bootstrap, not the org plugin) + auth-schema; resolvePrincipal() via SECURITY DEFINER resolvers; the mandatory org-scoped repository (every call -> withTenant -> RLS); Hono tenant API (auth mount + 401/403 middleware + role-guarded routes). db/policies.sql extended with resolvers + bootstrap. Verified: npm run typecheck clean + db:generate emits drizzle/0000 (14 tables). NOT runtime-verified (needs a provisioned Neon DB + Hyperdrive/secrets). REMAINING: the Next.js UI shell (docs/ops-console-ui.md); provision infra (db:migrate -> db:policies) + smoke-test auth->principal->RLS.",
       "notes": "P1 foundation. Lives in its own repo (not fyj_scanner). Visual spec: docs/ops-console-ui.md."
     },
     {

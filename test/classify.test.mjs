@@ -125,3 +125,38 @@ test('classifyTitle is unchanged (backward compatibility)', () => {
     family: 'service_hospitality', is_target: false, seniority: null, confidence: 'high',
   });
 });
+
+// ── f-113 rule-gap hardening (2026-06-17) ──────────────────────────────────
+// Blue-collar titles that previously fell through to null (confidence:'low')
+// and leaked into the surfaced index. Sampled live from the 55% unclassified
+// bucket (see feature_list.json f-113 rule_gaps_found / coverage notes).
+const RULE_GAP_MISSES = [
+  ['Food and Beverage Attendant', 'service_hospitality'], // 'and', not just '&'
+  ['Licensed Practical Nurse', 'clinical_healthcare'],     // spelled-out, \blpn\b missed
+  ['Practical Nurse', 'clinical_healthcare'],
+  ['Mental Health Therapist', 'clinical_healthcare'],
+  ['Diversional Therapist', 'clinical_healthcare'],
+  ['Spa Therapist', 'service_hospitality'],
+  ['Auto Body Repair Technician', 'skilled_trades'],
+  ['Reconditioning Technician', 'skilled_trades'],
+  ['Distribution Technician', 'manual_labor'],
+];
+for (const [title, family] of RULE_GAP_MISSES) {
+  test(`rule-gap: "${title}" → ${family} (non-target)`, () => {
+    const c = classifyTitle(title);
+    assert.equal(c.is_target, false, `${title} should be non-target`);
+    assert.equal(c.family, family);
+    assert.equal(c.confidence, 'high');
+  });
+}
+
+// Precision guard: the new patterns must NOT capture knowledge-worker roles.
+// NON_TARGET is checked before TARGET, so a too-greedy blue-collar pattern
+// would silently hide these. The 'distribution X' additions are scoped to
+// technician|associate|worker, so an engineering/planning title stays out of
+// manual_labor (left null → surfaced, never hidden).
+test('precision: new blue-collar patterns do not hide knowledge-worker roles', () => {
+  assert.equal(classifyTitle('Distribution Engineer').is_target, null);
+  assert.equal(classifyTitle('Power Distribution Planner').is_target, null);
+  assert.equal(classifyTitle('Reconditioning Program Manager').is_target, false); // 'reconditioning' is non-target context, by design
+});

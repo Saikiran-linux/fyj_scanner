@@ -433,6 +433,89 @@ begin
 end;
 $$;
 
+-- ── ops-console read contract: search_jobs / get_job (f-132 / f-114) ──
+-- The ONLY coupling between the fyj_scanner index and the fyj ops-console
+-- (Product A). Both are PostgREST RPCs the ops-console Worker calls over HTTPS
+-- (src/index-client.ts): search_jobs for vector+filter retrieval, get_job to
+-- hydrate one posting for display. Additive and backward-compatible — the
+-- existing match_resume* RPCs are untouched. Keep this contract stable so the
+-- two repos deploy independently.
+--
+-- Relevance is PARAMETERIZED here (f-114), not hardcoded: staffing passes
+-- targetOnly=true (the match_resume* behaviour — surface target + unclassified,
+-- hide only known-noise) while Product B can pass targetOnly=false to search the
+-- whole index. filters is the camelCase JSON object the Worker sends:
+--   { targetOnly?: bool=true, families?: text[], seniority?: text[],
+--     remote?: bool, compFloor?: number, since?: ISO-ts, limit?: int }
+-- Unknown/omitted keys impose no constraint. Hard filters are SQL predicates
+-- (not soft-matched in the embedding) per docs/matching-embedding-assessment.md.
+create or replace function public.search_jobs(query_vec vector, filters jsonb default '{}'::jsonb)
+returns table (job_id uuid, company_id uuid, score numeric)
+language plpgsql stable as $$
+declare
+  v_target_only boolean     := coalesce((filters->>'targetOnly')::boolean, true);
+  v_families    text[]      := case when jsonb_typeof(filters->'families')  = 'array'
+                                    then array(select jsonb_array_elements_text(filters->'families'))  end;
+  v_seniority   text[]      := case when jsonb_typeof(filters->'seniority') = 'array'
+                                    then array(select jsonb_array_elements_text(filters->'seniority')) end;
+  v_remote      boolean     := (filters->>'remote')::boolean;
+  v_comp_floor  numeric     := (filters->>'compFloor')::numeric;
+  v_since       timestamptz := (filters->>'since')::timestamptz;
+  v_limit       integer     := least(greatest(coalesce((filters->>'limit')::integer, 50), 1), 500);
+begin
+  -- HNSW only explores hnsw.ef_search candidates before WHERE/LIMIT apply, so a
+  -- selective filter can starve the result below v_limit. Over-fetch the pool
+  -- (bounded 100..1000) to keep recall up under post-filtering (same lever as
+  -- match_resume_candidates; see f-114 hard_filter_note for the pgvector-0.8
+  -- iterative-scan upgrade path).
+  perform set_config('hnsw.ef_search', greatest(100, least(v_limit * 4, 1000))::text, true);
+  return query
+    select j.id, j.company_id,
+           round((1 - (j.embedding <=> query_vec))::numeric, 4) as score
+    from public.jobs j
+    where j.closed_at is null
+      and j.embedding is not null
+      -- targetOnly=true → hide known-noise, keep unclassified visible (f-113).
+      and (not v_target_only or j.is_target is not false)
+      and (v_families   is null or j.job_family = any (v_families))
+      and (v_seniority  is null or j.seniority  = any (v_seniority))
+      -- remote=true requires a remote-friendly posting; false/absent = no filter.
+      and (v_remote is null or v_remote = false or lower(coalesce(j.remote, '')) like '%remote%')
+      -- compFloor is a floor on the TOP of the published range; unknown comp
+      -- does not clear a floor, so null-comp rows are excluded when it is set.
+      and (v_comp_floor is null or j.comp_max >= v_comp_floor)
+      -- since enables incremental matching (the matcher passes last_run_at).
+      and (v_since is null or j.first_seen_at > v_since)
+    order by j.embedding <=> query_vec
+    limit v_limit;
+end;
+$$;
+
+-- Hydrate one posting for display. Returns a single JSON object with the
+-- camelCase keys the Worker's JobDetail expects (or SQL NULL → JSON null when
+-- the job is absent). Filtering on company_id lets the hash-partition prune.
+create or replace function public.get_job(p_job_id uuid, p_company_id uuid)
+returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'jobId',       j.id,
+    'companyId',   j.company_id,
+    'title',       j.title,
+    'company',     c.slug,
+    'location',    j.location,
+    'url',         j.url,
+    'description', jd.description
+  )
+  from public.jobs j
+  join public.companies c on c.id = j.company_id
+  left join public.job_descriptions jd on jd.job_id = j.id
+  where j.id = p_job_id and j.company_id = p_company_id
+  limit 1;
+$$;
+
+grant execute on function public.search_jobs(vector, jsonb) to anon, authenticated, service_role;
+grant execute on function public.get_job(uuid, uuid)        to anon, authenticated, service_role;
+
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
 -- lives in probe_results.
