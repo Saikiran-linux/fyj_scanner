@@ -1,0 +1,41 @@
+{
+  // Ops Console Worker. Regenerate types after editing bindings: `npm run cf-typegen`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fyj-ops-console",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // Pooled Postgres connection to Neon. Create the Hyperdrive config pointing at
+  // the Neon POOLED connection string, then paste its id here.
+  //   wrangler hyperdrive create fyj-ops --connection-string="postgres://ops_app:...@...neon.tech/...?sslmode=require"
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "<HYPERDRIVE_ID>",
+      "localConnectionString": "postgres://ops_app:password@localhost:5432/ops_console"
+    }
+  ],
+
+  // Resume uploads.
+  "r2_buckets": [{ "binding": "RESUMES", "bucket_name": "fyj-resumes" }],
+
+  // Hydrated job-detail cache (from the fyj index get_job).
+  "kv_namespaces": [{ "binding": "JOB_CACHE", "id": "<KV_NAMESPACE_ID>" }],
+
+  // Continuous matcher: cron enqueues active campaigns; the consumer matches each.
+  "queues": {
+    "producers": [{ "binding": "MATCH_QUEUE", "queue": "fyj-match" }],
+    "consumers": [{ "queue": "fyj-match", "max_batch_size": 10, "max_retries": 3 }]
+  },
+
+  // Hourly continuous-matching tick (f-135).
+  "triggers": { "crons": ["17 * * * *"] }
+
+  // Secrets (set via `wrangler secret put`, never here):
+  //   BETTER_AUTH_SECRET, OPENAI_API_KEY, ANTHROPIC_API_KEY, FYJ_INDEX_URL, FYJ_INDEX_KEY
+}

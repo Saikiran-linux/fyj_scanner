@@ -6,6 +6,23 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-17 (c) · Ops Console P1 foundation BUILT (parked here) + session handoff
+
+Built the ops-console P1 backend foundation (f-131) for the **new `fyj` repo** (Cloudflare Workers + Neon + RLS), but **could not push it** — this session is git-scoped to `fyj_scanner` only and the proxy returns `repository not authorized` for `Saikiran-linux/fyj`. So the code is preserved in a pushable place and a full handoff was written for the next session.
+
+**Done this session:**
+- Installed Cloudflare skills (`npx skills add https://github.com/cloudflare/skills`) and used `workers-best-practices` to ground the scaffold.
+- Wrote the full P1 foundation (committed locally as `fyj` `8ae45de`, **unpushed**): Drizzle tenancy schema, `db/policies.sql` (RLS + `app.*` GUC helpers + `can_access_client`/`can_view_as_client` + `ops_app`/`ops_system` roles), `withTenant()` DB client, read-only `search_jobs`/`get_job` index client, continuous matcher, Worker entry (fetch/scheduled/queue), wrangler.jsonc + Drizzle/TS/package skeleton, README.
+- **Preserved it in `fyj_scanner/docs/ops-console-foundation/`** (transport copy) so the unpushed code survives this container.
+- Wrote **`docs/ops-console-handoff.md`** — the master catch-up doc for the new session (decisions, state, transplant steps, next steps, gotchas).
+- Revised plan/UI/feature_list earlier this day to the Cloudflare/Neon architecture (see 2026-06-17 (b)).
+
+**Verified state:** docs + staged code only; no DB/prod/scanner change. `fyj` remote is still empty.
+
+**NEXT SESSION (has `fyj` access):** (1) transplant `docs/ops-console-foundation/` → `fyj` repo, push, open draft PR (steps in handoff §5); (2) build f-132 (search_jobs RPC) here in `fyj_scanner`; (3) f-133 (Better Auth + API + repo layer + Next.js UI shell) in `fyj`. Also: **rotate the leaked Supabase service-role key.**
+
+---
+
 ## 2026-06-17 (b) · PLAN PIVOT — Ops Console backend → Cloudflare + Neon (separate from the job index)
 
 Planning-only (still no schema/prod changes). The user reframed the ops-console: build it as a **standalone product with its own backend on Cloudflare, separate from the job index**. Evaluated "move everything to Cloudflare" and rejected the wholesale swap (D1/SQLite has no pgvector / partitioning / RLS — the index is Postgres-shaped). Landed on a **hybrid at the right seam**.

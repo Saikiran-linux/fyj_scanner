@@ -1,0 +1,12 @@
+node_modules/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+dist/
+.env
+*.log
+
+# Agent tooling — re-materialize with: npx skills add https://github.com/cloudflare/skills
+.agents/
+.claude/
