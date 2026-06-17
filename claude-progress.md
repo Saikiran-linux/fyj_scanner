@@ -6,6 +6,30 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-17 (b) · PLAN PIVOT — Ops Console backend → Cloudflare + Neon (separate from the job index)
+
+Planning-only (still no schema/prod changes). The user reframed the ops-console: build it as a **standalone product with its own backend on Cloudflare, separate from the job index**. Evaluated "move everything to Cloudflare" and rejected the wholesale swap (D1/SQLite has no pgvector / partitioning / RLS — the index is Postgres-shaped). Landed on a **hybrid at the right seam**.
+
+**Architecture decided (supersedes the 2026-06-17 (a) Supabase-Auth/monorepo direction):**
+- **Separate repo**, not a monorepo in fyj_scanner (different runtime + DB; only coupling is a read-only API).
+- **Backend on Cloudflare:** Workers (API + matcher), Pages (frontend), R2 (resumes), Cron Triggers + Queues (continuous matcher), Workers KV (job-detail cache).
+- **Ops DB = Neon Postgres** via **Hyperdrive** — chosen over D1 specifically to **keep RLS**. The two-principal isolation model survives nearly verbatim; only the claim source changes: Worker sets per-request `SET LOCAL app.{user_id,org_id,principal,role,client_id}` and helpers read `current_setting(...)` instead of `auth.jwt()`. Worker connects as a non-BYPASSRLS role (fails closed).
+- **Auth = Better Auth** (users in Neon), replacing Supabase GoTrue + the access-token hook.
+- **Job index stays on Supabase Postgres, READ-ONLY** to ops-console via `search_jobs`/`get_job` over HTTPS. No cross-DB FKs — matches store `job_id`+`company_id`, hydrate detail via API. No scanner changes.
+- Tenant safety = mandatory Drizzle org-scoped repository layer (first line) + RLS (backstop).
+
+**Why we're glad we paused:** the f-131 schema we'd designed is standard Postgres, so it ports to Neon nearly unchanged — and it was never applied to Supabase prod. (Also: a service-role key was pasted in chat earlier — flagged for rotation; never used/committed.)
+
+**Files touched (branch `claude/dreamy-knuth-4m3wlz`):**
+- `docs/ops-console-plan.md` — revised §§1,3,4,5,6,7,8,9,10 for the Cloudflare/Neon architecture (decisions, GUC-based RLS, read-only index API, Cron+Queues matcher, stack table, constraints).
+- `feature_list.json` — `ops-console` phase + f-130/f-131/f-132/f-133/f-134/f-135 updated to the new stack.
+
+**Verified state:** docs + tracker only; JSON validates. No DB/scanner change.
+
+**What's next (P0/P1):** (1) fyj-side `search_jobs`/`get_job` RPC (f-132/f-114) verified callable over HTTPS; (2) stand up the new ops-console repo — Neon DB + Drizzle migrations for the f-131 tenancy schema + RLS + GUC helpers, Workers + Better Auth + Hyperdrive (f-133). Open: confirm whether I create the new repo now (needs a repo target / Cloudflare + Neon accounts) or draft the Drizzle schema + Worker scaffold here first for review.
+
+---
+
 ## 2026-06-17 · PLAN — Ops Console (multi-tenant SaaS front end for Product A)
 
 Planning-only session (no schema/prod changes). Captured the front-end product plan as a durable PRD + tracker entries before any code.

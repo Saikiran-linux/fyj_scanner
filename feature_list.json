@@ -11,7 +11,7 @@
     "phase-6": "Growth instrumentation",
     "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
     "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'.",
-    "ops-console": "Multi-tenant user-facing dashboard (Product A as a SaaS): org -> operator -> client -> profile -> 1:1 campaign, continuous matching, read-only client transparency portal with per-application feedback. Supabase Auth + org-scoped RLS (NOT Clerk); monorepo app at ops-console/. See docs/ops-console-plan.md."
+    "ops-console": "Multi-tenant user-facing dashboard (Product A as a SaaS): org -> operator -> client -> profile -> 1:1 campaign, continuous matching, read-only client transparency portal with per-application feedback. SEPARATE REPO on Cloudflare (Workers + Pages + R2 + Queues), own DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs), Better Auth. Reads the fyj job index read-only via search_jobs/get_job over HTTPS. See docs/ops-console-plan.md."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -609,47 +609,47 @@
       "evidence": [
         "docs/ops-console-plan.md"
       ],
-      "notes": "Multi-tenant SaaS front end for Product A. Decisions locked: monorepo (ops-console/ beside status-page/); Supabase Auth + org-scoped RLS (NOT Clerk); backend owns schema.sql; roles admin/operator/viewer; 1:1 profile->campaign; continuous matching; operator restricted to assigned clients; read-only client portal + per-application feedback, operator-toggleable. See docs/ops-console-plan.md."
+      "notes": "Multi-tenant SaaS front end for Product A. Decisions locked: SEPARATE REPO; backend on Cloudflare (Workers/Pages/R2/Queues); ops DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs); Better Auth; job index read-only via search_jobs/get_job over HTTPS; roles admin/operator/viewer; 1:1 profile->campaign; continuous matching (Cron+Queues); operator restricted to assigned clients; read-only client portal + per-application feedback, operator-toggleable. See docs/ops-console-plan.md. (Superseded earlier Supabase-Auth/monorepo direction.)"
     },
     {
       "id": "f-131",
-      "title": "Org/tenancy schema + two-principal RLS + access-token hook",
+      "title": "Neon tenancy schema + two-principal RLS (Drizzle migrations)",
       "phase": "ops-console",
       "priority": "P0",
       "status": "planned",
       "depends_on": ["f-130"],
-      "scope": "Idempotent additions to supabase/schema.sql: organizations, memberships(admin|operator|viewer), clients(assigned_operator_id, auth_user_id, portal_enabled, portal_permissions), client_profiles(resume_text, parsed_profile, embedding vector(1536), target_filters), campaigns(profile_id UNIQUE), campaign_matches(UNIQUE(campaign_id,job_id)), reports, placements, feedback(signal enum), audit_log. RLS helpers auth.org_id()/principal()/role_name()/client_id() + can_access_client(); custom access-token hook stamps principal/org_id/role|client_id. Client principal = SELECT + feedback-INSERT-only allow-list. org_id denormalized on every table.",
-      "notes": "RLS is the security boundary. Every table ships policies in the same migration. P1 foundation."
+      "scope": "Drizzle migrations against the ops-console's own Neon DB: users (Better Auth), organizations, memberships(admin|operator|viewer), clients(assigned_operator_id, auth_user_id, portal_enabled, portal_permissions), client_profiles(resume_text, parsed_profile, embedding vector(1536) via pgvector, target_filters), campaigns(profile_id UNIQUE), campaign_matches(job_id+company_id refs, no cross-DB FK, UNIQUE(campaign_id,job_id)), reports, placements, feedback(signal enum), audit_log. RLS helpers app.current_org_id()/principal()/role()/client_id() reading per-request SET LOCAL GUCs (not auth.jwt()) + can_access_client() security definer. Client principal = SELECT + feedback-INSERT-only allow-list. org_id + client_id denormalized for flat policies.",
+      "notes": "RLS preserved on Neon; claim source = GUCs set by the Worker per request. Worker connects as non-BYPASSRLS role (fails closed). NOTE: NOT applied to Supabase (earlier plan); targets Neon now. P1 foundation."
     },
     {
       "id": "f-132",
-      "title": "search_jobs RPC (parameterized) — campaign matching contract",
+      "title": "search_jobs/get_job RPC (parameterized) — index read-API for ops-console",
       "phase": "ops-console",
       "priority": "P0",
       "status": "planned",
       "depends_on": ["f-114"],
-      "scope": "Shared search_jobs(query_vec, filters jsonb) RPC: target_only lens + family/seniority/remote/comp/recency filters. Backward-compatible additive args. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
-      "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape for the console."
+      "scope": "On the fyj job index (Supabase): search_jobs(query_vec, filters jsonb) RPC (target_only lens + family/seniority/remote/comp/recency filters) + get_job(id). Backward-compatible additive args. Exposed for HTTPS calls from Cloudflare Workers. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
+      "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape + the read-only contract the ops-console repo depends on. Lives in fyj_scanner."
     },
     {
       "id": "f-133",
-      "title": "Next.js ops-console scaffold (Supabase Auth + typed client + org bootstrap)",
+      "title": "ops-console scaffold (new repo: Cloudflare Workers/Pages + Neon/Hyperdrive + Better Auth)",
       "phase": "ops-console",
       "priority": "P0",
       "status": "planned",
       "depends_on": ["f-131"],
-      "scope": "ops-console/ Next.js 15 + TS + App Router/RSC, own package.json, Vercel root-dir deploy. @supabase/ssr RLS-scoped client + server-only service-role client. Generated lib/database.types.ts + CI drift check. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind v4 tokens).",
-      "notes": "P1 foundation. Keeps status-page untouched. Visual spec: docs/ops-console-ui.md."
+      "scope": "New repo. Next.js (TS, App Router) on Cloudflare Pages/Workers. Workers API; Drizzle over Neon via Hyperdrive; Better Auth (users in Neon); per-request SET LOCAL app.* GUC middleware + mandatory org-scoped Drizzle repository layer; non-BYPASSRLS DB role. Thin typed search_jobs/get_job index client. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind tokens).",
+      "notes": "P1 foundation. Lives in its own repo (not fyj_scanner). Visual spec: docs/ops-console-ui.md."
     },
     {
       "id": "f-134",
-      "title": "Clients + profiles + resume embed (process-resume edge fn)",
+      "title": "Clients + profiles + resume embed (R2 upload + parse/embed Worker)",
       "phase": "ops-console",
       "priority": "P1",
       "status": "planned",
       "depends_on": ["f-133", "f-132"],
-      "scope": "Assignment-scoped client CRUD; client_profiles with resume upload to resumes bucket; process-resume edge function parses PDF/DOCX -> text -> OpenAI embedding -> profile.embedding + parsed_profile. P2.",
-      "notes": "Reuses src/embeddings.mjs logic. Honors resumes-bucket RLS."
+      "scope": "Assignment-scoped client CRUD; client_profiles with resume upload to R2; a Worker parses PDF/DOCX -> text -> OpenAI/Voyage embedding -> profile.embedding + parsed_profile (stored in Neon). P2.",
+      "notes": "Reuses src/embeddings.mjs patterns. R2 keys in resume_storage_path; access gated by app-layer authz + RLS."
     },
     {
       "id": "f-135",
@@ -658,9 +658,8 @@
       "priority": "P1",
       "status": "planned",
       "depends_on": ["f-134", "f-132"],
-      "scope": "1:1 campaign per profile. Scheduled incremental matcher: for each active campaign, run search_jobs over jobs with first_seen_at > last_run_at (embedded + target lens), upsert campaign_matches. Matches feed UI + operator curation (save/shortlist/dismiss).",
-      "open_decision": "Run as GitHub Actions cron (like the scanner) vs pg_cron + RPC. Must not interfere with the scan close-sweep (hard rule #2).",
-      "notes": "P3. Incremental keeps LLM/embed cost bounded (hard rule #5)."
+      "scope": "1:1 campaign per profile. Cloudflare Cron Trigger enqueues active campaigns -> Queue consumer per campaign calls index search_jobs (first_seen_at > last_run_at, embedded + target lens) over HTTPS, upserts campaign_matches in Neon. Matches feed UI + operator curation (save/shortlist/dismiss).",
+      "notes": "P3. Cron Triggers + Queues handle fan-out + retries. Read-only on the index (can't touch the close-sweep). Incremental keeps LLM/embed cost bounded."
     },
     {
       "id": "f-136",
