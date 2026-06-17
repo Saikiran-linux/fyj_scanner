@@ -6,6 +6,24 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-17 · ops-console: foundation transplanted to `fyj` + f-132 read contract + f-133 backend + f-113 rule fix
+
+Multi-repo session continuing the ops-console build (Product A). Branch `claude/eager-keller-e92gc8` in **both** repos.
+
+**f-132 — `search_jobs` / `get_job` RPCs (fyj_scanner, the ops-console read contract).** Additive, read-only PostgREST RPCs; `match_resume*` untouched. `search_jobs(query_vec vector, filters jsonb)` parameterizes relevance (f-114): `targetOnly` default true (= today's `is_target is not false`; false = whole index for Product B), `families[]`/`seniority[]`/`remote`/`compFloor` as hard SQL predicates, `since` for incremental matching; lifts `hnsw.ef_search` to over-fetch under post-filtering. `get_job(p_job_id,p_company_id)` returns the camelCase JSON the Worker's `JobDetail` expects (description from `job_descriptions`; company_id arg prunes the hash partition). **Applied to prod** (`add_search_jobs_and_get_job_rpcs`) **+ verified live**: all filter paths correct (self-match 1.0000), get_job returns 7 keys + slug + 1771-char desc, null on miss. → `supabase/schema.sql`. **fyj_scanner PR #57** (draft).
+
+**Foundation transplant → `fyj` repo.** The P1 foundation parked in `docs/ops-console-foundation/` (PR #56) was copied into the empty `Saikiran-linux/fyj` repo, bootstrapped on an empty `main`, pushed. **fyj PR #1** (draft). Fixed real foundation build bugs: drizzle-orm→^0.45.2 + drizzle-kit→^0.31.4 (better-auth peer), `@types/node`, `scheduled()` typed `ScheduledController`.
+
+**f-133 — auth + tenant data plane (fyj repo).** Better Auth (Drizzle adapter, per-request over Hyperdrive; app-owned orgs via a SECURITY DEFINER signup bootstrap, not the better-auth org plugin); `resolvePrincipal()` via SECURITY DEFINER resolvers; the **mandatory org-scoped repository** (every call → `withTenant` → RLS); Hono tenant API (auth mount + 401/403 middleware + role-guarded routes). Used the official better-auth skills. **Verified: `npm run typecheck` clean + `db:generate` emits drizzle/0000 (14 tables).** NOT runtime-verified — needs a provisioned Neon DB + Hyperdrive/secrets.
+
+**f-113 — classifier blue-collar rule hardening (fyj_scanner).** Closed documented `rule_gaps_found` recall misses (food-and-beverage, spelled-out practical nurse, mental-health/diversional/spa therapist, auto body, reconditioning, distribution technician). Concrete phrases checked before TARGET; precision-guarded. 26/26 unit tests green. → `src/classify.mjs`, `test/classify.test.mjs` (PR #57).
+
+**Tracker note:** f-130–f-138 entries live on PR #56's `feature_list.json` (not this branch), so statuses weren't edited here to avoid a merge conflict — when #56 merges, mark **f-132 shipped** and **f-133 in_progress (backend landed, UI + live infra pending)**.
+
+**What's next:** (1) merge #56 then #57 + fyj #1; (2) provision Neon + Hyperdrive/R2/KV/Queue + secrets, run `db:migrate` then `db:policies`, smoke-test auth→principal→RLS; (3) **f-133 cont.: the Next.js UI shell** (`docs/ops-console-ui.md`); (4) f-134 resume→R2→embed, then f-135 wire the matcher live.
+
+---
+
 ## 2026-06-15 · f-102 — slug expansion + scan: index 106k → 169k jobs, pool 5,165 → 7,783 companies
 
 **Discovery (two passes this session):**
