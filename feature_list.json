@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-12",
+  "updated_at": "2026-06-17",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -10,7 +10,8 @@
     "phase-5": "Billing + feedback loop + polish",
     "phase-6": "Growth instrumentation",
     "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
-    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'."
+    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'.",
+    "ops-console": "Multi-tenant user-facing dashboard (Product A as a SaaS): org -> operator -> client -> profile -> 1:1 campaign, continuous matching, read-only client transparency portal with per-application feedback. SEPARATE REPO on Cloudflare (Workers + Pages + R2 + Queues), own DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs), Better Auth. Reads the fyj job index read-only via search_jobs/get_job over HTTPS. See docs/ops-console-plan.md."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -598,6 +599,97 @@
       "status": "planned",
       "trigger": "probe_results has no retention. Now 321k rows / 62 MB at 3.6k companies. At the queued 50k companies x ~4 scans/day = ~200k rows/day = ~73M/year, it dwarfs everything and bloats backups. MUST fix before 50k onboarding. See docs/scale-50k-assessment.md gate 2.",
       "scope": "Keep last 7-30 days raw (or roll up into daily per-source aggregates then drop) via a scheduled SQL function."
+    },
+    {
+      "id": "f-130",
+      "title": "Ops Console — PRD + tenancy/RBAC plan",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "in_progress",
+      "evidence": [
+        "docs/ops-console-plan.md"
+      ],
+      "notes": "Multi-tenant SaaS front end for Product A. Decisions locked: SEPARATE REPO; backend on Cloudflare (Workers/Pages/R2/Queues); ops DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs); Better Auth; job index read-only via search_jobs/get_job over HTTPS; roles admin/operator/viewer; 1:1 profile->campaign; continuous matching (Cron+Queues); operator restricted to assigned clients; read-only client portal + per-application feedback, operator-toggleable. See docs/ops-console-plan.md. (Superseded earlier Supabase-Auth/monorepo direction.)"
+    },
+    {
+      "id": "f-131",
+      "title": "Neon tenancy schema + two-principal RLS (Drizzle migrations)",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-130"],
+      "scope": "Drizzle migrations against the ops-console's own Neon DB: users (Better Auth), organizations, memberships(admin|operator|viewer), clients(assigned_operator_id, auth_user_id, portal_enabled, portal_permissions), client_profiles(resume_text, parsed_profile, embedding vector(1536) via pgvector, target_filters), campaigns(profile_id UNIQUE), campaign_matches(job_id+company_id refs, no cross-DB FK, UNIQUE(campaign_id,job_id)), reports, placements, feedback(signal enum), audit_log. RLS helpers app.current_org_id()/principal()/role()/client_id() reading per-request SET LOCAL GUCs (not auth.jwt()) + can_access_client() security definer. Client principal = SELECT + feedback-INSERT-only allow-list. org_id + client_id denormalized for flat policies.",
+      "notes": "RLS preserved on Neon; claim source = GUCs set by the Worker per request. Worker connects as non-BYPASSRLS role (fails closed). NOTE: NOT applied to Supabase (earlier plan); targets Neon now. P1 foundation."
+    },
+    {
+      "id": "f-132",
+      "title": "search_jobs/get_job RPC (parameterized) — index read-API for ops-console",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-114"],
+      "scope": "On the fyj job index (Supabase): search_jobs(query_vec, filters jsonb) RPC (target_only lens + family/seniority/remote/comp/recency filters) + get_job(id). Backward-compatible additive args. Exposed for HTTPS calls from Cloudflare Workers. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
+      "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape + the read-only contract the ops-console repo depends on. Lives in fyj_scanner."
+    },
+    {
+      "id": "f-133",
+      "title": "ops-console scaffold (new repo: Cloudflare Workers/Pages + Neon/Hyperdrive + Better Auth)",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-131"],
+      "scope": "New repo. Next.js (TS, App Router) on Cloudflare Pages/Workers. Workers API; Drizzle over Neon via Hyperdrive; Better Auth (users in Neon); per-request SET LOCAL app.* GUC middleware + mandatory org-scoped Drizzle repository layer; non-BYPASSRLS DB role. Thin typed search_jobs/get_job index client. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind tokens).",
+      "notes": "P1 foundation. Lives in its own repo (not fyj_scanner). Visual spec: docs/ops-console-ui.md."
+    },
+    {
+      "id": "f-134",
+      "title": "Clients + profiles + resume embed (R2 upload + parse/embed Worker)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-133", "f-132"],
+      "scope": "Assignment-scoped client CRUD; client_profiles with resume upload to R2; a Worker parses PDF/DOCX -> text -> OpenAI/Voyage embedding -> profile.embedding + parsed_profile (stored in Neon). P2.",
+      "notes": "Reuses src/embeddings.mjs patterns. R2 keys in resume_storage_path; access gated by app-layer authz + RLS."
+    },
+    {
+      "id": "f-135",
+      "title": "Continuous campaign matcher (scheduled fan-out)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-134", "f-132"],
+      "scope": "1:1 campaign per profile. Cloudflare Cron Trigger enqueues active campaigns -> Queue consumer per campaign calls index search_jobs (first_seen_at > last_run_at, embedded + target lens) over HTTPS, upserts campaign_matches in Neon. Matches feed UI + operator curation (save/shortlist/dismiss).",
+      "notes": "P3. Cron Triggers + Queues handle fan-out + retries. Read-only on the index (can't touch the close-sweep). Incremental keeps LLM/embed cost bounded."
+    },
+    {
+      "id": "f-136",
+      "title": "Deep eval (A–G) + tailored CV + placements tracker",
+      "phase": "ops-console",
+      "priority": "P2",
+      "status": "planned",
+      "depends_on": ["f-135"],
+      "scope": "On-demand Anthropic A–G report per match (Opus 4.8 / Sonnet 4.6 w/ prompt caching), tailored-CV PDF (port scripts/tailor-resume.mjs), placements kanban. Click-gated cost. P4.",
+      "notes": "reports + placements tables (f-131)."
+    },
+    {
+      "id": "f-137",
+      "title": "Client transparency portal (read-only) + per-application feedback loop",
+      "phase": "ops-console",
+      "priority": "P2",
+      "status": "planned",
+      "depends_on": ["f-135", "f-131"],
+      "scope": "Client invite/link (clients.auth_user_id), portal_enabled gating + portal_permissions. Read-only pipeline timeline (surfaced -> shortlisted -> applied -> outcome). Per-application feedback (structured signal enum + optional rating/note) — the ONLY write a client principal can make. v_campaign_feedback_signals aggregates signals per campaign/profile to drive target_filters tuning and process review.",
+      "notes": "P5. Realizes the HOSTED_PLATFORM_PLAN feedback loop with real per-application signal. Operator can revoke access anytime."
+    },
+    {
+      "id": "f-138",
+      "title": "Ops Console billing + daily digest + growth instrumentation",
+      "phase": "ops-console",
+      "priority": "P3",
+      "status": "planned",
+      "depends_on": ["f-136", "f-137"],
+      "scope": "Stripe checkout + plan limits per org, daily digest email (Resend), funnel/retention analytics. P6.",
+      "notes": "Last phase; gated by a working operator + client experience."
     }
   ]
 }

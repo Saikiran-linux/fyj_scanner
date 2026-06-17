@@ -1,0 +1,32 @@
+{
+  "name": "fyj-ops-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ops Console — multi-tenant staffing dashboard on Cloudflare Workers + Neon Postgres. Reads the fyj job index read-only via search_jobs/get_job. See docs/PLAN.md.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:policies": "psql \"$DATABASE_URL\" -f db/policies.sql",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "better-auth": "^1.2.0",
+    "drizzle-orm": "^0.38.0",
+    "hono": "^4.6.0",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "drizzle-kit": "^0.30.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^3.99.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

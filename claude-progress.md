@@ -6,6 +6,69 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-17 (c) · Ops Console P1 foundation BUILT (parked here) + session handoff
+
+Built the ops-console P1 backend foundation (f-131) for the **new `fyj` repo** (Cloudflare Workers + Neon + RLS), but **could not push it** — this session is git-scoped to `fyj_scanner` only and the proxy returns `repository not authorized` for `Saikiran-linux/fyj`. So the code is preserved in a pushable place and a full handoff was written for the next session.
+
+**Done this session:**
+- Installed Cloudflare skills (`npx skills add https://github.com/cloudflare/skills`) and used `workers-best-practices` to ground the scaffold.
+- Wrote the full P1 foundation (committed locally as `fyj` `8ae45de`, **unpushed**): Drizzle tenancy schema, `db/policies.sql` (RLS + `app.*` GUC helpers + `can_access_client`/`can_view_as_client` + `ops_app`/`ops_system` roles), `withTenant()` DB client, read-only `search_jobs`/`get_job` index client, continuous matcher, Worker entry (fetch/scheduled/queue), wrangler.jsonc + Drizzle/TS/package skeleton, README.
+- **Preserved it in `fyj_scanner/docs/ops-console-foundation/`** (transport copy) so the unpushed code survives this container.
+- Wrote **`docs/ops-console-handoff.md`** — the master catch-up doc for the new session (decisions, state, transplant steps, next steps, gotchas).
+- Revised plan/UI/feature_list earlier this day to the Cloudflare/Neon architecture (see 2026-06-17 (b)).
+
+**Verified state:** docs + staged code only; no DB/prod/scanner change. `fyj` remote is still empty.
+
+**NEXT SESSION (has `fyj` access):** (1) transplant `docs/ops-console-foundation/` → `fyj` repo, push, open draft PR (steps in handoff §5); (2) build f-132 (search_jobs RPC) here in `fyj_scanner`; (3) f-133 (Better Auth + API + repo layer + Next.js UI shell) in `fyj`. Also: **rotate the leaked Supabase service-role key.**
+
+---
+
+## 2026-06-17 (b) · PLAN PIVOT — Ops Console backend → Cloudflare + Neon (separate from the job index)
+
+Planning-only (still no schema/prod changes). The user reframed the ops-console: build it as a **standalone product with its own backend on Cloudflare, separate from the job index**. Evaluated "move everything to Cloudflare" and rejected the wholesale swap (D1/SQLite has no pgvector / partitioning / RLS — the index is Postgres-shaped). Landed on a **hybrid at the right seam**.
+
+**Architecture decided (supersedes the 2026-06-17 (a) Supabase-Auth/monorepo direction):**
+- **Separate repo**, not a monorepo in fyj_scanner (different runtime + DB; only coupling is a read-only API).
+- **Backend on Cloudflare:** Workers (API + matcher), Pages (frontend), R2 (resumes), Cron Triggers + Queues (continuous matcher), Workers KV (job-detail cache).
+- **Ops DB = Neon Postgres** via **Hyperdrive** — chosen over D1 specifically to **keep RLS**. The two-principal isolation model survives nearly verbatim; only the claim source changes: Worker sets per-request `SET LOCAL app.{user_id,org_id,principal,role,client_id}` and helpers read `current_setting(...)` instead of `auth.jwt()`. Worker connects as a non-BYPASSRLS role (fails closed).
+- **Auth = Better Auth** (users in Neon), replacing Supabase GoTrue + the access-token hook.
+- **Job index stays on Supabase Postgres, READ-ONLY** to ops-console via `search_jobs`/`get_job` over HTTPS. No cross-DB FKs — matches store `job_id`+`company_id`, hydrate detail via API. No scanner changes.
+- Tenant safety = mandatory Drizzle org-scoped repository layer (first line) + RLS (backstop).
+
+**Why we're glad we paused:** the f-131 schema we'd designed is standard Postgres, so it ports to Neon nearly unchanged — and it was never applied to Supabase prod. (Also: a service-role key was pasted in chat earlier — flagged for rotation; never used/committed.)
+
+**Files touched (branch `claude/dreamy-knuth-4m3wlz`):**
+- `docs/ops-console-plan.md` — revised §§1,3,4,5,6,7,8,9,10 for the Cloudflare/Neon architecture (decisions, GUC-based RLS, read-only index API, Cron+Queues matcher, stack table, constraints).
+- `feature_list.json` — `ops-console` phase + f-130/f-131/f-132/f-133/f-134/f-135 updated to the new stack.
+
+**Verified state:** docs + tracker only; JSON validates. No DB/scanner change.
+
+**What's next (P0/P1):** (1) fyj-side `search_jobs`/`get_job` RPC (f-132/f-114) verified callable over HTTPS; (2) stand up the new ops-console repo — Neon DB + Drizzle migrations for the f-131 tenancy schema + RLS + GUC helpers, Workers + Better Auth + Hyperdrive (f-133). Open: confirm whether I create the new repo now (needs a repo target / Cloudflare + Neon accounts) or draft the Drizzle schema + Worker scaffold here first for review.
+
+---
+
+## 2026-06-17 · PLAN — Ops Console (multi-tenant SaaS front end for Product A)
+
+Planning-only session (no schema/prod changes). Captured the front-end product plan as a durable PRD + tracker entries before any code.
+
+**Decisions locked (with the user):**
+- **Monorepo** — new app `ops-console/` beside `status-page/` (atomic backend↔frontend commits; `status-page` already proves a Next app co-exists with the scanner). Split out only when Product B / a separate team needs it.
+- **Supabase Auth + org-scoped RLS, NOT Clerk** — Clerk's B2B Orgs is a paid add-on (~$100/mo) and we already have Supabase Auth + RLS. Open source, $0, one identity source.
+- **Backend owns the DB** — `schema.sql` stays source of truth (hard rule #3); front end is a pure PostgREST/RPC consumer + generated types.
+- **Hierarchy:** org → memberships(admin/operator/viewer) → clients(assigned to operator) → client_profiles → **1:1 campaign** → matches → reports/placements → feedback.
+- **Continuous/scheduled matching**; **operators restricted to assigned clients** (admin/viewer org-wide); **client portal = read-only + per-application feedback only**, operator-toggleable (transparency + a signal loop that tunes `target_filters`).
+- **Two-principal auth:** staff (memberships) vs client (clients.auth_user_id), resolved by a Supabase access-token hook into JWT claims; RLS helper `can_access_client()` centralizes visibility. Client principal can only SELECT + INSERT into `feedback`.
+
+**Files touched (this branch `claude/dreamy-knuth-4m3wlz`):**
+- `docs/ops-console-plan.md` — full PRD (decisions, hierarchy, two-principal RLS, RBAC matrix, schema, matcher, feedback loop, phasing P0–P6, backend constraints).
+- `feature_list.json` — new phase `ops-console`; features **f-130…f-138** (PRD, tenancy/RLS schema, search_jobs RPC, Next scaffold, clients/profiles+embed, continuous matcher, deep-eval/CV/tracker, client portal+feedback, billing/digest).
+
+**Verified state:** docs + tracker only; `feature_list.json` validates (50 features). No DB or scanner change. Hard rules #2/#3/#5 explicitly carried into the plan.
+
+**What's next:** P0 — land the **`search_jobs` RPC (f-132/f-114)** + the **org/two-principal schema migration (f-131)** idempotently in `supabase/schema.sql`, then scaffold `ops-console/` (f-133). Open decision deferred to P3: matcher as GitHub Actions cron vs `pg_cron`.
+
+---
+
 ## 2026-06-15 · f-102 — slug expansion + scan: index 106k → 169k jobs, pool 5,165 → 7,783 companies
 
 **Discovery (two passes this session):**
