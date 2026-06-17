@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-06-12",
+  "updated_at": "2026-06-17",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
@@ -10,7 +10,8 @@
     "phase-5": "Billing + feedback loop + polish",
     "phase-6": "Growth instrumentation",
     "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
-    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'."
+    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'.",
+    "ops-console": "Multi-tenant user-facing dashboard (Product A as a SaaS): org -> operator -> client -> profile -> 1:1 campaign, continuous matching, read-only client transparency portal with per-application feedback. Supabase Auth + org-scoped RLS (NOT Clerk); monorepo app at ops-console/. See docs/ops-console-plan.md."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -598,6 +599,98 @@
       "status": "planned",
       "trigger": "probe_results has no retention. Now 321k rows / 62 MB at 3.6k companies. At the queued 50k companies x ~4 scans/day = ~200k rows/day = ~73M/year, it dwarfs everything and bloats backups. MUST fix before 50k onboarding. See docs/scale-50k-assessment.md gate 2.",
       "scope": "Keep last 7-30 days raw (or roll up into daily per-source aggregates then drop) via a scheduled SQL function."
+    },
+    {
+      "id": "f-130",
+      "title": "Ops Console — PRD + tenancy/RBAC plan",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "in_progress",
+      "evidence": [
+        "docs/ops-console-plan.md"
+      ],
+      "notes": "Multi-tenant SaaS front end for Product A. Decisions locked: monorepo (ops-console/ beside status-page/); Supabase Auth + org-scoped RLS (NOT Clerk); backend owns schema.sql; roles admin/operator/viewer; 1:1 profile->campaign; continuous matching; operator restricted to assigned clients; read-only client portal + per-application feedback, operator-toggleable. See docs/ops-console-plan.md."
+    },
+    {
+      "id": "f-131",
+      "title": "Org/tenancy schema + two-principal RLS + access-token hook",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-130"],
+      "scope": "Idempotent additions to supabase/schema.sql: organizations, memberships(admin|operator|viewer), clients(assigned_operator_id, auth_user_id, portal_enabled, portal_permissions), client_profiles(resume_text, parsed_profile, embedding vector(1536), target_filters), campaigns(profile_id UNIQUE), campaign_matches(UNIQUE(campaign_id,job_id)), reports, placements, feedback(signal enum), audit_log. RLS helpers auth.org_id()/principal()/role_name()/client_id() + can_access_client(); custom access-token hook stamps principal/org_id/role|client_id. Client principal = SELECT + feedback-INSERT-only allow-list. org_id denormalized on every table.",
+      "notes": "RLS is the security boundary. Every table ships policies in the same migration. P1 foundation."
+    },
+    {
+      "id": "f-132",
+      "title": "search_jobs RPC (parameterized) — campaign matching contract",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-114"],
+      "scope": "Shared search_jobs(query_vec, filters jsonb) RPC: target_only lens + family/seniority/remote/comp/recency filters. Backward-compatible additive args. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
+      "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape for the console."
+    },
+    {
+      "id": "f-133",
+      "title": "Next.js ops-console scaffold (Supabase Auth + typed client + org bootstrap)",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-131"],
+      "scope": "ops-console/ Next.js 15 + TS + App Router/RSC, own package.json, Vercel root-dir deploy. @supabase/ssr RLS-scoped client + server-only service-role client. Generated lib/database.types.ts + CI drift check. Org-create-on-first-signup + members/invite/role screen (admin).",
+      "notes": "P1 foundation. Keeps status-page untouched."
+    },
+    {
+      "id": "f-134",
+      "title": "Clients + profiles + resume embed (process-resume edge fn)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-133", "f-132"],
+      "scope": "Assignment-scoped client CRUD; client_profiles with resume upload to resumes bucket; process-resume edge function parses PDF/DOCX -> text -> OpenAI embedding -> profile.embedding + parsed_profile. P2.",
+      "notes": "Reuses src/embeddings.mjs logic. Honors resumes-bucket RLS."
+    },
+    {
+      "id": "f-135",
+      "title": "Continuous campaign matcher (scheduled fan-out)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-134", "f-132"],
+      "scope": "1:1 campaign per profile. Scheduled incremental matcher: for each active campaign, run search_jobs over jobs with first_seen_at > last_run_at (embedded + target lens), upsert campaign_matches. Matches feed UI + operator curation (save/shortlist/dismiss).",
+      "open_decision": "Run as GitHub Actions cron (like the scanner) vs pg_cron + RPC. Must not interfere with the scan close-sweep (hard rule #2).",
+      "notes": "P3. Incremental keeps LLM/embed cost bounded (hard rule #5)."
+    },
+    {
+      "id": "f-136",
+      "title": "Deep eval (A–G) + tailored CV + placements tracker",
+      "phase": "ops-console",
+      "priority": "P2",
+      "status": "planned",
+      "depends_on": ["f-135"],
+      "scope": "On-demand Anthropic A–G report per match (Opus 4.8 / Sonnet 4.6 w/ prompt caching), tailored-CV PDF (port scripts/tailor-resume.mjs), placements kanban. Click-gated cost. P4.",
+      "notes": "reports + placements tables (f-131)."
+    },
+    {
+      "id": "f-137",
+      "title": "Client transparency portal (read-only) + per-application feedback loop",
+      "phase": "ops-console",
+      "priority": "P2",
+      "status": "planned",
+      "depends_on": ["f-135", "f-131"],
+      "scope": "Client invite/link (clients.auth_user_id), portal_enabled gating + portal_permissions. Read-only pipeline timeline (surfaced -> shortlisted -> applied -> outcome). Per-application feedback (structured signal enum + optional rating/note) — the ONLY write a client principal can make. v_campaign_feedback_signals aggregates signals per campaign/profile to drive target_filters tuning and process review.",
+      "notes": "P5. Realizes the HOSTED_PLATFORM_PLAN feedback loop with real per-application signal. Operator can revoke access anytime."
+    },
+    {
+      "id": "f-138",
+      "title": "Ops Console billing + daily digest + growth instrumentation",
+      "phase": "ops-console",
+      "priority": "P3",
+      "status": "planned",
+      "depends_on": ["f-136", "f-137"],
+      "scope": "Stripe checkout + plan limits per org, daily digest email (Resend), funnel/retention analytics. P6.",
+      "notes": "Last phase; gated by a working operator + client experience."
     }
   ]
 }

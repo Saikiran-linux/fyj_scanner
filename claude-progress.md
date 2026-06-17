@@ -6,6 +6,28 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-17 · PLAN — Ops Console (multi-tenant SaaS front end for Product A)
+
+Planning-only session (no schema/prod changes). Captured the front-end product plan as a durable PRD + tracker entries before any code.
+
+**Decisions locked (with the user):**
+- **Monorepo** — new app `ops-console/` beside `status-page/` (atomic backend↔frontend commits; `status-page` already proves a Next app co-exists with the scanner). Split out only when Product B / a separate team needs it.
+- **Supabase Auth + org-scoped RLS, NOT Clerk** — Clerk's B2B Orgs is a paid add-on (~$100/mo) and we already have Supabase Auth + RLS. Open source, $0, one identity source.
+- **Backend owns the DB** — `schema.sql` stays source of truth (hard rule #3); front end is a pure PostgREST/RPC consumer + generated types.
+- **Hierarchy:** org → memberships(admin/operator/viewer) → clients(assigned to operator) → client_profiles → **1:1 campaign** → matches → reports/placements → feedback.
+- **Continuous/scheduled matching**; **operators restricted to assigned clients** (admin/viewer org-wide); **client portal = read-only + per-application feedback only**, operator-toggleable (transparency + a signal loop that tunes `target_filters`).
+- **Two-principal auth:** staff (memberships) vs client (clients.auth_user_id), resolved by a Supabase access-token hook into JWT claims; RLS helper `can_access_client()` centralizes visibility. Client principal can only SELECT + INSERT into `feedback`.
+
+**Files touched (this branch `claude/dreamy-knuth-4m3wlz`):**
+- `docs/ops-console-plan.md` — full PRD (decisions, hierarchy, two-principal RLS, RBAC matrix, schema, matcher, feedback loop, phasing P0–P6, backend constraints).
+- `feature_list.json` — new phase `ops-console`; features **f-130…f-138** (PRD, tenancy/RLS schema, search_jobs RPC, Next scaffold, clients/profiles+embed, continuous matcher, deep-eval/CV/tracker, client portal+feedback, billing/digest).
+
+**Verified state:** docs + tracker only; `feature_list.json` validates (50 features). No DB or scanner change. Hard rules #2/#3/#5 explicitly carried into the plan.
+
+**What's next:** P0 — land the **`search_jobs` RPC (f-132/f-114)** + the **org/two-principal schema migration (f-131)** idempotently in `supabase/schema.sql`, then scaffold `ops-console/` (f-133). Open decision deferred to P3: matcher as GitHub Actions cron vs `pg_cron`.
+
+---
+
 ## 2026-06-15 · f-102 — slug expansion + scan: index 106k → 169k jobs, pool 5,165 → 7,783 companies
 
 **Discovery (two passes this session):**
