@@ -498,13 +498,24 @@ create or replace function public.get_job(p_job_id uuid, p_company_id uuid)
 returns jsonb
 language sql stable as $$
   select jsonb_build_object(
-    'jobId',       j.id,
-    'companyId',   j.company_id,
-    'title',       j.title,
-    'company',     c.slug,
-    'location',    j.location,
-    'url',         j.url,
-    'description', jd.description
+    'jobId',          j.id,
+    'companyId',      j.company_id,
+    'title',          j.title,
+    'company',        c.slug,
+    'location',       j.location,
+    'url',            j.url,
+    'description',    jd.description,
+    -- f-139: display enrichment for the ops-console Explore card. Additive —
+    -- existing keys above are unchanged, so older Worker builds ignore these.
+    'workplace',      j.remote,                                    -- "remote" | "hybrid" | …
+    'employmentType', j.employment_type,
+    'source',         c.ats,                                       -- greenhouse | ashby | lever | …
+    'postedAt',       coalesce(j.source_published_at, j.first_seen_at),
+    'compMin',        j.comp_min,
+    'compMax',        j.comp_max,
+    'compCurrency',   j.comp_currency,
+    'compInterval',   j.comp_interval,
+    'compText',       j.comp_text
   )
   from public.jobs j
   join public.companies c on c.id = j.company_id
