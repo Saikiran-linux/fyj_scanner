@@ -6,6 +6,21 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-29 · f-148: hybrid retrieval arm (lexical GIN + `search_jobs_hybrid` RPC)
+
+Cross-repo session (branch `claude/resume-tailor-job-matching-wr2i3o` in **both** repos) adding the validated **dense + lexical(RRF) → reranker** matching pipeline. This repo owns the index, so it gets the lexical arm + a new hybrid RPC; the rerank (Voyage rerank-2.5) + soft signals live in `fyj`.
+
+**f-148 — lexical arm + `search_jobs_hybrid` (additive; `search_jobs`/`get_job`/`match_resume*` untouched).** → `supabase/schema.sql`.
+- **`jobs_tsv_idx`** — GIN **expression** index over `to_tsvector('english', title || ' ' || coalesce(description_summary,''))`. Expression (not a stored generated column) so the migration is cheap + idempotent on the ~169k-row partitioned table (no rewrite) and tracks the summary backfill.
+- **`search_jobs_hybrid(query_vec, lexical_query, filters)`** — dense (HNSW cosine) arm + lexical (`websearch_to_tsquery`/`ts_rank_cd`) arm over a shared filtered `base`, fused with **RRF (k=60)**, `limit` (default 60) pooled for the reranker. Returns richer rows (`title, description_summary, seniority, comp_*`) so the Worker reranks on text + scores soft signals without N `get_job` calls. Lifts `hnsw.ef_search` like `search_jobs`. Lexical arm is skipped when `lexical_query` is empty.
+- **Filter policy (deliberate):** hard filters = `closed_at`, `embedding present`, `targetOnly`, opt-in `remote`, `since` only. **No `compFloor`/`families`/`seniority`** predicates — sparse / vocab-mismatched (a `mid` filter returned 0 live), so they become **soft** reranker signals in `fyj`. Embedding model unchanged (`text-embedding-3-small`); Voyage is rerank-only → no re-embed.
+
+**Verified state:** `feature_list.json` valid; schema edits are idempotent (`create index if not exists` / `create or replace function`). **NOT yet applied to prod** — `init.sh` can't run here without `.env`/Supabase creds. Optional pre-prod check: Supabase MCP branch (`create_branch` → `apply_migration` → `execute_sql`) then discard.
+
+**What's next:** the `fyj` consumer (f-149): `searchJobsHybrid` client + Voyage rerank-2.5 + `matchProfile` orchestrator (soft seniority-band + comp-floor signals) wired into intake/matcher/api. **Deploy order: apply this schema to the index first** — `fyj` degrades to its non-fatal path until the RPC exists.
+
+---
+
 ## 2026-06-17 · ops-console: foundation transplanted to `fyj` + f-132 read contract + f-133 backend + f-113 rule fix
 
 Multi-repo session continuing the ops-console build (Product A). Branch `claude/eager-keller-e92gc8` in **both** repos.

@@ -694,6 +694,17 @@
       "depends_on": ["f-136", "f-137"],
       "scope": "Stripe checkout + plan limits per org, daily digest email (Resend), funnel/retention analytics. P6.",
       "notes": "Last phase; gated by a working operator + client experience."
+    },
+    {
+      "id": "f-148",
+      "title": "Hybrid retrieval arm: lexical GIN index + search_jobs_hybrid RPC (RRF)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "in_progress",
+      "depends_on": ["f-132"],
+      "scope": "Additive lexical/BM25 arm to feed a second-stage reranker in the ops-console (bake-off rec #2). New GIN expression index over to_tsvector(title + description_summary); new RPC search_jobs_hybrid(query_vec, lexical_query, filters) that runs a dense (HNSW cosine) arm + a lexical (websearch_to_tsquery/ts_rank_cd) arm over a shared filtered base and fuses them with Reciprocal Rank Fusion (k=60). Returns richer rows (title, description_summary, seniority, comp_*) so the Worker can rerank on text + score soft comp/seniority signals without N get_job round-trips. Hard filters kept minimal (closed_at, embedding, targetOnly, opt-in remote, since); NO compFloor/families/seniority predicates (sparse / vocab-mismatched -> soft signals in fyj). search_jobs / get_job / match_resume* untouched (Product B + CLI contract).",
+      "evidence": "supabase/schema.sql: jobs_tsv_idx (GIN expr index) + public.search_jobs_hybrid(vector,text,jsonb) with grants. Idempotent (create index if not exists / create or replace function). Not yet applied to prod; consumed by fyj f-149.",
+      "notes": "Lexical strength tracks the description_summary backfill (degrades to title-only on unsummarised rows). Embedding model unchanged (text-embedding-3-small) — Voyage is rerank-only on the fyj side, so no re-embed."
     }
   ]
 }
