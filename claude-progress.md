@@ -6,6 +6,12 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-29 · f-151: `recent_jobs` RPC (Explore default browse view)
+
+Added `public.recent_jobs(filters jsonb)` to `supabase/schema.sql` — newest active postings (ordered by `first_seen_at desc`, served by `jobs_active_first_seen_idx`), returning get_job-style display columns incl. the company slug. Powers the ops-console Explore tab's **default browse view** (jobs to scan before typing a query) — a plain newest-first listing, not a search. Additive, read-only, same `targetOnly` lens as `search_jobs`. **Applied to prod** (Supabase `mwcpoaefmggapztkxakp`, migration `f151_recent_jobs`) **+ verified live** via the ops-console `/api/jobs/recent` (HTTP 200, newest postings). Idempotent (`create or replace function`).
+
+---
+
 ## 2026-06-29 · f-148: hybrid retrieval arm (lexical GIN + `search_jobs_hybrid` RPC)
 
 Cross-repo session (branch `claude/resume-tailor-job-matching-wr2i3o` in **both** repos) adding the validated **dense + lexical(RRF) → reranker** matching pipeline. This repo owns the index, so it gets the lexical arm + a new hybrid RPC; the rerank (Voyage rerank-2.5) + soft signals live in `fyj`.

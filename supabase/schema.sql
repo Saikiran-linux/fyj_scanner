@@ -677,6 +677,42 @@ end $$;
 
 grant execute on function public.search_jobs_hybrid(vector, text, jsonb) to anon, authenticated, service_role;
 
+-- ── recent_jobs: newest active postings, no query (f-151) ───────────
+-- Powers the ops-console Explore tab's DEFAULT view (jobs to browse before the
+-- operator types a query) — a plain "newest first" listing, NOT a vector/keyword
+-- search. Returns the same display columns as get_job (incl. the company slug)
+-- so the Worker maps it straight onto its JobHit shape. Served by the partial
+-- index jobs_active_first_seen_idx (first_seen_at desc where closed_at is null).
+-- Additive + read-only; same minimal lens as search_jobs (targetOnly default).
+create or replace function public.recent_jobs(filters jsonb default '{}'::jsonb)
+returns table (
+  job_id uuid, company_id uuid, title text, company text, location text,
+  url text, description text, source text, posted_at timestamptz,
+  comp_min integer, comp_max integer, comp_currency text, comp_interval text, comp_text text,
+  workplace text, employment_type text
+)
+language plpgsql stable as $$
+declare
+  v_target_only boolean := coalesce((filters->>'targetOnly')::boolean, true);
+  v_limit       integer := least(greatest(coalesce((filters->>'limit')::integer, 30), 1), 100);
+begin
+  return query
+    select j.id, j.company_id, j.title, c.slug as company, j.location,
+           j.url, jd.description, c.ats as source,
+           coalesce(j.source_published_at, j.first_seen_at) as posted_at,
+           j.comp_min::integer, j.comp_max::integer, j.comp_currency, j.comp_interval, j.comp_text,
+           j.remote as workplace, j.employment_type
+    from public.jobs j
+    join public.companies c on c.id = j.company_id
+    left join public.job_descriptions jd on jd.job_id = j.id
+    where j.closed_at is null
+      and (not v_target_only or j.is_target is not false)
+    order by j.first_seen_at desc
+    limit v_limit;
+end $$;
+
+grant execute on function public.recent_jobs(jsonb) to anon, authenticated, service_role;
+
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
 -- lives in probe_results.
