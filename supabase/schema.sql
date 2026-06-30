@@ -311,6 +311,23 @@ create index if not exists jobs_description_summary_pending_idx
   where description_summary is null
     and closed_at is null;
 
+-- ── lexical (BM25-style) retrieval arm for hybrid search (f-148) ────
+-- A GIN full-text index over title + description_summary so the ops-console
+-- matcher can run a lexical arm alongside the dense (HNSW cosine) arm and fuse
+-- the two with Reciprocal Rank Fusion (see search_jobs_hybrid below). Skill /
+-- keyword tokens (CUDA, LangGraph, Kubernetes) are exact and unforgiving — dense
+-- embeddings blur them, so a lexical arm materially lifts recall on the terms a
+-- resume actually names (docs/matching-embedding-assessment.md rec #2).
+--
+-- An EXPRESSION index (not a stored generated column) keeps this migration cheap
+-- and fully idempotent: no table rewrite on the ~169k-row partitioned table, and
+-- it tracks description_summary as the backfill populates it. The RPC recomputes
+-- the same to_tsvector expression for ranking; the index accelerates the `@@`
+-- match. Coverage tracks the summary backfill and degrades to title-only on rows
+-- the summariser hasn't reached yet — acceptable, and it improves over time.
+create index if not exists jobs_tsv_idx on public.jobs
+  using gin (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description_summary, '')));
+
 -- ── job embeddings ─────────────────────────────────────────────────
 -- Populated by the scanner after upsert (and by scripts/backfill-embeddings.mjs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
@@ -526,6 +543,175 @@ $$;
 
 grant execute on function public.search_jobs(vector, jsonb) to anon, authenticated, service_role;
 grant execute on function public.get_job(uuid, uuid)        to anon, authenticated, service_role;
+
+-- ── hybrid retrieval: search_jobs_hybrid (f-148) ────────────────────
+-- ADDITIVE companion to search_jobs: a two-arm hybrid retriever that the
+-- ops-console matcher feeds into a second-stage reranker (Voyage rerank-2.5).
+-- search_jobs / get_job / match_resume* are deliberately UNTOUCHED so Product B
+-- and the CLI bench keep their contract and the two repos deploy independently.
+--
+-- Two arms over a shared, filtered `base`:
+--   • dense   — HNSW cosine over jobs.embedding (the existing query_vec arm).
+--   • lexical — full-text over title + description_summary, when lexical_query
+--               (the candidate's skills/keywords) is non-empty; skipped otherwise.
+-- The arms are fused with Reciprocal Rank Fusion (RRF, k=60): a candidate's score
+-- is 1/(k+dense_rank) + 1/(k+lexical_rank). RRF needs no score calibration between
+-- the (incomparable) cosine and ts_rank scales — it fuses RANKS — which is exactly
+-- why it is the standard dense+sparse fusion (bake-off rec #2).
+--
+-- HARD FILTERS are the minimal safe set only: closed_at, embedding present,
+-- targetOnly (is_target), opt-in remote, and the incremental `since` watermark.
+-- NOTE the deliberate absences — there is NO compFloor / families / seniority
+-- predicate here: comp is sparse (null-exclusion drops most jobs) and the
+-- seniority/family vocabularies don't match the resume side (a `mid` filter
+-- returned 0 live). Those ride the embedding and are applied as SOFT signals in
+-- the reranker (fyj/src/match.ts) instead of silently excluding rows.
+--
+-- Returns richer rows than search_jobs (title + description_summary + seniority +
+-- comp_*) so the Worker can rerank on text and score the soft comp/seniority
+-- signals WITHOUT N get_job round-trips. PGRST002 on first call → retry (known).
+create or replace function public.search_jobs_hybrid(
+  query_vec     vector,
+  lexical_query text default null,
+  filters       jsonb default '{}'::jsonb
+)
+returns table (
+  job_id uuid, company_id uuid, score numeric, cosine numeric,
+  dense_rank integer, lexical_rank integer,
+  title text, description_summary text, seniority text, remote text,
+  comp_min integer, comp_max integer, comp_currency text, comp_interval text, comp_text text
+)
+language plpgsql stable as $$
+declare
+  v_target_only boolean     := coalesce((filters->>'targetOnly')::boolean, true);
+  v_remote      boolean     := (filters->>'remote')::boolean;
+  v_since       timestamptz := (filters->>'since')::timestamptz;
+  -- Final pool handed to the reranker (bounded). Default 60 comfortably covers a
+  -- top-25 surface after reranking without inflating rerank cost.
+  v_limit       integer     := least(greatest(coalesce((filters->>'limit')::integer, 60), 1), 200);
+  -- Per-arm over-fetch: take a wider slice from each arm before fusing so a
+  -- candidate strong in one arm but absent from the other still reaches the pool.
+  v_pool        integer     := least(greatest(v_limit * 2, 100), 400);
+  v_k           constant integer := 60;  -- RRF dampening constant (standard)
+  v_tsq         tsquery;
+begin
+  -- Build the lexical query only when one was supplied; websearch_to_tsquery is
+  -- forgiving of free-text (handles bare comma/space-separated skill lists).
+  if nullif(btrim(coalesce(lexical_query, '')), '') is not null then
+    v_tsq := websearch_to_tsquery('english', lexical_query);
+  end if;
+
+  -- HNSW only explores hnsw.ef_search candidates before WHERE/LIMIT apply, so a
+  -- selective filter can starve the dense arm. Over-fetch the pool (same lever as
+  -- search_jobs / match_resume_candidates) to keep filtered-ANN recall up.
+  perform set_config('hnsw.ef_search', greatest(100, least(v_pool * 4, 1000))::text, true);
+
+  return query
+  -- NOT MATERIALIZED is load-bearing: `base` is referenced by both arms + the
+  -- final join, and a multiply-referenced CTE materialises by default — which
+  -- would force an exact full-scan sort and DEFEAT the HNSW/GIN indexes. Forcing
+  -- inlining lets each arm flatten to a direct `jobs` query the planner can serve
+  -- from the right index (filtered-ANN for dense, GIN @@ for lexical).
+  with base as not materialized (
+    select j.id, j.company_id, j.title, j.description_summary, j.seniority, j.remote,
+           j.comp_min::integer as comp_min, j.comp_max::integer as comp_max,
+           j.comp_currency, j.comp_interval, j.comp_text, j.embedding
+    from public.jobs j
+    where j.closed_at is null
+      and j.embedding is not null
+      -- targetOnly=true → hide known-noise, keep unclassified visible (f-113).
+      and (not v_target_only or j.is_target is not false)
+      -- remote=true requires a remote-friendly posting; false/absent = no filter.
+      and (v_remote is null or v_remote = false or lower(coalesce(j.remote, '')) like '%remote%')
+      -- since enables incremental matching (the background matcher passes last_run_at).
+      and (v_since is null or j.first_seen_at > v_since)
+  ),
+  -- Each arm: rank ONLY the index-limited top-v_pool slice (the inner order-by +
+  -- limit uses the index; row_number() then numbers that small slice). Casting to
+  -- integer matches the OUT columns — plpgsql RETURN QUERY is strict, and
+  -- row_number() is bigint.
+  dense as (
+    select dd.id, (row_number() over (order by dd.dist))::integer as d_rank
+    from (
+      select b.id, b.embedding <=> query_vec as dist
+      from base b
+      order by b.embedding <=> query_vec
+      limit v_pool
+    ) dd
+  ),
+  lexical as (
+    select ll.id, (row_number() over (order by ll.rank desc))::integer as l_rank
+    from (
+      select b.id,
+             ts_rank_cd(
+               to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description_summary, '')),
+               v_tsq
+             ) as rank
+      from base b
+      where v_tsq is not null
+        and to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description_summary, '')) @@ v_tsq
+      order by rank desc
+      limit v_pool
+    ) ll
+  ),
+  fused as (
+    select coalesce(d.id, l.id) as id,
+           d.d_rank, l.l_rank,
+           coalesce(1.0 / (v_k + d.d_rank), 0) + coalesce(1.0 / (v_k + l.l_rank), 0) as rrf
+    from dense d
+    full outer join lexical l on l.id = d.id
+  )
+  select b.id, b.company_id,
+         round(f.rrf::numeric, 6) as score,
+         -- cosine for display + soft tie-break; computed once here for the final
+         -- <=v_limit rows (cheap), so we don't thread it through the dense arm.
+         round((1 - (b.embedding <=> query_vec))::numeric, 4) as cosine,
+         f.d_rank as dense_rank, f.l_rank as lexical_rank,
+         b.title, b.description_summary, b.seniority, b.remote,
+         b.comp_min, b.comp_max, b.comp_currency, b.comp_interval, b.comp_text
+  from fused f
+  join base b on b.id = f.id
+  order by f.rrf desc
+  limit v_limit;
+end $$;
+
+grant execute on function public.search_jobs_hybrid(vector, text, jsonb) to anon, authenticated, service_role;
+
+-- ── recent_jobs: newest active postings, no query (f-151) ───────────
+-- Powers the ops-console Explore tab's DEFAULT view (jobs to browse before the
+-- operator types a query) — a plain "newest first" listing, NOT a vector/keyword
+-- search. Returns the same display columns as get_job (incl. the company slug)
+-- so the Worker maps it straight onto its JobHit shape. Served by the partial
+-- index jobs_active_first_seen_idx (first_seen_at desc where closed_at is null).
+-- Additive + read-only; same minimal lens as search_jobs (targetOnly default).
+create or replace function public.recent_jobs(filters jsonb default '{}'::jsonb)
+returns table (
+  job_id uuid, company_id uuid, title text, company text, location text,
+  url text, description text, source text, posted_at timestamptz,
+  comp_min integer, comp_max integer, comp_currency text, comp_interval text, comp_text text,
+  workplace text, employment_type text
+)
+language plpgsql stable as $$
+declare
+  v_target_only boolean := coalesce((filters->>'targetOnly')::boolean, true);
+  v_limit       integer := least(greatest(coalesce((filters->>'limit')::integer, 30), 1), 100);
+begin
+  return query
+    select j.id, j.company_id, j.title, c.slug as company, j.location,
+           j.url, jd.description, c.ats as source,
+           coalesce(j.source_published_at, j.first_seen_at) as posted_at,
+           j.comp_min::integer, j.comp_max::integer, j.comp_currency, j.comp_interval, j.comp_text,
+           j.remote as workplace, j.employment_type
+    from public.jobs j
+    join public.companies c on c.id = j.company_id
+    left join public.job_descriptions jd on jd.job_id = j.id
+    where j.closed_at is null
+      and (not v_target_only or j.is_target is not false)
+    order by j.first_seen_at desc
+    limit v_limit;
+end $$;
+
+grant execute on function public.recent_jobs(jsonb) to anon, authenticated, service_role;
 
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
