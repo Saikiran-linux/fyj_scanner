@@ -2,23 +2,24 @@
 // One-shot: build a 14-field "JD-style" precis of Sai's resume in the
 // EXACT same schema src/summarize.mjs produces for jobs, prepend the
 // same title + signal block buildJobText() uses, then embed via
-// text-embedding-3-small (1536d) — i.e. land the resume in the same
-// vector space as jobs.embedding so pgvector cosine search is symmetric.
+// voyage-4-large (1024d, input_type=query) — i.e. land the resume in the
+// same vector space as jobs.embedding so pgvector cosine search is
+// meaningful (query/document asymmetric embedding, same model+dims).
 //
 // Prints two things to stdout:
 //   1. the embedding text (for sanity-checking against the JD format)
-//   2. a single line `[v1,v2,...,v1536]` — paste into Postgres as
-//      '<literal>'::vector(1536) and order by  embedding <=> resume.
+//   2. a single line `[v1,v2,...,v1024]` — paste into Postgres as
+//      '<literal>'::vector(1024) and order by  embedding <=> resume.
 
 import fs from 'node:fs';
 
-// Load OPENAI_API_KEY from .env (same pattern as backfill scripts).
+// Load VOYAGE_API_KEY from .env (same pattern as backfill scripts).
 const env = fs.readFileSync('.env', 'utf8');
 for (const line of env.split(/\r?\n/)) {
   const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
   if (m) process.env[m[1]] ??= m[2].replace(/^["']|["']$/g, '');
 }
-if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY missing');
+if (!process.env.VOYAGE_API_KEY) throw new Error('VOYAGE_API_KEY missing');
 
 // Title + structured signal block — same shape buildJobText() puts above
 // the summary. Title is the canonical role the candidate is qualified for;
@@ -58,25 +59,27 @@ const summary = [
 const input = `${title}\n\n${signals}\n\n${summary}`;
 console.error('---- embedding input ----\n' + input + '\n-------------------------');
 
-const res = await fetch('https://api.openai.com/v1/embeddings', {
+const res = await fetch('https://api.voyageai.com/v1/embeddings', {
   method: 'POST',
   headers: {
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`,
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    model: 'text-embedding-3-small',
+    model: 'voyage-4-large',
     input,
+    input_type: 'query',
+    output_dimension: 1024,
   }),
 });
 if (!res.ok) {
-  console.error('OpenAI HTTP', res.status, await res.text());
+  console.error('Voyage HTTP', res.status, await res.text());
   process.exit(1);
 }
 const data = await res.json();
 const vec = data.data[0].embedding;
-if (vec.length !== 1536) throw new Error(`expected 1536d, got ${vec.length}`);
+if (vec.length !== 1024) throw new Error(`expected 1024d, got ${vec.length}`);
 
 // Postgres vector literal: [v1,v2,...] — no spaces, max precision.
 process.stdout.write('[' + vec.join(',') + ']\n');
-console.error(`embedded ok · ${vec.length} dims · usage=${JSON.stringify(data.usage)}`);
+console.error(`embedded ok · ${vec.length} dims · total_tokens=${data.total_tokens}`);

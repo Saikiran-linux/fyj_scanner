@@ -31,7 +31,7 @@ import fs from 'node:fs';
 const vec = fs.readFileSync('scripts/_resume.vec', 'utf8').trim();
 if (!vec.startsWith('[')) throw new Error('resume.vec missing');
 
-const sql = `with q as (select '${vec}'::vector(1536) as v)
+const sql = `with q as (select '${vec}'::vector(1024) as v)
 select
   round((1 - (j.embedding <=> q.v))::numeric, 4) as cosine_sim,
   j.title, j.location, c.slug as company, c.ats,

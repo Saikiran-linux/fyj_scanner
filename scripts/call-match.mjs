@@ -13,7 +13,7 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_URL || !KEY) throw new Error('SUPABASE_URL or SERVICE_ROLE_KEY missing');
 
 const vec = JSON.parse(fs.readFileSync('scripts/_resume.vec', 'utf8').trim());
-if (vec.length !== 1536) throw new Error(`vec dim ${vec.length}`);
+if (vec.length !== 1024) throw new Error(`vec dim ${vec.length}`);
 
 const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/match_resume`, {
   method: 'POST',

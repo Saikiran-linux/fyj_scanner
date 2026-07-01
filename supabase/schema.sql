@@ -176,9 +176,42 @@ create index if not exists jobs_description_summary_pending_idx
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
 -- when swapping models without orphaning rows.
 
-alter table public.jobs add column if not exists embedding vector(1536);
+alter table public.jobs add column if not exists embedding vector(1024);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
+
+-- One-time model swap: OpenAI text-embedding-3-small (1536d) -> Voyage
+-- voyage-4-large (1024d, input_type=document) — the query/résumé side
+-- (ops-console) moved to the same model in lockstep, so cosine search stays
+-- an apples-to-apples comparison. Guarded on the column's CURRENT dimension
+-- so re-running schema.sql on every deploy is a no-op once this has applied
+-- once — without the guard, repeating the ALTER would silently wipe
+-- freshly-backfilled embeddings on every deploy (violates the "safe to
+-- re-run on every prod row" rule in CLAUDE.md).
+-- v_jobs_enriched (SELECT j.*, jd.description — see below) depends on
+-- jobs.embedding and blocks ALTER COLUMN TYPE; drop it, migrate, recreate
+-- verbatim. NOTE: this view (like search_jobs/search_jobs_hybrid/get_job/
+-- recent_jobs, captured further below) predates this file tracking it — it
+-- existed live on Supabase without ever being committed to schema.sql.
+-- Captured here via pg_get_viewdef so schema.sql stops drifting from what's
+-- actually deployed.
+drop view if exists public.v_jobs_enriched;
+
+do $$
+begin
+  if (select format_type(atttypid, atttypmod) from pg_attribute
+      where attrelid = 'public.jobs'::regclass and attname = 'embedding')
+     <> 'vector(1024)' then
+    -- Old (1536d OpenAI) vectors aren't valid at the new dimension — null
+    -- them out (and their model tag) so the type change casts cleanly.
+    -- scripts/backfill-embeddings.mjs re-embeds every row where embedding
+    -- is null, so this is a deliberate hard cutover, not silent data loss.
+    update public.jobs set embedding = null, embedding_model = null, embedded_at = null
+      where embedding is not null;
+    drop index if exists jobs_embedding_hnsw_idx;
+    alter table public.jobs alter column embedding type vector(1024) using null;
+  end if;
+end $$;
 
 -- HNSW for cosine similarity. Picked over IVFFlat because:
 --   - Recall: ~98% vs IVFFlat's ~90% at the same query cost
@@ -189,11 +222,216 @@ alter table public.jobs add column if not exists embedded_at timestamptz;
 --   - Same query syntax (`embedding <=> vector`); zero code change.
 --
 -- m=16 / ef_construction=64 are pgvector defaults — well-tuned for
--- 1536-dim OpenAI embeddings at our scale. Bump them if recall ever
+-- 1024-dim voyage-4-large embeddings at our scale. Bump them if recall ever
 -- looks low; they cost build time but not query time.
 create index if not exists jobs_embedding_hnsw_idx
   on public.jobs using hnsw (embedding vector_cosine_ops)
   with (m = 16, ef_construction = 64);
+
+-- Recreates the view dropped above (needed on every re-run, not just the
+-- first, since schema.sql must be idempotent — without this CREATE, a second
+-- run would drop v_jobs_enriched and never bring it back). Depends on
+-- public.job_descriptions, which — like this view — exists live but isn't
+-- yet defined anywhere in this file; see the schema-drift follow-up task.
+create view public.v_jobs_enriched as
+ select j.id,
+    j.company_id,
+    j.external_id,
+    j.title,
+    j.location,
+    j.url,
+    j.department,
+    j.employment_type,
+    j.first_seen_at,
+    j.last_seen_at,
+    j.closed_at,
+    j.fingerprint,
+    j.embedding,
+    j.embedding_model,
+    j.embedded_at,
+    j.description_fetched_at,
+    j.description_hash,
+    j.comp_min,
+    j.comp_max,
+    j.comp_currency,
+    j.comp_interval,
+    j.comp_text,
+    j.remote,
+    j.source_updated_at,
+    j.source_published_at,
+    j.description_summary,
+    j.description_summary_model,
+    j.description_summary_at,
+    j.job_family,
+    j.is_target,
+    j.seniority,
+    j.classified_at,
+    j.classified_by,
+    jd.description
+   from jobs j
+     left join job_descriptions jd on jd.job_id = j.id;
+
+-- ── job search RPCs (search_jobs, search_jobs_hybrid, get_job, recent_jobs) ──
+-- Called by fyj-ops-console's index-client: vector search, hybrid (vector +
+-- full-text RRF) search, single-job lookup, and the unfiltered "recent"
+-- feed. Like v_jobs_enriched above, these existed live on Supabase without
+-- ever being committed here — captured verbatim via pg_get_functiondef so
+-- schema.sql stops drifting from what's deployed. All four depend on
+-- public.job_descriptions and jobs.job_family/is_target/seniority/
+-- classified_at/classified_by, which — like job_descriptions itself —
+-- aren't yet defined in this file either; see the schema-drift follow-up
+-- task.
+
+create or replace function public.get_job(p_job_id uuid, p_company_id uuid)
+returns jsonb
+language sql
+stable
+as $function$
+  select jsonb_build_object(
+    'jobId', j.id, 'companyId', j.company_id, 'title', j.title, 'company', c.slug,
+    'location', j.location, 'url', j.url, 'description', jd.description,
+    'workplace', j.remote, 'employmentType', j.employment_type, 'source', c.ats,
+    'postedAt', coalesce(j.source_published_at, j.first_seen_at),
+    'compMin', j.comp_min, 'compMax', j.comp_max, 'compCurrency', j.comp_currency,
+    'compInterval', j.comp_interval, 'compText', j.comp_text)
+  from public.jobs j
+  join public.companies c on c.id = j.company_id
+  left join public.job_descriptions jd on jd.job_id = j.id
+  where j.id = p_job_id and j.company_id = p_company_id limit 1;
+$function$;
+
+create or replace function public.recent_jobs(filters jsonb default '{}'::jsonb)
+returns table(job_id uuid, company_id uuid, title text, company text, location text, url text, description text, source text, posted_at timestamptz, comp_min integer, comp_max integer, comp_currency text, comp_interval text, comp_text text, workplace text, employment_type text)
+language plpgsql
+stable
+as $function$
+declare
+  v_target_only boolean := coalesce((filters->>'targetOnly')::boolean, true);
+  v_limit       integer := least(greatest(coalesce((filters->>'limit')::integer, 30), 1), 100);
+begin
+  return query
+    select j.id, j.company_id, j.title, c.slug as company, j.location,
+           j.url, jd.description, c.ats as source,
+           coalesce(j.source_published_at, j.first_seen_at) as posted_at,
+           j.comp_min::integer, j.comp_max::integer, j.comp_currency, j.comp_interval, j.comp_text,
+           j.remote as workplace, j.employment_type
+    from public.jobs j
+    join public.companies c on c.id = j.company_id
+    left join public.job_descriptions jd on jd.job_id = j.id
+    where j.closed_at is null
+      and (not v_target_only or j.is_target is not false)
+    order by j.first_seen_at desc
+    limit v_limit;
+end $function$;
+
+create or replace function public.search_jobs(query_vec vector, filters jsonb default '{}'::jsonb)
+returns table(job_id uuid, company_id uuid, score numeric)
+language plpgsql
+stable
+as $function$
+declare
+  v_target_only boolean     := coalesce((filters->>'targetOnly')::boolean, true);
+  v_families    text[]      := case when jsonb_typeof(filters->'families')  = 'array'
+                                    then array(select jsonb_array_elements_text(filters->'families'))  end;
+  v_seniority   text[]      := case when jsonb_typeof(filters->'seniority') = 'array'
+                                    then array(select jsonb_array_elements_text(filters->'seniority')) end;
+  v_remote      boolean     := (filters->>'remote')::boolean;
+  v_comp_floor  numeric     := (filters->>'compFloor')::numeric;
+  v_since       timestamptz := (filters->>'since')::timestamptz;
+  v_limit       integer     := least(greatest(coalesce((filters->>'limit')::integer, 50), 1), 500);
+begin
+  perform set_config('hnsw.ef_search', greatest(100, least(v_limit * 4, 1000))::text, true);
+  return query
+    select j.id, j.company_id,
+           round((1 - (j.embedding <=> query_vec))::numeric, 4) as score
+    from public.jobs j
+    where j.closed_at is null
+      and j.embedding is not null
+      and (not v_target_only or j.is_target is not false)
+      and (v_families   is null or j.job_family = any (v_families))
+      and (v_seniority  is null or j.seniority  = any (v_seniority))
+      and (v_remote is null or v_remote = false or lower(coalesce(j.remote, '')) like '%remote%')
+      and (v_comp_floor is null or j.comp_max >= v_comp_floor)
+      and (v_since is null or j.first_seen_at > v_since)
+    order by j.embedding <=> query_vec
+    limit v_limit;
+end;
+$function$;
+
+create or replace function public.search_jobs_hybrid(query_vec vector, lexical_query text default null::text, filters jsonb default '{}'::jsonb)
+returns table(job_id uuid, company_id uuid, score numeric, cosine numeric, dense_rank integer, lexical_rank integer, title text, description_summary text, seniority text, remote text, comp_min integer, comp_max integer, comp_currency text, comp_interval text, comp_text text)
+language plpgsql
+stable
+as $function$
+declare
+  v_target_only boolean     := coalesce((filters->>'targetOnly')::boolean, true);
+  v_remote      boolean     := (filters->>'remote')::boolean;
+  v_since       timestamptz := (filters->>'since')::timestamptz;
+  v_limit       integer     := least(greatest(coalesce((filters->>'limit')::integer, 60), 1), 200);
+  v_pool        integer     := least(greatest(v_limit * 2, 100), 400);
+  v_k           constant integer := 60;
+  v_tsq         tsquery;
+begin
+  if nullif(btrim(coalesce(lexical_query, '')), '') is not null then
+    v_tsq := websearch_to_tsquery('english', lexical_query);
+  end if;
+
+  perform set_config('hnsw.ef_search', greatest(100, least(v_pool * 4, 1000))::text, true);
+
+  return query
+  with base as not materialized (
+    select j.id, j.company_id, j.title, j.description_summary, j.seniority, j.remote,
+           j.comp_min::integer as comp_min, j.comp_max::integer as comp_max,
+           j.comp_currency, j.comp_interval, j.comp_text, j.embedding
+    from public.jobs j
+    where j.closed_at is null
+      and j.embedding is not null
+      and (not v_target_only or j.is_target is not false)
+      and (v_remote is null or v_remote = false or lower(coalesce(j.remote, '')) like '%remote%')
+      and (v_since is null or j.first_seen_at > v_since)
+  ),
+  dense as (
+    select dd.id, (row_number() over (order by dd.dist))::integer as d_rank
+    from (
+      select b.id, b.embedding <=> query_vec as dist
+      from base b
+      order by b.embedding <=> query_vec
+      limit v_pool
+    ) dd
+  ),
+  lexical as (
+    select ll.id, (row_number() over (order by ll.rank desc))::integer as l_rank
+    from (
+      select b.id,
+             ts_rank_cd(
+               to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description_summary, '')),
+               v_tsq
+             ) as rank
+      from base b
+      where v_tsq is not null
+        and to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description_summary, '')) @@ v_tsq
+      order by rank desc
+      limit v_pool
+    ) ll
+  ),
+  fused as (
+    select coalesce(d.id, l.id) as id,
+           d.d_rank, l.l_rank,
+           coalesce(1.0 / (v_k + d.d_rank), 0) + coalesce(1.0 / (v_k + l.l_rank), 0) as rrf
+    from dense d
+    full outer join lexical l on l.id = d.id
+  )
+  select b.id, b.company_id,
+         round(f.rrf::numeric, 6) as score,
+         round((1 - (b.embedding <=> query_vec))::numeric, 4) as cosine,
+         f.d_rank as dense_rank, f.l_rank as lexical_rank,
+         b.title, b.description_summary, b.seniority, b.remote,
+         b.comp_min, b.comp_max, b.comp_currency, b.comp_interval, b.comp_text
+  from fused f
+  join base b on b.id = f.id
+  order by f.rrf desc
+  limit v_limit;
+end $function$;
 
 -- ── scans ──────────────────────────────────────────────────────────
 -- One row per scheduler invocation. Summary stats only — per-company detail
