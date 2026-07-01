@@ -70,7 +70,7 @@ const countWords = (text) => (text.match(/\S+/g) || []).length;
  *
  * When `sourceWords` is provided the result is post-processed: drafts
  * whose word count falls outside ±10% of the source have their LLM
- * score capped below the default 7 threshold so the loop is forced to
+ * score capped below the default 9 threshold so the loop is forced to
  * retry with the length feedback folded in. The cap is content-aware:
  * the LLM's verdict still flows through unchanged for in-range drafts.
  *
@@ -88,7 +88,7 @@ export async function evaluate({ tailoredMarkdown, job, sourceWords }) {
     role: 'evaluator',
     system: SYSTEM_PROMPT,
     user,
-    maxTokens: 2000,       // JSON output is small, but reasoning models spend the budget on hidden reasoning tokens first — leave headroom so the visible JSON isn't truncated to empty
+    maxTokens: 4000,       // JSON output is small, but reasoning models spend the budget on hidden reasoning tokens first — leave generous headroom so the visible JSON isn't truncated to empty (intermittent empty responses at 2000)
     responseFormat: 'json', // OpenAI honours this; Anthropic ignores but still produces clean JSON given the prompt
   });
 

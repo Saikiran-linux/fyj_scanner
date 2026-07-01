@@ -9,8 +9,8 @@
  *     [ --job-title "Senior Data Engineer" ]      # required if --job-description used
  *     [ --job-company "Cohere Health" ]
  *     [ --job-location "Remote US" ]
- *     [ --threshold 7 ]   # evaluator score needed to stop early (default 7)
- *     [ --max-attempts 3 ] # 1 initial + 2 retries (default 3)
+ *     [ --threshold 9 ]   # evaluator score needed to stop early (default 9)
+ *     [ --max-attempts 5 ] # 1 initial + 4 retries (default 5)
  *     [ --out output/tailored/auto.md ]   # default: output/tailored/<job>-<ts>.md
  *
  * Resume input: plain text or markdown only in v1. PDF parsing is the
@@ -101,8 +101,8 @@ async function resolveJob() {
 }
 
 const job = await resolveJob();
-const threshold = Number(args.threshold ?? 7);
-const maxAttempts = Number(args['max-attempts'] ?? 3);
+const threshold = Number(args.threshold ?? 9);
+const maxAttempts = Number(args['max-attempts'] ?? 5);
 
 console.log(`──────────────────────────────────────────────────`);
 console.log(`f-402 tailor · provider=${PROVIDER} · threshold=${threshold} · max=${maxAttempts}`);

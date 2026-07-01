@@ -368,14 +368,17 @@ Total: ~16 weeks solo to a paid MVP. Each phase is gated by an exit criterion.
 - Inbox UI (saved / dismissed / pending).
 - Daily digest email (Resend + React Email).
 
-### Phase 4 — Deep eval + CV gen + tracker (3 weeks)
+### Phase 4 — Deep eval + CV gen + tracker (2 weeks)
 
 **Exit criteria:** User can go match → deep report → tailored CV PDF → tracker entry in < 30s.
 
 - On-demand Sonnet A–G evaluation (port from `modes/oferta.md`).
+- **CV tailor v1 — generator + evaluator loop.** Sonnet `generator(resume, job)` produces tailored markdown; Haiku `evaluator(tailored, job)` returns `{score 0-10, missing_keywords[], weakest_sections[], feedback}`. If `score < 7`, feed the critique back into the generator (max 2 retries → 6 LLM calls worst case). Cost ~$0.016 best / ~$0.032 typical / ~$0.048 worst per CV. **Explicitly not the multi-agent planner+writers+polisher pipeline** — that's the v2 ambition, deferred until v1 quality plateaus. See `feature_list.json` items `f-402` (v1) and `f-405` (v2).
 - CV PDF generation (Browserless, port template from `templates/cv-template.html`).
 - Applications kanban (statuses from `templates/states.yml`).
 - Report viewer.
+
+**Why generator+evaluator first.** Two LLM calls instead of seven. Three files instead of nine. One day of integration vs. one week. Multi-agent pays off when section-level coordination is the bottleneck — we don't know that yet, and the cheap version will tell us. If evaluator scores plateau below 8/10 across 100+ real tailorings, *then* graduate to f-405 (planner + 4 parallel writers + ATS audit + polisher).
 
 ### Phase 5 — Billing + feedback loop + polish (2 weeks)
 

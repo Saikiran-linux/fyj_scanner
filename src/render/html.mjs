@@ -285,13 +285,14 @@ export function wrapHtml({ title = 'Resume', bodies, meta }) {
     .col { background: #fff; border: 1px solid var(--chrome-rule); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
     .col-label { background: #f1f3f5; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 12px; border-bottom: 1px solid var(--chrome-rule); font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
 
-    /* Resume page itself. Tight margins + 9.5pt body matches the original
-       Word/Cambria density that fits ~830 words on one Letter page. */
-    .resume { padding: 0.2in 0.4in; font-size: 9.5pt; line-height: 1.1; color: var(--ink); }
+    /* Resume page itself. Tight margins + 9pt body / 1.05 leading keeps a
+       full-length tailor output (master word count ±10%, ~900 words max)
+       on a single Letter page, matching the one-page master. */
+    .resume { padding: 0.2in 0.4in; font-size: 9pt; line-height: 1.05; color: var(--ink); }
 
     /* Name — large, bold, centered. */
     .resume h1 {
-      font-size: 18pt;
+      font-size: 16pt;
       margin: 0 0 1px;
       font-weight: 700;
       text-align: center;
@@ -301,9 +302,9 @@ export function wrapHtml({ title = 'Resume', bodies, meta }) {
        with a thin black rule below to mirror the original's divider. */
     .resume h1 + p {
       text-align: center;
-      font-size: 9.5pt;
-      margin: 0 0 6px;
-      padding-bottom: 3px;
+      font-size: 9pt;
+      margin: 0 0 4px;
+      padding-bottom: 2px;
       border-bottom: 1px solid var(--rule);
       color: var(--ink);
     }
@@ -361,7 +362,7 @@ export function wrapHtml({ title = 'Resume', bodies, meta }) {
     .resume hr { border: 0; border-top: 1px solid var(--rule); margin: 8px 0; }
     .resume code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; background: #f1f3f5; padding: 0 3px; border-radius: 2px; }
 
-    @page { size: Letter; margin: 0.4in 0.5in; }
+    @page { size: Letter; margin: 0.35in 0.45in; }
     @media print {
       body { background: #fff; }
       .topbar { display: none; }

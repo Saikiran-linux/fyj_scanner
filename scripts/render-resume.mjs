@@ -13,7 +13,7 @@
  *
  * Usage:
  *   # render one file
- *   node scripts/render-resume.mjs <input.md>  [-o output.html]  [--open]
+ *   node scripts/render-resume.mjs <input.md>  [-o output.html]  [--open] [--pdf]
  *
  *   # side-by-side compare
  *   node scripts/render-resume.mjs --compare <left.md> <right.md> \
@@ -21,6 +21,10 @@
  *
  * --open    auto-launch the rendered HTML in the OS default browser
  *           (uses `start` on Windows, `open` on macOS, `xdg-open` on Linux)
+ * --pdf     also write a PDF next to the HTML (output/pdf/<name>.pdf by
+ *           default, or --pdf-out <path>) using a headless Chrome/Edge that
+ *           is already installed. Falls back to the Ctrl+P tip if none is
+ *           found — no Puppeteer/Chromium dependency is added.
  *
  * Default output paths land in `output/rendered/` so they don't churn
  * the rest of the tree. Tracked-out via .gitignore alongside the tailor
@@ -29,8 +33,65 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mdToHtml, wrapHtml, diffMarkdownToHtml } from '../src/render/html.mjs';
+
+// Locate a Chromium-family browser for headless print-to-PDF. We reuse the
+// browser that's already on the machine (Edge ships with Windows, Chrome is
+// common everywhere) rather than pulling in a 300MB Puppeteer/Chromium dep —
+// same rationale as the HTML-only render path above.
+function findBrowser() {
+  // NOTE: Git Bash strips env vars whose names contain "(" (e.g.
+  // ProgramFiles(x86)), so we can't rely on it — Edge installs there. Fall
+  // back to literal default paths as well as the env-derived ones.
+  const sysDrive = process.env.SystemDrive || 'C:';
+  const candidates =
+    process.platform === 'win32'
+      ? [
+          `${process.env['ProgramFiles']}\\Microsoft\\Edge\\Application\\msedge.exe`,
+          `${process.env['ProgramFiles(x86)']}\\Microsoft\\Edge\\Application\\msedge.exe`,
+          `${sysDrive}\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe`,
+          `${sysDrive}\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe`,
+          `${process.env['ProgramFiles']}\\Google\\Chrome\\Application\\chrome.exe`,
+          `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe`,
+          `${sysDrive}\\Program Files\\Google\\Chrome\\Application\\chrome.exe`,
+          `${sysDrive}\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe`,
+        ]
+      : process.platform === 'darwin'
+        ? [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+            '/Applications/Chromium.app/Contents/MacOS/Chromium',
+          ]
+        : ['google-chrome', 'chromium', 'chromium-browser', 'microsoft-edge'];
+
+  for (const c of candidates) {
+    if (c.includes('/') || c.includes('\\')) {
+      if (fs.existsSync(c)) return c;
+    } else {
+      // bare command name (Linux) — probe with `which`
+      const probe = spawnSync('which', [c], { encoding: 'utf8' });
+      if (probe.status === 0 && probe.stdout.trim()) return probe.stdout.trim();
+    }
+  }
+  return null;
+}
+
+// Render an already-written HTML file to PDF via headless Chrome/Edge.
+// Returns the output path on success, or null if no browser was found.
+function htmlToPdf(htmlPath, pdfPath) {
+  const browser = findBrowser();
+  if (!browser) return null;
+  fs.mkdirSync(path.dirname(pdfPath), { recursive: true });
+  const fileUrl = 'file:///' + path.resolve(htmlPath).replace(/\\/g, '/');
+  const res = spawnSync(
+    browser,
+    ['--headless=new', '--disable-gpu', '--no-pdf-header-footer', `--print-to-pdf=${pdfPath}`, fileUrl],
+    { stdio: 'ignore', timeout: 60_000 },
+  );
+  if (res.error) throw res.error;
+  return fs.existsSync(pdfPath) ? pdfPath : null;
+}
 
 function parseArgs(argv) {
   const args = { positional: [] };
@@ -96,6 +157,22 @@ const outPath = args.out ? path.resolve(args.out) : defaultOut;
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, html);
 console.log(`rendered → ${outPath}  (${html.length.toLocaleString()} bytes)`);
+
+if (args.pdf) {
+  const pdfOut = args['pdf-out']
+    ? path.resolve(args['pdf-out'])
+    : path.resolve('output/pdf', `${path.parse(outPath).name}.pdf`);
+  try {
+    const written = htmlToPdf(outPath, pdfOut);
+    if (written) {
+      console.log(`pdf      → ${written}  (${fs.statSync(written).size.toLocaleString()} bytes)`);
+    } else {
+      console.error('no Chrome/Edge found for --pdf; open the HTML and Ctrl+P → Save as PDF instead.');
+    }
+  } catch (e) {
+    console.error(`pdf generation failed (${e.message}); open the HTML and Ctrl+P → Save as PDF instead.`);
+  }
+}
 
 if (args.open) {
   // Best-effort cross-platform open. Don't fail the script if it doesn't
