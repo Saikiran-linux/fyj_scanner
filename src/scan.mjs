@@ -52,6 +52,23 @@ const DESCRIPTION_FETCH_CAP = (() => {
   return raw === 0 ? Infinity : raw;
 })();
 
+// Wall-clock safety valve for the per-job description pass. The GitHub Actions
+// job is hard-killed at 30 min (scan.yml `timeout-minutes`), and that kill can
+// land mid-pass — BEFORE closeScan() finalizes the scan row — leaving the scan
+// stuck 'running' to be reaped as 'failed' on the next run. The Workday adapter
+// (f-104) made this reachable: a shard that owns big per-job-detail tenants
+// (e.g. nvidia + communicarehealth, ~1k jobs each) can't drain a multi-thousand
+// description backlog through the rate limiter inside 30 min, unlike the ~5 min
+// the SmartRecruiters-era cap assumed. So the pass stops fetching once the scan
+// has been running SCAN_DEADLINE_MS and lets closeScan() run; the leftover
+// backlog drains over later scans (same intent as DESCRIPTION_FETCH_CAP above).
+// Default 24 min leaves ~6 min headroom under the 30-min job timeout for
+// finalize + artifact upload. Set 0 to disable (manual/local runs only).
+const SCAN_DEADLINE_MS = (() => {
+  const raw = Number(process.env.SCAN_DEADLINE_MS ?? 24 * 60 * 1000);
+  return raw === 0 ? Infinity : raw;
+})();
+
 // How many job descriptions the scanner will pass through gpt-4o-mini per
 // run to produce embedding-friendly summaries. Each call is ~$0.0001, so
 // 1000/scan ≈ $0.10 per scan, $0.40/day at the 6-hour cadence. Bump
@@ -63,6 +80,17 @@ const SCAN_SUMMARY_CAP = Number(process.env.SCAN_SUMMARY_CAP || 1000);
 // from the rate limiter, which throttles down on 403/429 bursts. Setting this
 // higher than the sum of per-provider concurrency just wastes worker slots.
 const WORKER_POOL = Number(process.env.SCAN_WORKER_POOL || 25);
+// Concurrency for the per-job description pass (below). The per-provider rate
+// limiter — not this number — is the real throughput governor, so widening it
+// does NOT increase load on any single source; it only lets different
+// providers' fetches overlap. Sized to cover the sum of the fetchable
+// providers' per-provider concurrency (SmartRecruiters 3 + workatastartup 3 +
+// Workday 3 ≈ 9), so a slow provider's rate-limit waits overlap with other
+// providers instead of blocking them. The old sequential loop had an effective
+// concurrency of 1, which is what let a Workday-heavy shard's backlog run past
+// the job timeout. Each worker still does the same per-job DB writes, so this
+// stays well under the pooler pressure the probe pass already tolerates.
+const DESCRIPTION_WORKER_POOL = Number(process.env.DESCRIPTION_WORKER_POOL || 8);
 const TIMEOUT_MS = Number(process.env.SCAN_TIMEOUT_MS || 15_000);
 const AUTO_DISABLE_THRESHOLD = Number(process.env.AUTO_DISABLE_THRESHOLD || 5);
 const PROBE_RESULT_BATCH = 200;
@@ -635,63 +663,89 @@ try {
         const j = Math.floor(Math.random() * (i + 1));
         [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
       }
-      // Sequential per-job: the rate limiter is the throughput governor, not
-      // worker count. Going wider here would just stack waiters on the same
-      // per-provider semaphore.
-      for (const row of candidates) {
-        const ats = row.companies?.ats;
-        const slug = row.companies?.slug;
-        if (!ats || !slug) continue;
-        descStats.attempted++;
-        try {
-          // Use the richer per-job fetch where available (SmartRecruiters): the
-          // same detail request that yields the description also carries comp /
-          // remote / department / employment_type, which the listing omits.
-          // Other providers fall back to the description-only path.
-          const res = hasDetailFetcher(ats)
-            ? await fetchJobPosting(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter })
-            : await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
-          if (!res.ok) {
-            descStats.failed++;
-            continue;
+      // Interleave across providers with a bounded worker pool (see
+      // DESCRIPTION_WORKER_POOL). The per-provider rate limiter still governs
+      // throughput per source, so this doesn't hammer any one provider — it just
+      // lets a slow provider's rate-limit waits overlap with other providers'
+      // fetches instead of blocking them. Workers share a cursor; each rechecks
+      // the wall-clock deadline before pulling the next row, so an in-flight
+      // fetch + its DB writes are never abandoned mid-way.
+      let dcursor = 0;
+      let deadlineHit = false;
+      async function descWorker() {
+        while (dcursor < candidates.length) {
+          // Wall-clock safety valve (see SCAN_DEADLINE_MS): stop before the
+          // GitHub 30-min job timeout kills us mid-pass and skips closeScan().
+          // The remaining candidates are retried on the next scan.
+          if (Date.now() - startedAt > SCAN_DEADLINE_MS) {
+            deadlineHit = true;
+            return;
           }
-          // null description from a provider that "succeeded" still counts
-          // as an attempt — write description_fetched_at so we don't keep
-          // retrying forever. Actual text remains null. We also write
-          // description_hash so the next scan's hash-compare sees a match
-          // and doesn't re-PATCH the same row. Structured detail fields (when
-          // present) are written alongside, but only when non-null so we never
-          // clobber good data with a null.
-          const patch = {
-            description_hash: describeHash(res.description ?? null),
-            description_fetched_at: new Date().toISOString(),
-          };
-          for (const [k, v] of Object.entries(res.fields || {})) {
-            if (v != null) patch[k] = v;
-          }
-          await update(
-            'jobs',
-            { id: `eq.${row.id}` },
-            patch,
-            { returning: 'minimal' },
-          );
-          // Persist the text to job_descriptions (f-119). row.companies.id is
-          // the company_id (candidates embed companies!inner(id,...)). A null
-          // description (provider had none) writes no row — the fetched_at
-          // stamp above is what stops re-fetching.
-          if (res.description != null) {
-            await upsert(
-              'job_descriptions',
-              [{ job_id: row.id, company_id: row.companies.id, description: res.description, updated_at: new Date().toISOString() }],
-              'job_id',
+          const row = candidates[dcursor++];
+          const ats = row.companies?.ats;
+          const slug = row.companies?.slug;
+          if (!ats || !slug) continue;
+          descStats.attempted++;
+          try {
+            // Use the richer per-job fetch where available (SmartRecruiters): the
+            // same detail request that yields the description also carries comp /
+            // remote / department / employment_type, which the listing omits.
+            // Other providers fall back to the description-only path.
+            const res = hasDetailFetcher(ats)
+              ? await fetchJobPosting(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter })
+              : await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
+            if (!res.ok) {
+              descStats.failed++;
+              continue;
+            }
+            // null description from a provider that "succeeded" still counts
+            // as an attempt — write description_fetched_at so we don't keep
+            // retrying forever. Actual text remains null. We also write
+            // description_hash so the next scan's hash-compare sees a match
+            // and doesn't re-PATCH the same row. Structured detail fields (when
+            // present) are written alongside, but only when non-null so we never
+            // clobber good data with a null.
+            const patch = {
+              description_hash: describeHash(res.description ?? null),
+              description_fetched_at: new Date().toISOString(),
+            };
+            for (const [k, v] of Object.entries(res.fields || {})) {
+              if (v != null) patch[k] = v;
+            }
+            await update(
+              'jobs',
+              { id: `eq.${row.id}` },
+              patch,
               { returning: 'minimal' },
             );
+            // Persist the text to job_descriptions (f-119). row.companies.id is
+            // the company_id (candidates embed companies!inner(id,...)). A null
+            // description (provider had none) writes no row — the fetched_at
+            // stamp above is what stops re-fetching.
+            if (res.description != null) {
+              await upsert(
+                'job_descriptions',
+                [{ job_id: row.id, company_id: row.companies.id, description: res.description, updated_at: new Date().toISOString() }],
+                'job_id',
+                { returning: 'minimal' },
+              );
+            }
+            descStats.ok++;
+          } catch (e) {
+            descStats.failed++;
+            console.error(`description fetch failed for ${ats}/${slug}/${row.external_id}: ${e.message}`);
           }
-          descStats.ok++;
-        } catch (e) {
-          descStats.failed++;
-          console.error(`description fetch failed for ${ats}/${slug}/${row.external_id}: ${e.message}`);
         }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(DESCRIPTION_WORKER_POOL, candidates.length) }, () => descWorker()),
+      );
+      if (deadlineHit) {
+        console.log(
+          `  description pass: stopped at time budget after ${descStats.attempted}/${candidates.length} ` +
+          `(${((Date.now() - startedAt) / 60000).toFixed(1)}min elapsed) — ` +
+          `${candidates.length - descStats.attempted} remaining drain next scan`,
+        );
       }
       console.log(`  description pass: ${descStats.ok} ok, ${descStats.failed} failed (of ${descStats.attempted})`);
     } else {
