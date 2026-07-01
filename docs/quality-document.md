@@ -92,7 +92,7 @@ A blunt grade per layer of the system. Updated when the underlying reality shift
 
 Per `HOSTED_PLATFORM_PLAN.md` and the `docs/architecture.excalidraw` dashed boxes.
 
-**Status:** None of phase 2 / 3 / 4 / 5 / 6 is built. Schema for `user_profiles` and Storage bucket policies are in `supabase/schema.sql`, but no edge functions, no Next.js end-user app, no Clerk, no Stripe, no Inngest, no Browserless, no Resend integration. The multi-agent CV-tailor pipeline (§ D in the diagram) is fully designed and unimplemented.
+**Status:** None of phase 2 / 3 / 4 / 5 / 6 is built. Schema for `user_profiles` and Storage bucket policies are in `supabase/schema.sql`, but no edge functions, no Next.js end-user app, no Clerk, no Stripe, no Inngest, no Browserless, no Resend integration. The CV-tailor pipeline v1 (generator + Haiku evaluator + retry-with-critique loop, § D in the diagram) is designed and unimplemented; the v2 multi-agent shape is explicitly deferred to `feature_list.json#f-405` and won't be built unless v1 quality plateaus.
 
 **Promoting:** This grade only moves once phase-2 code lands.
 

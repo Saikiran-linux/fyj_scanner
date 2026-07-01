@@ -2,8 +2,8 @@
  * Generator → Evaluator → maybe-retry loop. The whole tailor v1 (f-402).
  *
  * Stop conditions (whichever comes first):
- *   - evaluator score >= threshold (default 7)
- *   - attempts == maxAttempts (default 3 → 1 initial + 2 retries)
+ *   - evaluator score >= threshold (default 9)
+ *   - attempts == maxAttempts (default 5 → 1 initial + 4 retries)
  *
  * Returns the winning draft + all per-attempt records so the CLI can show
  * the score progression and the user can decide whether the result is
@@ -18,8 +18,8 @@
 import { generate } from './generator.mjs';
 import { evaluate } from './evaluator.mjs';
 
-const DEFAULT_THRESHOLD = 7;
-const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_THRESHOLD = 9;
+const DEFAULT_MAX_ATTEMPTS = 5;
 
 /**
  * tailor({ resumeText, job, threshold?, maxAttempts?, onProgress? })
@@ -85,11 +85,13 @@ export async function tailor({
       try {
         evalRes = await evaluate({ tailoredMarkdown: genRes.text, job, sourceWords });
       } catch (e2) {
+        // The evaluator (a reasoning model) intermittently returns an empty
+        // body. Don't let one bad score abort the whole run — record the
+        // unscored draft and move on so the remaining attempts still get a
+        // shot at the threshold. priorAttempt/priorCritique are left as-is
+        // so the next generate() still iterates on the last good critique.
         loopError = e2;
-        stopReason = 'error';
-        // Save the draft we have even if we couldn't score it — better
-        // than discarding a potentially-good generation because the
-        // evaluator hiccupped.
+        console.error(`[tailor] evaluator attempt ${i} unscored after retry: ${e2.message} — skipping to next attempt`);
         attempts.push({
           attempt: i,
           tailoredMarkdown: genRes.text,
@@ -100,7 +102,7 @@ export async function tailor({
           durationMs: Date.now() - startedAt,
           error: e2.message,
         });
-        break;
+        continue;
       }
     }
 
@@ -143,6 +145,15 @@ export async function tailor({
   const winner = scored.length
     ? scored.reduce((best, cur) => (cur.score > best.score ? cur : best))
     : attempts[attempts.length - 1];
+
+  // Only a true failure if we never managed to score a single draft. If at
+  // least one attempt scored, an evaluator hiccup on another attempt is not
+  // fatal — clear the carried error so the CLI ships the best scored draft.
+  if (scored.length) {
+    loopError = null;
+  } else if (loopError) {
+    stopReason = 'error';
+  }
 
   const totalCostUSD = attempts.reduce(
     (s, a) => s + (a.generatorCostUSD || 0) + (a.evaluatorCostUSD || 0),

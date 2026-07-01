@@ -29,6 +29,8 @@ If init fails, **fix the cause before doing anything else**. Don't paper over it
 | Run scan locally | `npm run scan` |
 | Backfill summaries / embeddings | `npm run backfill-summaries` · `npm run embed-backfill` |
 | Match a resume against the index | `node scripts/embed-resume.mjs > scripts/_resume.vec` then `node scripts/call-match.mjs` |
+| Tailor a resume to a job (f-402) | `npm run tailor -- --resume <md/txt> --job-id <uuid>` (or `--job-description <md/txt> --job-title "…"`) |
+| Render resume markdown to printable HTML (f-406) | `npm run render -- <input.md> --open` (or `--compare <left.md> <right.md> --open`). Print → Save as PDF from the browser. |
 | End-of-session checklist | [`docs/clean-state-checklist.md`](docs/clean-state-checklist.md) |
 
 Full script list: [`package.json`](package.json).
