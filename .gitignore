@@ -28,3 +28,10 @@ scripts/_bench-results.json
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Claude Code agent worktrees. These are local git worktrees, not source —
+# they were previously committed by accident as bare gitlinks (mode 160000)
+# with no .gitmodules, which made `git`/CI emit "No url found for submodule
+# path '.claude/worktrees/…'" and exit 128. Ignore the whole dir so they
+# never get re-committed.
+.claude/worktrees/
