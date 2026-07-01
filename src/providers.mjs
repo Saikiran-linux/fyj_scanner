@@ -150,6 +150,25 @@ function toIso(v) {
   return Number.isFinite(d.getTime()) ? d.toISOString() : null;
 }
 
+/**
+ * Split a Workday company slug into its parts. Workday's job URLs aren't a
+ * single token like the other ATSes — a tenant is identified by three things:
+ *   - tenant : the org id, appears in both host and CXS path (e.g. "nvidia")
+ *   - dc     : the datacenter segment of the host (e.g. "wd5", "wd1", "wd103")
+ *   - site   : the career-site id / path segment (e.g. "NVIDIAExternalCareerSite")
+ * We encode all three in the slug as "tenant:dc:site" (colon-delimited; every
+ * part is [A-Za-z0-9_], so ':' is unambiguous). Everything the Workday adapter
+ * needs — listing POST URL, per-job detail URL, public job URL — derives from
+ * these. Throws on a malformed slug so a bad seed fails loud, not silently 404.
+ */
+function workdayParts(slug) {
+  const [tenant, dc, site] = String(slug).split(':');
+  if (!tenant || !dc || !site) {
+    throw new Error(`workday slug must be "tenant:dc:site" (got "${slug}")`);
+  }
+  return { tenant, dc, site, host: `${tenant}.${dc}.myworkdayjobs.com` };
+}
+
 /** Shape returned by every parse(). Use to default missing keys to null. */
 const EMPTY_OPTIONAL_FIELDS = {
   comp_min: null,
@@ -176,6 +195,40 @@ async function fetchJson(url, timeoutMs) {
   const startedAt = Date.now();
   try {
     const res = await fetch(url, { signal: controller.signal, headers: DESCRIPTION_FETCH_HEADERS });
+    const latency_ms = Date.now() - startedAt;
+    if (!res.ok) return { ok: false, http_status: res.status, latency_ms, error: `HTTP ${res.status}` };
+    const text = await res.text();
+    try {
+      return { ok: true, http_status: res.status, latency_ms, json: JSON.parse(text) };
+    } catch {
+      return { ok: false, http_status: res.status, latency_ms, error: 'invalid_json' };
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      http_status: null,
+      latency_ms: Date.now() - startedAt,
+      error: e.name === 'AbortError' ? 'timeout' : e.message,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// POST a JSON body and parse a JSON response. Same result shape + UA/timeout
+// handling as fetchJson (GET), but for providers whose listing is a POST
+// endpoint (Workday CXS). Kept separate so the GET path stays untouched.
+async function postJson(url, body, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { ...DESCRIPTION_FETCH_HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
     const latency_ms = Date.now() - startedAt;
     if (!res.ok) return { ok: false, http_status: res.status, latency_ms, error: `HTTP ${res.status}` };
     const text = await res.text();
@@ -553,6 +606,163 @@ export const PROVIDERS = {
       }
     },
   },
+
+  // Workday CXS — the JSON API behind every *.myworkdayjobs.com career site,
+  // the biggest ATS by enterprise share (f-104). Two ways it breaks the mould:
+  //   1. The listing is a POST with pagination (20 jobs/page; `total` says when
+  //      to stop), so Workday implements fetchListing() and fetchJobs()
+  //      delegates to it wholesale — the generic GET/probeUrl path is unused.
+  //   2. The listing carries no description or structured fields, so a per-job
+  //      GET (fetchDetail) fills them, exactly like SmartRecruiters.
+  // probeUrl/careersUrl are still provided for the seeder + reporting code.
+  //
+  // Slug = "tenant:dc:site" (see workdayParts). Pagination is bounded by
+  // WORKDAY_MAX_PAGES (default 50 → 1000 jobs) so one huge tenant can't blow the
+  // request budget; a capped fetch is logged, never silent.
+  workday: {
+    probeUrl: (slug) => {
+      const { host, tenant, site } = workdayParts(slug);
+      return `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+    },
+    careersUrl: (slug) => {
+      const { host, site } = workdayParts(slug);
+      return `https://${host}/${site}`;
+    },
+    fallbackUrl: () => null,
+
+    // Maps an AGGREGATED CXS payload (all pages merged by fetchListing, with the
+    // derived { host, site } stashed under `_wd` so we can build absolute job
+    // URLs — listing rows carry only a relative externalPath). Pure mapper, so
+    // an archived aggregate replays through it unchanged.
+    parse(json) {
+      const wd = json?._wd || {};
+      return (json?.jobPostings || []).map((p) => {
+        const location = p.locationsText || '';
+        const externalPath = p.externalPath || '';
+        // externalPath (e.g. "/job/US-CA-Santa-Clara/Senior-Eng_JR123") is the
+        // stable per-posting id AND what fetchDetail needs to rebuild the detail
+        // URL — so it's our external_id. bulletFields[0] (the JR req id) is only
+        // a fallback for the pathological case of a posting with no path.
+        const jr = Array.isArray(p.bulletFields) ? p.bulletFields.find(Boolean) : null;
+        const url = wd.host && wd.site && externalPath
+          ? `https://${wd.host}/${wd.site}${externalPath}`
+          : '';
+        return {
+          ...EMPTY_OPTIONAL_FIELDS,
+          external_id: externalPath || (jr ? String(jr) : ''),
+          title: p.title || '',
+          location,
+          url,
+          department: null,       // not in the listing
+          employment_type: null,  // filled from detail.timeType
+          description: null,      // filled by the per-job detail pass
+          remote: normaliseRemote({ locationStr: location }),
+          // postedOn is relative ("Posted Today") — no reliable absolute date in
+          // the listing; detail.startDate fills source_published_at.
+        };
+      });
+    },
+
+    // Paginated POST listing. Owns its own rate-limiter acquire/release (one per
+    // page) and returns the SAME result shape fetchJobs' GET path does:
+    // { ok, schema_ok, jobs, raw_text, http_status, latency_ms, error? }.
+    async fetchListing(slug, { timeoutMs = 15_000, limiter = null } = {}) {
+      let host, tenant, site;
+      try {
+        ({ host, tenant, site } = workdayParts(slug));
+      } catch (e) {
+        return { ok: false, schema_ok: false, http_status: null, latency_ms: 0, error: e.message };
+      }
+      const url = `https://${host}/wday/cxs/${tenant}/${site}/jobs`;
+      const PAGE = 20; // Workday's CXS caps `limit` at 20
+      const MAX_PAGES = Math.max(1, Number(process.env.WORKDAY_MAX_PAGES || 50));
+      const startedAt = Date.now();
+      const all = [];
+      let total = null;
+      let lastStatus = null;
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const release = limiter ? await limiter.acquire('workday') : () => {};
+        let res;
+        try {
+          res = await postJson(url, { appliedFacets: {}, limit: PAGE, offset: page * PAGE, searchText: '' }, timeoutMs);
+        } catch (e) {
+          release('error');
+          if (page === 0) return { ok: false, schema_ok: false, http_status: null, latency_ms: Date.now() - startedAt, error: e.message };
+          break; // keep the pages already collected
+        }
+        lastStatus = res.http_status;
+        if (!res.ok) {
+          release(classify(res.http_status, res.error));
+          // Page 0 failing = the whole company errored. A later page failing
+          // (rare) just truncates — keep what we have rather than lose it all.
+          if (page === 0) return { ok: false, schema_ok: false, http_status: res.http_status, latency_ms: res.latency_ms, error: res.error };
+          break;
+        }
+        release('ok');
+        const batch = res.json?.jobPostings || [];
+        if (total == null) total = Number.isFinite(res.json?.total) ? res.json.total : null;
+        all.push(...batch);
+        if (!batch.length) break;                        // ran dry before `total`
+        if (total != null && all.length >= total) break; // got everything
+      }
+      const capped = total != null && all.length < total;
+      if (capped) {
+        console.error(`[workday] ${tenant}:${site} capped at ${all.length}/${total} jobs (WORKDAY_MAX_PAGES=${MAX_PAGES}); raise it to cover this tenant`);
+      }
+      const aggregated = { total, retrieved: all.length, jobPostings: all, _wd: { host, site, tenant } };
+      let jobs;
+      try {
+        jobs = this.parse(aggregated);
+      } catch (e) {
+        return { ok: false, schema_ok: false, http_status: lastStatus, latency_ms: Date.now() - startedAt, error: `parse: ${e.message}` };
+      }
+      return {
+        ok: true,
+        schema_ok: true,
+        jobs,
+        raw_text: JSON.stringify(aggregated),
+        http_status: lastStatus || 200,
+        latency_ms: Date.now() - startedAt,
+      };
+    },
+
+    // Per-job detail (GET). Yields the description plus structured fields the
+    // listing omits (employment type, canonical apply URL, posting date, and a
+    // remote/onsite read off the resolved location). Same contract as
+    // SmartRecruiters.fetchDetail, so scan.mjs' enrichment pass writes these
+    // columns for free.
+    async fetchDetail(slug, externalId, { timeoutMs = 15_000 } = {}) {
+      const { host, tenant, site } = workdayParts(slug);
+      const path = externalId.startsWith('/') ? externalId : `/${externalId}`;
+      const url = `https://${host}/wday/cxs/${tenant}/${site}${path}`;
+      const res = await fetchJson(url, timeoutMs);
+      if (!res.ok) return res;
+      const info = res.json?.jobPostingInfo || {};
+      const loc = info.location || '';
+      const remote = /\bremote\b/i.test(loc) ? 'remote'
+        : /\bhybrid\b/i.test(loc) ? 'hybrid'
+        : (loc ? 'onsite' : null);
+      return {
+        ok: true,
+        http_status: res.http_status,
+        latency_ms: res.latency_ms,
+        description: info.jobDescription ? htmlToText(info.jobDescription) : null,
+        fields: {
+          employment_type: info.timeType || null, // "Full time" / "Part time"
+          location: loc || null,
+          remote,
+          url: info.externalUrl || null,
+          source_published_at: toIso(info.startDate),
+        },
+      };
+    },
+
+    async fetchDescription(slug, externalId, opts = {}) {
+      const res = await this.fetchDetail(slug, externalId, opts);
+      if (!res.ok) return res;
+      return { ok: true, http_status: res.http_status, latency_ms: res.latency_ms, description: res.description };
+    },
+  },
 };
 
 export const PROVIDER_NAMES = Object.keys(PROVIDERS);
@@ -569,6 +779,14 @@ function classify(httpStatus, errorString) {
 export async function fetchJobs(ats, slug, { timeoutMs = 15_000, limiter = null } = {}) {
   const provider = PROVIDERS[ats];
   if (!provider) throw new Error(`Unknown ATS: ${ats}`);
+
+  // Providers whose listing isn't a single GET (Workday: POST + pagination)
+  // implement fetchListing() and own their whole retrieval + rate-limiting.
+  // It already returns the { ok, schema_ok, jobs, raw_text, http_status,
+  // latency_ms, error } shape the scanner expects, so delegate wholesale.
+  if (typeof provider.fetchListing === 'function') {
+    return provider.fetchListing(slug, { timeoutMs, limiter });
+  }
 
   const release = limiter ? await limiter.acquire(ats) : () => {};
 

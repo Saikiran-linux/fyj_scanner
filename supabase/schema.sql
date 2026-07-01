@@ -41,7 +41,7 @@ create event trigger pgrst_watch
 
 create table if not exists public.companies (
   id                    uuid primary key default gen_random_uuid(),
-  ats                   text not null check (ats in ('greenhouse','ashby','lever','smartrecruiters','workatastartup')),
+  ats                   text not null check (ats in ('greenhouse','ashby','lever','smartrecruiters','workatastartup','workday')),
   slug                  text not null,
   careers_url           text not null,
   probe_url             text not null,
@@ -57,6 +57,14 @@ create table if not exists public.companies (
 
 create index if not exists companies_enabled_idx on public.companies (enabled) where enabled = true;
 create index if not exists companies_ats_idx on public.companies (ats);
+
+-- Keep the ats CHECK in sync when we add a provider. `create table if not
+-- exists` above no-ops on an existing table, so widening the allowed set means
+-- dropping + re-adding the constraint here (idempotent; safe every deploy).
+-- Add new ATS values to BOTH lists. workday added in f-104.
+alter table public.companies drop constraint if exists companies_ats_check;
+alter table public.companies add constraint companies_ats_check
+  check (ats in ('greenhouse','ashby','lever','smartrecruiters','workatastartup','workday'));
 
 -- Content hash (sha256) of the most recently archived raw ATS response for this
 -- company. The scanner compares the incoming response's hash against this to

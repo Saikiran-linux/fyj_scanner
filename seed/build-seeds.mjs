@@ -2,9 +2,13 @@
 /**
  * build-seeds.mjs
  *
- * Reads data/slugs-<ats>.json (output of seed/scrape-hn.mjs), drops workable
- * (no public JSON API in this scanner's v1), and writes data/seeds.json with
- * TARGET_SIZE rows allocated proportionally across the 4 supported providers.
+ * Reads data/slugs-<ats>.json (output of seed/scrape-hn.mjs) and writes
+ * data/seeds.json with TARGET_SIZE rows allocated proportionally across the 4
+ * GET-based providers. Workday (f-104) is appended separately from a curated
+ * data/slugs-workday.json (composite "tenant:dc:site" slugs, precomputed URLs)
+ * — no proportional allocation, since those are hand-verified tenants, not
+ * wayback-discovered slugs. Workable is still excluded (its public JSON API
+ * returns no postings — see f-902; re-verified 2026-06-30).
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -73,6 +77,19 @@ for (const ats of ATS_LIST) {
       probe_url: PROBE[ats](row.slug),
     });
   }
+}
+
+// Workday (f-104): curated composite slugs, included wholesale (no allocation).
+// The file carries precomputed careers_url/probe_url (built from the workday
+// slug via PROVIDERS.workday.{careersUrl,probeUrl}). Absent file → skip cleanly.
+try {
+  const wd = JSON.parse(readFileSync(join(DATA, 'slugs-workday.json'), 'utf-8'));
+  for (const row of wd) {
+    seeds.push({ ats: 'workday', slug: row.slug, careers_url: row.careers_url, probe_url: row.probe_url });
+  }
+  console.log(`Added ${wd.length} workday seeds (curated)`);
+} catch {
+  console.log('No data/slugs-workday.json — skipping workday seeds');
 }
 
 console.log(`Final seed size: ${seeds.length}`);

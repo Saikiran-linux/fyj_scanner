@@ -231,11 +231,23 @@
       "title": "Workday adapter",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "planned",
+      "status": "in_progress",
       "scope": "Biggest unsupported ATS by enterprise share. JSON API at /wday/cxs/{tenant}/{site}/jobs but URL pattern isn't uniform — needs per-tenant config.",
+      "evidence": [
+        "src/providers.mjs: PROVIDERS.workday — POST+paginated fetchListing, parse, fetchDetail/fetchDescription. Slug = 'tenant:dc:site' (workdayParts). fetchJobs() delegates to provider.fetchListing when present; the GET path is unchanged for the other ATSes.",
+        "src/rate-limiter.mjs: workday default 3 conc / 200ms (auto-recovers). WORKDAY_MAX_PAGES caps pagination (default 50 = 1000 jobs) and logs when a tenant is capped.",
+        "supabase/schema.sql: companies.ats CHECK widened to include 'workday' (idempotent drop/add constraint).",
+        "Live E2E 2026-06-30 vs nvidia:wd5:NVIDIAExternalCareerSite: fetchJobs schema_ok, 40 jobs across 2 pages; fetchJobPosting -> description + {employment_type:'Full time',location,remote,url,source_published_at}. Every row has external_id+title.",
+        "APPLIED TO PROD 2026-06-30 (mwcpoaefmggapztkxakp): companies.ats CHECK widened + nvidia tenant seeded (enabled), both verified via pg_get_constraintdef + row check.",
+        "data/slugs-workday.json (curated) + seed/build-seeds.mjs: workday seeds plumbed with precomputed URLs."
+      ],
+      "next": "Bulk tenant discovery (the 'new slug source'): harvest myworkdayjobs.com tenant:dc:site triples into data/slugs-workday.json. Adapter + seed pipeline are ready for hundreds; today there is one verified tenant (nvidia).",
       "touches": [
         "src/providers.mjs",
-        "new slug source"
+        "src/rate-limiter.mjs",
+        "supabase/schema.sql",
+        "data/slugs-workday.json",
+        "seed/build-seeds.mjs"
       ]
     },
     {
@@ -581,7 +593,7 @@
       "phase": "phase-1",
       "priority": "P2",
       "status": "deferred",
-      "reason": "No public JSON API; needs Playwright HTML-scrape (fragile + dep). Viability test was 0/104 success. Revisit if high-value Workable companies become priority."
+      "reason": "No usable public JSON API. Re-verified 2026-06-30: the public endpoints (apply.workable.com widget v1 + v3) DO resolve for valid accounts but return 0 postings across ~48 active companies probed (Glovo, SumUp, MoonPay, Ledger, Tide, …) — reproduces the original 0/104. Accounts exist; jobs just aren't exposed over public JSON. Would need an HTML-scrape (fragile + dep) or auth. Kept deferred per user decision 2026-06-30 (shipped Workday f-104 instead)."
     },
     {
       "id": "f-903",

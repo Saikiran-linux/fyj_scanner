@@ -30,6 +30,10 @@ const DEFAULTS = {
   ashby: { concurrency: 3, minIntervalMs: 200 },
   lever: { concurrency: 5, minIntervalMs: 100 },
   smartrecruiters: { concurrency: 3, minIntervalMs: 100 },
+  // Workday paginates (many sequential POSTs per tenant) and is quick to
+  // rate-limit; keep it conservative. Listed here (vs. the auto-created default
+  // bucket) so it also auto-recovers after a throttle, like the others.
+  workday: { concurrency: 3, minIntervalMs: 200 },
 };
 
 const FLOOR = { concurrency: 1, minIntervalMs: 50 };

@@ -6,6 +6,24 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-06-30 · f-104: Workday adapter (POST + pagination + detail) — verified live
+
+Added the **Workday** ATS adapter (`PROVIDERS.workday` in `src/providers.mjs`) — the first provider whose listing isn't a single GET. Workday CXS needs a **paginated POST** (`/wday/cxs/{tenant}/{site}/jobs`, 20/page, `total` says when to stop) + a **per-job detail GET** for the description + structured fields (the listing carries neither).
+- Slug encodes the 3-part tenant identity as **`tenant:dc:site`** (`workdayParts()`); host = `{tenant}.{dc}.myworkdayjobs.com`.
+- New `provider.fetchListing()` hook owns POST + bounded pagination + its own rate-limiter acquire/release; **`fetchJobs()` delegates to it when present** — the GET path is unchanged for the other 5 ATSes. Added a `postJson()` helper.
+- `fetchDetail()`/`fetchDescription()` mirror SmartRecruiters, so scan.mjs' enrichment pass writes `employment_type`(timeType)/`location`/`remote`/`url`(externalUrl)/`source_published_at`(startDate) for free.
+- `WORKDAY_MAX_PAGES` caps pagination (default 50 = 1000 jobs) and **logs when a tenant is capped** (no silent truncation). `src/rate-limiter.mjs`: workday 3 conc / 200ms (auto-recovers).
+
+**Files:** `src/providers.mjs`, `src/rate-limiter.mjs`, `supabase/schema.sql` (companies.ats CHECK widened for 'workday', idempotent drop/add), `data/slugs-workday.json` (curated seed), `seed/build-seeds.mjs` (workday append).
+
+**Verified:** `node --check` on all edited JS; **live E2E vs `nvidia:wd5:NVIDIAExternalCareerSite`** — `fetchJobs` schema_ok + 40 jobs across 2 pages; `fetchJobPosting` → description + `{employment_type:'Full time',location,remote,url,source_published_at}`; every row has external_id+title. **Applied to prod** (`mwcpoaefmggapztkxakp`): companies.ats CHECK widened + nvidia tenant seeded (enabled), both verified.
+
+**Workable (f-902) stays deferred.** Re-probed the public JSON API live (widget v1 + v3) across ~48 active companies — accounts resolve (200) but return **0 postings** every time (reproduces the 0/104). Not viable without HTML-scrape/auth; user chose Workday-only.
+
+**What's next:** bulk Workday tenant discovery (the 'new slug source') — harvest `tenant:dc:site` triples into `data/slugs-workday.json`; the adapter + seed pipeline are ready for hundreds.
+
+---
+
 ## 2026-06-29 · f-151: `recent_jobs` RPC (Explore default browse view)
 
 Added `public.recent_jobs(filters jsonb)` to `supabase/schema.sql` — newest active postings (ordered by `first_seen_at desc`, served by `jobs_active_first_seen_idx`), returning get_job-style display columns incl. the company slug. Powers the ops-console Explore tab's **default browse view** (jobs to scan before typing a query) — a plain newest-first listing, not a search. Additive, read-only, same `targetOnly` lens as `search_jobs`. **Applied to prod** (Supabase `mwcpoaefmggapztkxakp`, migration `f151_recent_jobs`) **+ verified live** via the ops-console `/api/jobs/recent` (HTTP 200, newest postings). Idempotent (`create or replace function`).
