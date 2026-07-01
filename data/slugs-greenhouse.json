@@ -1,77 +1,217 @@
 [
   {
     "slug": "beautifulai",
-    "hits": 8658,
+    "hits": 8914,
+    "latestYear": 2026
+  },
+  {
+    "slug": "loop",
+    "hits": 6250,
+    "latestYear": 2026
+  },
+  {
+    "slug": "omadahealth",
+    "hits": 3789,
     "latestYear": 2026
   },
   {
     "slug": "hightouch",
-    "hits": 2996,
+    "hits": 3212,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blackcanyonconsulting",
+    "hits": 2929,
     "latestYear": 2026
   },
   {
     "slug": "redpandadata",
-    "hits": 2342,
+    "hits": 2633,
+    "latestYear": 2026
+  },
+  {
+    "slug": "billiontoone",
+    "hits": 2322,
+    "latestYear": 2026
+  },
+  {
+    "slug": "robinhood",
+    "hits": 2290,
     "latestYear": 2026
   },
   {
     "slug": "cloudflare",
-    "hits": 1904,
+    "hits": 2215,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ibkr",
+    "hits": 2187,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cobaltio",
+    "hits": 2123,
+    "latestYear": 2026
+  },
+  {
+    "slug": "instacart",
+    "hits": 2035,
+    "latestYear": 2026
+  },
+  {
+    "slug": "reddit",
+    "hits": 1822,
+    "latestYear": 2026
+  },
+  {
+    "slug": "materialize",
+    "hits": 1688,
     "latestYear": 2026
   },
   {
     "slug": "twosixtechnologies",
-    "hits": 1518,
+    "hits": 1658,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mavenclinic",
+    "hits": 1581,
+    "latestYear": 2026
+  },
+  {
+    "slug": "samsara",
+    "hits": 1403,
+    "latestYear": 2026
+  },
+  {
+    "slug": "figma",
+    "hits": 1350,
+    "latestYear": 2026
+  },
+  {
+    "slug": "officehours",
+    "hits": 1154,
     "latestYear": 2026
   },
   {
     "slug": "andurilindustries",
-    "hits": 1102,
+    "hits": 1131,
+    "latestYear": 2026
+  },
+  {
+    "slug": "carerev",
+    "hits": 1094,
+    "latestYear": 2026
+  },
+  {
+    "slug": "grafanalabs",
+    "hits": 1059,
     "latestYear": 2026
   },
   {
     "slug": "humansignal",
-    "hits": 1034,
+    "hits": 1040,
+    "latestYear": 2026
+  },
+  {
+    "slug": "plotly",
+    "hits": 1010,
+    "latestYear": 2026
+  },
+  {
+    "slug": "idme",
+    "hits": 878,
     "latestYear": 2026
   },
   {
     "slug": "oklo",
-    "hits": 832,
+    "hits": 837,
     "latestYear": 2026
   },
   {
     "slug": "novacredit",
-    "hits": 700,
+    "hits": 800,
+    "latestYear": 2026
+  },
+  {
+    "slug": "supabase",
+    "hits": 792,
     "latestYear": 2026
   },
   {
     "slug": "thealleninstitute",
-    "hits": 696,
+    "hits": 780,
     "latestYear": 2026
   },
   {
-    "slug": "xai",
-    "hits": 620,
-    "latestYear": 2026
-  },
-  {
-    "slug": "carta",
-    "hits": 588,
-    "latestYear": 2026
-  },
-  {
-    "slug": "spacex",
-    "hits": 546,
-    "latestYear": 2026
-  },
-  {
-    "slug": "kinelo",
-    "hits": 532,
+    "slug": "sigmacomputing",
+    "hits": 779,
     "latestYear": 2026
   },
   {
     "slug": "anthropic",
-    "hits": 484,
+    "hits": 758,
+    "latestYear": 2026
+  },
+  {
+    "slug": "spacex",
+    "hits": 735,
+    "latestYear": 2026
+  },
+  {
+    "slug": "kinelo",
+    "hits": 732,
+    "latestYear": 2026
+  },
+  {
+    "slug": "perpay",
+    "hits": 687,
+    "latestYear": 2026
+  },
+  {
+    "slug": "carta",
+    "hits": 681,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xai",
+    "hits": 675,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vannevarlabs",
+    "hits": 648,
+    "latestYear": 2026
+  },
+  {
+    "slug": "paige",
+    "hits": 600,
+    "latestYear": 2026
+  },
+  {
+    "slug": "notion",
+    "hits": 591,
+    "latestYear": 2026
+  },
+  {
+    "slug": "monzo",
+    "hits": 514,
+    "latestYear": 2026
+  },
+  {
+    "slug": "amplitude",
+    "hits": 505,
+    "latestYear": 2026
+  },
+  {
+    "slug": "valon",
+    "hits": 504,
+    "latestYear": 2026
+  },
+  {
+    "slug": "weave",
+    "hits": 446,
     "latestYear": 2026
   },
   {
@@ -80,13 +220,83 @@
     "latestYear": 2026
   },
   {
-    "slug": "weave",
-    "hits": 352,
+    "slug": "voxmedia",
+    "hits": 442,
+    "latestYear": 2026
+  },
+  {
+    "slug": "twilio",
+    "hits": 437,
+    "latestYear": 2026
+  },
+  {
+    "slug": "discord",
+    "hits": 430,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clickhouse",
+    "hits": 420,
+    "latestYear": 2026
+  },
+  {
+    "slug": "github",
+    "hits": 410,
+    "latestYear": 2026
+  },
+  {
+    "slug": "avalabs",
+    "hits": 370,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wistia",
+    "hits": 354,
     "latestYear": 2026
   },
   {
     "slug": "lumos",
-    "hits": 338,
+    "hits": 342,
+    "latestYear": 2026
+  },
+  {
+    "slug": "canonical",
+    "hits": 330,
+    "latestYear": 2026
+  },
+  {
+    "slug": "intercom",
+    "hits": 319,
+    "latestYear": 2026
+  },
+  {
+    "slug": "launchdarkly",
+    "hits": 314,
+    "latestYear": 2026
+  },
+  {
+    "slug": "meltano",
+    "hits": 298,
+    "latestYear": 2026
+  },
+  {
+    "slug": "planetlabs",
+    "hits": 297,
+    "latestYear": 2026
+  },
+  {
+    "slug": "udacity",
+    "hits": 288,
+    "latestYear": 2026
+  },
+  {
+    "slug": "substack",
+    "hits": 282,
+    "latestYear": 2026
+  },
+  {
+    "slug": "affirm",
+    "hits": 282,
     "latestYear": 2026
   },
   {
@@ -95,8 +305,33 @@
     "latestYear": 2026
   },
   {
+    "slug": "customerio",
+    "hits": 270,
+    "latestYear": 2026
+  },
+  {
     "slug": "addepar1",
-    "hits": 248,
+    "hits": 265,
+    "latestYear": 2026
+  },
+  {
+    "slug": "messari",
+    "hits": 258,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sourcegraph",
+    "hits": 249,
+    "latestYear": 2026
+  },
+  {
+    "slug": "propublica",
+    "hits": 242,
+    "latestYear": 2026
+  },
+  {
+    "slug": "growtherapy",
+    "hits": 242,
     "latestYear": 2026
   },
   {
@@ -105,52 +340,227 @@
     "latestYear": 2026
   },
   {
-    "slug": "propublica",
-    "hits": 230,
+    "slug": "verkada",
+    "hits": 239,
     "latestYear": 2026
   },
   {
-    "slug": "verkada",
-    "hits": 212,
+    "slug": "gitlab",
+    "hits": 234,
+    "latestYear": 2026
+  },
+  {
+    "slug": "epickids",
+    "hits": 222,
+    "latestYear": 2026
+  },
+  {
+    "slug": "narvar",
+    "hits": 222,
     "latestYear": 2026
   },
   {
     "slug": "brave",
-    "hits": 210,
+    "hits": 220,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pomelocare",
+    "hits": 219,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alma",
+    "hits": 218,
+    "latestYear": 2026
+  },
+  {
+    "slug": "okx",
+    "hits": 209,
+    "latestYear": 2026
+  },
+  {
+    "slug": "maven",
+    "hits": 204,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gusto",
+    "hits": 202,
+    "latestYear": 2026
+  },
+  {
+    "slug": "remotecom",
+    "hits": 200,
+    "latestYear": 2026
+  },
+  {
+    "slug": "deepmind",
+    "hits": 198,
     "latestYear": 2026
   },
   {
     "slug": "emergentlabsinc",
-    "hits": 192,
+    "hits": 193,
     "latestYear": 2026
   },
   {
-    "slug": "lithic",
-    "hits": 164,
+    "slug": "cleoai",
+    "hits": 190,
+    "latestYear": 2026
+  },
+  {
+    "slug": "netlify",
+    "hits": 188,
+    "latestYear": 2026
+  },
+  {
+    "slug": "duolingo",
+    "hits": 188,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ramp",
+    "hits": 186,
     "latestYear": 2026
   },
   {
     "slug": "tailscale",
-    "hits": 156,
+    "hits": 185,
+    "latestYear": 2026
+  },
+  {
+    "slug": "qualtrics",
+    "hits": 182,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wikimedia",
+    "hits": 182,
+    "latestYear": 2026
+  },
+  {
+    "slug": "braze",
+    "hits": 169,
     "latestYear": 2026
   },
   {
     "slug": "thenewyorktimes",
-    "hits": 146,
+    "hits": 169,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lithic",
+    "hits": 166,
+    "latestYear": 2026
+  },
+  {
+    "slug": "contentful",
+    "hits": 158,
+    "latestYear": 2026
+  },
+  {
+    "slug": "boxinc",
+    "hits": 157,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mixpanel",
+    "hits": 156,
     "latestYear": 2026
   },
   {
     "slug": "updater",
+    "hits": 154,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mozilla",
+    "hits": 152,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sourcegraph91",
+    "hits": 152,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vimeo",
+    "hits": 148,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gocardless",
+    "hits": 147,
+    "latestYear": 2026
+  },
+  {
+    "slug": "neuralink",
+    "hits": 146,
+    "latestYear": 2026
+  },
+  {
+    "slug": "public",
+    "hits": 144,
+    "latestYear": 2026
+  },
+  {
+    "slug": "correlationone",
     "hits": 142,
     "latestYear": 2026
   },
   {
+    "slug": "doubleverify",
+    "hits": 141,
+    "latestYear": 2026
+  },
+  {
     "slug": "vivodyne",
-    "hits": 134,
+    "hits": 140,
+    "latestYear": 2026
+  },
+  {
+    "slug": "khanacademy",
+    "hits": 140,
+    "latestYear": 2026
+  },
+  {
+    "slug": "truebill",
+    "hits": 137,
+    "latestYear": 2026
+  },
+  {
+    "slug": "modernhealth",
+    "hits": 136,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tmc",
+    "hits": 126,
+    "latestYear": 2026
+  },
+  {
+    "slug": "life360",
+    "hits": 122,
+    "latestYear": 2026
+  },
+  {
+    "slug": "drw",
+    "hits": 121,
     "latestYear": 2026
   },
   {
     "slug": "justworks",
+    "hits": 120,
+    "latestYear": 2026
+  },
+  {
+    "slug": "doordashusa",
+    "hits": 113,
+    "latestYear": 2026
+  },
+  {
+    "slug": "obsidiansecurity",
     "hits": 112,
     "latestYear": 2026
   },
@@ -165,8 +575,48 @@
     "latestYear": 2026
   },
   {
+    "slug": "algolia",
+    "hits": 108,
+    "latestYear": 2026
+  },
+  {
+    "slug": "komodohealth",
+    "hits": 108,
+    "latestYear": 2026
+  },
+  {
+    "slug": "planetscale",
+    "hits": 107,
+    "latestYear": 2026
+  },
+  {
+    "slug": "outschool",
+    "hits": 106,
+    "latestYear": 2026
+  },
+  {
     "slug": "charnetwork",
-    "hits": 100,
+    "hits": 106,
+    "latestYear": 2026
+  },
+  {
+    "slug": "roofstock",
+    "hits": 105,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vestwell",
+    "hits": 104,
+    "latestYear": 2026
+  },
+  {
+    "slug": "algorithmia",
+    "hits": 102,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ionq",
+    "hits": 101,
     "latestYear": 2026
   },
   {
@@ -175,28 +625,88 @@
     "latestYear": 2026
   },
   {
-    "slug": "adyen",
-    "hits": 96,
+    "slug": "goatgroup",
+    "hits": 100,
     "latestYear": 2026
   },
   {
-    "slug": "goatgroup",
-    "hits": 96,
+    "slug": "adyen",
+    "hits": 100,
     "latestYear": 2026
   },
   {
     "slug": "archer56",
+    "hits": 99,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clearstreet",
+    "hits": 98,
+    "latestYear": 2026
+  },
+  {
+    "slug": "procurify",
+    "hits": 97,
+    "latestYear": 2026
+  },
+  {
+    "slug": "touchbistro",
+    "hits": 97,
+    "latestYear": 2026
+  },
+  {
+    "slug": "piramidalinc",
     "hits": 96,
     "latestYear": 2026
   },
   {
-    "slug": "doordashusa",
+    "slug": "avride",
+    "hits": 94,
+    "latestYear": 2026
+  },
+  {
+    "slug": "consensys",
+    "hits": 94,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bloomreach",
+    "hits": 93,
+    "latestYear": 2026
+  },
+  {
+    "slug": "recursionpharmaceuticals",
     "hits": 92,
     "latestYear": 2026
   },
   {
-    "slug": "avride",
-    "hits": 92,
+    "slug": "metromile",
+    "hits": 90,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wonderschool",
+    "hits": 88,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arcadiacareers",
+    "hits": 84,
+    "latestYear": 2026
+  },
+  {
+    "slug": "doordash",
+    "hits": 83,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tripadvisor",
+    "hits": 83,
+    "latestYear": 2026
+  },
+  {
+    "slug": "betterment",
+    "hits": 82,
     "latestYear": 2026
   },
   {
@@ -215,73 +725,4143 @@
     "latestYear": 2026
   },
   {
+    "slug": "carvana",
+    "hits": 75,
+    "latestYear": 2026
+  },
+  {
+    "slug": "curalate",
+    "hits": 74,
+    "latestYear": 2026
+  },
+  {
+    "slug": "civisanalytics",
+    "hits": 72,
+    "latestYear": 2026
+  },
+  {
+    "slug": "buzzfeed",
+    "hits": 70,
+    "latestYear": 2026
+  },
+  {
+    "slug": "casper",
+    "hits": 70,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fossa",
+    "hits": 66,
+    "latestYear": 2026
+  },
+  {
+    "slug": "patreon",
+    "hits": 65,
+    "latestYear": 2026
+  },
+  {
+    "slug": "riotgames",
+    "hits": 63,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sonyinteractiveentertainmentglobal",
+    "hits": 60,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lyft",
+    "hits": 59,
+    "latestYear": 2026
+  },
+  {
+    "slug": "solsten",
+    "hits": 58,
+    "latestYear": 2026
+  },
+  {
+    "slug": "astranis",
+    "hits": 58,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tenableinc",
+    "hits": 57,
+    "latestYear": 2026
+  },
+  {
+    "slug": "temporaltechnologies",
+    "hits": 57,
+    "latestYear": 2026
+  },
+  {
     "slug": "mixmode",
     "hits": 56,
     "latestYear": 2026
   },
   {
-    "slug": "loop",
-    "hits": 5644,
-    "latestYear": 2025
+    "slug": "cabify",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "firstlookmedia",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hebbia",
+    "hits": 56,
+    "latestYear": 2026
+  },
+  {
+    "slug": "carbon",
+    "hits": 55,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stripe",
+    "hits": 54,
+    "latestYear": 2026
+  },
+  {
+    "slug": "openeye",
+    "hits": 52,
+    "latestYear": 2026
+  },
+  {
+    "slug": "token",
+    "hits": 52,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mycoworks",
+    "hits": 52,
+    "latestYear": 2026
+  },
+  {
+    "slug": "recharge",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sfgiants",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "andela",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "radiant",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aegisventures",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "range",
+    "hits": 50,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scout24",
+    "hits": 49,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sezzle",
+    "hits": 47,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bitgo",
+    "hits": 46,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pendo",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "airtable",
+    "hits": 44,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chalkinc",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coreweave",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "navtechnologies",
+    "hits": 42,
+    "latestYear": 2026
+  },
+  {
+    "slug": "opendoor",
+    "hits": 41,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scaleai",
+    "hits": 40,
+    "latestYear": 2026
+  },
+  {
+    "slug": "applytotruebuilt",
+    "hits": 39,
+    "latestYear": 2026
+  },
+  {
+    "slug": "airbyte",
+    "hits": 38,
+    "latestYear": 2026
+  },
+  {
+    "slug": "impala",
+    "hits": 38,
+    "latestYear": 2026
+  },
+  {
+    "slug": "protocollabs",
+    "hits": 38,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clear",
+    "hits": 36,
+    "latestYear": 2026
+  },
+  {
+    "slug": "intrinsicrobotics",
+    "hits": 35,
+    "latestYear": 2026
+  },
+  {
+    "slug": "risczero",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "timescale",
+    "hits": 34,
+    "latestYear": 2026
+  },
+  {
+    "slug": "trailofbits",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oplabs",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "o1labs",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xyz",
+    "hits": 32,
+    "latestYear": 2026
+  },
+  {
+    "slug": "virtu",
+    "hits": 31,
+    "latestYear": 2026
+  },
+  {
+    "slug": "classpass",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "figment",
+    "hits": 30,
+    "latestYear": 2026
+  },
+  {
+    "slug": "taketwo",
+    "hits": 29,
+    "latestYear": 2026
+  },
+  {
+    "slug": "brex",
+    "hits": 29,
+    "latestYear": 2026
+  },
+  {
+    "slug": "raft",
+    "hits": 29,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bitmex",
+    "hits": 28,
+    "latestYear": 2026
+  },
+  {
+    "slug": "healthie",
+    "hits": 28,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lilasciences",
+    "hits": 28,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aquaticcapitalmanagement",
+    "hits": 28,
+    "latestYear": 2026
+  },
+  {
+    "slug": "textileio",
+    "hits": 28,
+    "latestYear": 2026
+  },
+  {
+    "slug": "flexport",
+    "hits": 26,
+    "latestYear": 2026
+  },
+  {
+    "slug": "webflow",
+    "hits": 26,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vercel",
+    "hits": 25,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pushpay",
+    "hits": 25,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ultramobile",
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "himshers",
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "abstract",
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tweag",
+    "hits": 24,
+    "latestYear": 2026
+  },
+  {
+    "slug": "peak6",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "newsbreak",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acme",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "singlestore",
+    "hits": 23,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blockfi",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rocketlab",
+    "hits": 22,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nubank",
+    "hits": 21,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gelbergroup",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "uniswaplabs",
+    "hits": 20,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oura",
+    "hits": 19,
+    "latestYear": 2026
+  },
+  {
+    "slug": "togetherai",
+    "hits": 19,
+    "latestYear": 2026
+  },
+  {
+    "slug": "b12",
+    "hits": 17,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xometry",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "figureai",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "openai",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "altoslabs",
+    "hits": 16,
+    "latestYear": 2026
+  },
+  {
+    "slug": "twitch",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "postman",
+    "hits": 15,
+    "latestYear": 2026
+  },
+  {
+    "slug": "databricks",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cresta",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cerebral",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "caribou",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "skildai-careers",
+    "hits": 14,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xpengmotors",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gleanwork",
+    "hits": 13,
+    "latestYear": 2026
+  },
+  {
+    "slug": "amarok",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "waymo",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "guardsquare",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sustainment",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ada18",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "talkspace",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "inceptive",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "apaleo",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alertmedia",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fingerprint",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dashlane",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "smartsheet",
+    "hits": 12,
+    "latestYear": 2026
+  },
+  {
+    "slug": "semgrep",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "axios",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "temus",
+    "hits": 11,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mthreerecruitingportal",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "airbnb",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dfinity",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bvnk",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ritual",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aescape",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "unqork",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "flowfuse",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "speechify",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "amca",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "saatva",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "appier",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "flohealth",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "inflectionai",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "redwoodmaterials",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fairmarkit",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "agwestfarmcredit",
+    "hits": 10,
+    "latestYear": 2026
+  },
+  {
+    "slug": "visiersolutionsinc",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "torcrobotics",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "datadog",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "quince",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scopely",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wing",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stackadapt",
+    "hits": 9,
+    "latestYear": 2026
+  },
+  {
+    "slug": "podium81",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "captivation",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alchemy",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coinbase",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sentry",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blastpoint",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mckinsey",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thunes",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ownwell",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "apptronik",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bitpanda",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stackline",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "twochairs",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sparkfund",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aerospike",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zennioptical",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bicyclehealth",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "siliconranch",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "allencontrolsystems",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "allenintegratedsolutions",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "otterai",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tempus",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "veriff",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "epirus",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "suitsupply",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aestudio",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chargepoint",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tatari",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nayya",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alloy",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zocdoc",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "quanata",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "typeface",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "project44",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "anteriad",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "keepersecurity",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thrivemarket",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alphasense",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cohere",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "complyadvantage",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "truveta",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "2k",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "prefect",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alphagrepsecurities",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wolt",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "showpad",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "celigo",
+    "hits": 8,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arine",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "breezeairways",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ispottv",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zone5technologies",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mongodb",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "capco",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "janestreet",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "purestorage",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "counterpart",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "phoenixcontact",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dbtlabsinc",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "calm",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rithum",
+    "hits": 7,
+    "latestYear": 2026
+  },
+  {
+    "slug": "offerup",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "eulerity",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "genscript",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "verainstituteofjustice",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "appliedintuition",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nextdoorcampus",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dropbox",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "carousell",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hart",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "queracomputinginc",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "canonicaljobs",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wyndlabs",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nuro",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "youcom",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "runpod",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "instabase",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "specterops",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "example",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aerofs",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "350org",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "greenhouse",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vonage",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fal",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "xapo61",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "astria",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "guerrilla-games",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "c6bank",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "perplexityai",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "genevatrading",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "humeai",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "speechmatics",
+    "hits": 6,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pinterest",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "elastic",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tribalscale",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tenstorrentuniversity",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "trueanomalyinc",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "samsungresearchamericainternship",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "radixuniversity",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "emarketer",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "seesaw",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chime",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "slice",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "affinity",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "abnormalsecurity",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hiro",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stackblitz",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "isomorphiclabs",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "roblox",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "diligentcorporation",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "classdojo",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "govtechbarbados",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "eqtcorporation",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "companyname",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aloyoga",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ginkgobioworks",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "point72",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "snorkelai",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "graphcore",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "flex",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "underdogfantasy",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "innovaccer",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hs",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "doximity",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "onxmaps",
+    "hits": 5,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clarityinnovates",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "instead",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "maintainx",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "docugami",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "energyhub",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "labelbox",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "evolver",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "60decibelsinc",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "brightai",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "silananotechnologies",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "inizio",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fspco-op012325",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "technergetics",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "okta",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "iftother",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "freedomconsulting",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "uareai",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rackner",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "drweng",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wehrtyou",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "snyk",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rubrik",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scrollio",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "v1",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "snowflake",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "grammarly",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arizeai",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "asana",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zupinnovation",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tusimple",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stone",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "creditas",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cruiseuniversity",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mochihealth",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "trufflesecurity",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "workatbackbase",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "inthepocket",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "simplifyjobsintegrationsandbox",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "qvin",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pallet",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "starburst",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coda",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zola",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zencoder",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "shopmonkey",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "automattic",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "commvault",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "generalatlantic",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fastautoloansinc",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oddaustin",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acurussolutions",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "moloco",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chanzuckerberginitiative",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "kinaxis",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wormhole",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "semafor",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "azuritypharmaceuticals",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "theoutline",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "effectual",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "techcorp",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "metropolis",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lucidsoftware",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "parloa",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "shopify",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bitwarden",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "riotgamesinc",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "demoorg",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "worldlabs",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ackermanngroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "newscred",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "near",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bombas",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "akoya",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ruggable",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clutch",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "salesloft",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "insurify",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "attentive",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "iterable",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "eh2",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "divergent",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aftership",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cultureamp",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coalition",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "agencywithin",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aperiasolutions",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "celonis",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fourkites",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thebrattlegroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "freshprints",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "spotter",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "transmarketgroup",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hashicorp",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "roku",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blackforestlabs",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aperaaiinc",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ably30",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fiveringsllc",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nansen",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "slug",
+    "hits": 4,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zscaler",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cerebrassystems",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dv01",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nationalpublicradioinc",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "meesho",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "groww",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "phonepe",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chargebee",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "browserstack",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "toast",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "huntress",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lattice",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "assemblyai",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "workato",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "company-name",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sifthealthcare",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "atoms",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "axon",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "visia",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "masterclass",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "adcouncil",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "postscript",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dvtrading",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stubhubinc",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chaincodelabs",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "apolloio",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "axle",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "11fs",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coursera",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "calendly",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "reformation",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "capitalrx",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bees",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acmeai",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clara",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "givewell",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pairteam",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cloudsek",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "coherehealth",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tebra",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "consumerreports",
+    "hits": 3,
+    "latestYear": 2026
+  },
+  {
+    "slug": "furtherearlycareer",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scoutai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "remodelhealth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "d3",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "climateai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "artefactus",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vardaspace",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sharkninjaoperatingllc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "armada",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "jobsmckinneycom",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "msfcareers",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nightfall",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "minware",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "qumulo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rvohealth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acrisureinnovation",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "whatnot",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lightspeedhq",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "paypay",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stream",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thescore",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dbtlabspt",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "groq",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rippling",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "doordashcanada",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "plaid",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hubspot",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sofi",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "akunacapital",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "jumptrading",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "epicgames",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hrttalentcommunity",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "linkedin",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "unity3d",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "razorpay",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fireblocks",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "swanbitcoin",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "truelayer",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ninjatrader",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nomina",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "recall",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "figure",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "grayscaleinvestments",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bloxstaking",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "jumpcrypto",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "orderly",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "shardeumfoundation",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zora",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blockchain",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "osmosisdex",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mara",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "exodus54",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "magic",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bitcoindepot",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "taxbit",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aptoslabs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "foundrydigital",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "immunefi",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "strike",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "layerzerolabs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oasisnetwork",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "galaxydigitalservices",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clearmatics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zetachain",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "noble",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "solana",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mesh",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "apr",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cosmoslabs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hpiq",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "neptuneai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "polyai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "augmentcomputing",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hoppr",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vectara",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "starmind",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fireworksai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "interfaceai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "momentmarkets",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "capitalontap",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "smartasset",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "earnin",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "yugabyte",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "filecoinfoundation",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ecoinc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nimbus",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "block",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dragos",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gracehopper",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "2uedx",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "peopledoc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "partnerengagementstaffing",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "niantic",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bolt42",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "veeventures",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "compeat",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "crabi",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mensajerosurbanos",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clevelandindiansbops",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "personio",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "warp",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "favicon",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gympass",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "techstars57",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "attor",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "att",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "grapesstudio",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "startup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "anothertech",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "synacksrt",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "seveneightcapital",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nykaa",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "brighthealthgroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "globex",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thinkingmachines",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "newsrevenuehub",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "company_name",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rsinternboard",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "empresa",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "company1",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zype",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tenstorrent",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "konux",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hypixelstudios",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "examplecompany",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "klaviyo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "urbansportsclub",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "berlinrosen",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "northbeamanalytics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lumenaltalabs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "microsoft",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "waterloocoop",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gaintheory",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "parachutehealth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "honor",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rockerbox",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hyannisportresearch",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clearscoretechnologylimited",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "candy",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "alumniventures",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "scale",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "huggingface",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tezatechnologies",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fathom",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "christfellowship",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "exampleco",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "connectwise",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "eclinicalsolutions",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "goodwaygroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aperiatechnologies",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "benchling",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dataflowinc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "goguardian",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wix",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mondaydotcom",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "calyxinstitute",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vector-ai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "domo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sportygroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "optimaldynamics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sightlinemediagroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "angi",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tudorgroup",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "simpplr",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "elicit",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "forgeglobal",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "crowdstrike",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "paloaltonetworks",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "neuehealth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "replicate",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dbtlabs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fivetran",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "traversal",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "markets",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "azragames",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mwamevents",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cti",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cartesiansystems",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "caseguard",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "shift4",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "geotab",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aiserajobs",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sggcareers",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "trace3",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mercury",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "olipop",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pitchbookdata",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cleo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "faire",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "runwayml",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "newrelic",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "agoda",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pilothq",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "shein",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "poppulo",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ziprecruiter",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acceleronfusion",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clinchoice",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "newtonresearch",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pelacase",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "forter",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "springhealth66",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cloudbeds",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wileyedgerecruitingportal",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "merqube",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "typeform",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "roboforce",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "papa",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "silverado",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "agibank",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "workleap",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oshihealth",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hark",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arcoeducacao",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "akko",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "relyance",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mozillaai",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "chainguard",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "datakindinc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "headlandstechnologiesllc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "givedirectly",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "locusrobotics",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "torq",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "liquiddeath",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lirio",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "engine",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "walleyecapital-external-students",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "razorpaysoftw",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "impinjexternal",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hugeinc",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bellroy",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oscar",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "example-company",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "css",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "systemstechnologyresearch",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "guidepoint",
+    "hits": 2,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hootsuite",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ada",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "d2l",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "konradgroup",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vidyard",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mejuri",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "temporal",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "loblawdigital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "venasolutions",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stackadapt-confidential",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "indexexchangereferral",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "humi",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wavehq",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "achievers",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nuvei",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "soti",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "points",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "resolverinc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "unbounce",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "clio",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bench",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vendasta",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "convex",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fiddlerai",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "checkoutcom",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "eventbrite",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zendesk",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "citadelsecurities",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "citadel",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hudsonrivertrading",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "blackedgecapital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "belvederetrading",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fiverings",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hapcapital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "headlandstech",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "imctrading",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "optiver",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pdtpartners",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "radixtrading",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "susquehanna",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "squarepointcapital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "towerresearchcapital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "valkyrietrading",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vaticlabs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "voleon",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "voloridge",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wolverine",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "disney",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "hubspotjobs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "optiverus",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pagerduty",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "squarespace",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "uberfreight",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "cred",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zepto",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nutanix",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tekion",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lenskart",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "acko",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sharechat",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "paytm",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "swiggy",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "oyorooms",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "byjus",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vedantu",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dailyhunt",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bigbasket",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "udaan",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pinelabs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pharmeasy",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "quikr",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dunzo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rapido",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "parkplus",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "spinny",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "leadschool",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "stanzaliving",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zetwerk",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ofbusiness",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "elasticrun",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tesla",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "indeed",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "artefactlinkedin",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "dataikujobs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "quintoandar",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "elitetechnology",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nintendo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bandainamco",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "krafton",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wrike",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "skyscanner",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "marqeta",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "inmobi",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arcticwolf",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sentinelone",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "expel",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "recordedfuture",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "wiz",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "pronto",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "saictoronto",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "deliveroo",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "spotify",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "getground",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "analyst1",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "exoduspoint",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "freenow",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "zip",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "glossgenius",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "solutions",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "realchemistry",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "renewedvision",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "carrotfertility",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "monstro",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "prolific",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "space",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ie",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "breezecash",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "goodfire",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "everagtester",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "klaviyocampus",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bracebridgecapital",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bridgebio",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "smartbear",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "onboardmeetings",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "phaidra",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "machinifyinc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nearsure",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "telusdigitalbr",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "accenturefederalservices",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fluxon",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "aircompany",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "yext",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thalamusgme",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vtex",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sonypicturesimageworks",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mogli",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bluestaq",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sixgeninc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tecovas",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "quiltllc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "implicit",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "nearform",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "synthesia",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "thetradedesk",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "datavations",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "horizonindustrieslimited",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "541",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "accordion",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "atbayjobs",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "optimismpbc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ketryx",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "woltisrael",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "betterhelpcom",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "gemini",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "ampsortation",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "arcesiumllc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "logicgate",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "accelerationpartners",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "later",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "melio",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "summitpartnerslp",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "workboard",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "mindsdb",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "rdstation",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "getwellnetwork",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "perscholashires",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "litify",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "co",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bridgewater89",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "kinetik",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "tinkermode",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "bluelabsanalyticsinc",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "vellum",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "threatlocker",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "infuse",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "statement",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "baltimoreorioles",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "impact",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "roadie",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "sonymusiccanada",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "qcentrix",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "lindawernerassociates",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "samsungresearchamerica",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "medeanalytics",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "adobe",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "firstprinciples",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "descript",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "fastforward",
+    "hits": 1,
+    "latestYear": 2026
+  },
+  {
+    "slug": "penninteractive",
+    "hits": 1,
+    "latestYear": 2026
   },
   {
     "slug": "peregrinetechnologies",
-    "hits": 4710,
-    "latestYear": 2025
-  },
-  {
-    "slug": "blackcanyonconsulting",
-    "hits": 2888,
+    "hits": 4724,
     "latestYear": 2025
   },
   {
     "slug": "airtamejobs",
-    "hits": 2268,
-    "latestYear": 2025
-  },
-  {
-    "slug": "billiontoone",
-    "hits": 2240,
-    "latestYear": 2025
-  },
-  {
-    "slug": "ibkr",
-    "hits": 1900,
-    "latestYear": 2025
-  },
-  {
-    "slug": "materialize",
-    "hits": 1640,
+    "hits": 3222,
     "latestYear": 2025
   },
   {
     "slug": "via",
-    "hits": 1566,
-    "latestYear": 2025
-  },
-  {
-    "slug": "figma",
-    "hits": 1178,
-    "latestYear": 2025
-  },
-  {
-    "slug": "officehours",
-    "hits": 1152,
+    "hits": 1622,
     "latestYear": 2025
   },
   {
     "slug": "commercetools",
-    "hits": 1070,
-    "latestYear": 2025
-  },
-  {
-    "slug": "grafanalabs",
-    "hits": 996,
-    "latestYear": 2025
-  },
-  {
-    "slug": "plotly",
-    "hits": 914,
+    "hits": 1248,
     "latestYear": 2025
   },
   {
@@ -295,28 +4875,13 @@
     "latestYear": 2025
   },
   {
-    "slug": "idme",
-    "hits": 770,
+    "slug": "brightnetwork",
+    "hits": 782,
     "latestYear": 2025
   },
   {
     "slug": "agilesix",
-    "hits": 762,
-    "latestYear": 2025
-  },
-  {
-    "slug": "brightnetwork",
-    "hits": 710,
-    "latestYear": 2025
-  },
-  {
-    "slug": "perpay",
-    "hits": 672,
-    "latestYear": 2025
-  },
-  {
-    "slug": "vannevarlabs",
-    "hits": 612,
+    "hits": 770,
     "latestYear": 2025
   },
   {
@@ -325,13 +4890,8 @@
     "latestYear": 2025
   },
   {
-    "slug": "notion",
-    "hits": 554,
-    "latestYear": 2025
-  },
-  {
     "slug": "coefficient",
-    "hits": 500,
+    "hits": 558,
     "latestYear": 2025
   },
   {
@@ -350,13 +4910,13 @@
     "latestYear": 2025
   },
   {
-    "slug": "avalabs",
-    "hits": 368,
+    "slug": "nylas",
+    "hits": 304,
     "latestYear": 2025
   },
   {
-    "slug": "launchdarkly",
-    "hits": 282,
+    "slug": "garnerhealth",
+    "hits": 284,
     "latestYear": 2025
   },
   {
@@ -365,33 +4925,18 @@
     "latestYear": 2025
   },
   {
-    "slug": "garnerhealth",
-    "hits": 270,
-    "latestYear": 2025
-  },
-  {
     "slug": "verisign",
-    "hits": 262,
+    "hits": 260,
     "latestYear": 2025
   },
   {
-    "slug": "udacity",
-    "hits": 252,
-    "latestYear": 2025
-  },
-  {
-    "slug": "nylas",
+    "slug": "runelabs",
     "hits": 250,
     "latestYear": 2025
   },
   {
     "slug": "dittoliveincorporated",
-    "hits": 236,
-    "latestYear": 2025
-  },
-  {
-    "slug": "runelabs",
-    "hits": 232,
+    "hits": 242,
     "latestYear": 2025
   },
   {
@@ -400,8 +4945,13 @@
     "latestYear": 2025
   },
   {
-    "slug": "epickids",
-    "hits": 220,
+    "slug": "skysafe",
+    "hits": 208,
+    "latestYear": 2025
+  },
+  {
+    "slug": "honeylove",
+    "hits": 204,
     "latestYear": 2025
   },
   {
@@ -425,38 +4975,23 @@
     "latestYear": 2025
   },
   {
-    "slug": "skysafe",
-    "hits": 186,
-    "latestYear": 2025
-  },
-  {
-    "slug": "honeylove",
-    "hits": 182,
-    "latestYear": 2025
-  },
-  {
-    "slug": "deepmind",
-    "hits": 168,
-    "latestYear": 2025
-  },
-  {
     "slug": "meetelise",
-    "hits": 164,
+    "hits": 184,
     "latestYear": 2025
   },
   {
     "slug": "spec",
-    "hits": 162,
+    "hits": 172,
+    "latestYear": 2025
+  },
+  {
+    "slug": "hudl",
+    "hits": 160,
     "latestYear": 2025
   },
   {
     "slug": "applytocuebox",
     "hits": 154,
-    "latestYear": 2025
-  },
-  {
-    "slug": "hudl",
-    "hits": 144,
     "latestYear": 2025
   },
   {
@@ -477,16 +5012,6 @@
   {
     "slug": "armissecurity",
     "hits": 108,
-    "latestYear": 2025
-  },
-  {
-    "slug": "algolia",
-    "hits": 104,
-    "latestYear": 2025
-  },
-  {
-    "slug": "komodohealth",
-    "hits": 104,
     "latestYear": 2025
   },
   {
@@ -546,162 +5071,117 @@
   },
   {
     "slug": "propel",
-    "hits": 1880,
-    "latestYear": 2024
-  },
-  {
-    "slug": "cobaltio",
-    "hits": 1692,
-    "latestYear": 2024
-  },
-  {
-    "slug": "reddit",
-    "hits": 1320,
+    "hits": 2294,
     "latestYear": 2024
   },
   {
     "slug": "backblaze",
-    "hits": 1266,
+    "hits": 1320,
     "latestYear": 2024
   },
   {
     "slug": "assembled",
-    "hits": 628,
-    "latestYear": 2024
-  },
-  {
-    "slug": "supabase",
-    "hits": 552,
-    "latestYear": 2024
-  },
-  {
-    "slug": "valon",
-    "hits": 442,
+    "hits": 664,
     "latestYear": 2024
   },
   {
     "slug": "monad",
-    "hits": 372,
-    "latestYear": 2024
-  },
-  {
-    "slug": "clickhouse",
-    "hits": 338,
-    "latestYear": 2024
-  },
-  {
-    "slug": "senseiag",
-    "hits": 324,
-    "latestYear": 2024
-  },
-  {
-    "slug": "ngrokinc",
-    "hits": 304,
+    "hits": 420,
     "latestYear": 2024
   },
   {
     "slug": "checkbook",
-    "hits": 298,
+    "hits": 356,
+    "latestYear": 2024
+  },
+  {
+    "slug": "senseiag",
+    "hits": 348,
+    "latestYear": 2024
+  },
+  {
+    "slug": "ngrokinc",
+    "hits": 346,
     "latestYear": 2024
   },
   {
     "slug": "trustmachines",
-    "hits": 246,
+    "hits": 306,
     "latestYear": 2024
   },
   {
     "slug": "zilliz",
-    "hits": 240,
-    "latestYear": 2024
-  },
-  {
-    "slug": "10xgenomics",
-    "hits": 234,
-    "latestYear": 2024
-  },
-  {
-    "slug": "offerfit",
-    "hits": 228,
+    "hits": 300,
     "latestYear": 2024
   },
   {
     "slug": "contextualai",
-    "hits": 216,
+    "hits": 248,
     "latestYear": 2024
   },
   {
-    "slug": "messari",
-    "hits": 210,
+    "slug": "10xgenomics",
+    "hits": 238,
     "latestYear": 2024
   },
   {
-    "slug": "narvar",
-    "hits": 202,
-    "latestYear": 2024
-  },
-  {
-    "slug": "avalabsecosystem",
-    "hits": 192,
-    "latestYear": 2024
-  },
-  {
-    "slug": "pomelocare",
-    "hits": 186,
-    "latestYear": 2024
-  },
-  {
-    "slug": "wormholelabs",
-    "hits": 184,
+    "slug": "offerfit",
+    "hits": 234,
     "latestYear": 2024
   },
   {
     "slug": "aurosglobal",
-    "hits": 184,
+    "hits": 224,
     "latestYear": 2024
   },
   {
     "slug": "icapitalnetwork",
-    "hits": 176,
-    "latestYear": 2024
-  },
-  {
-    "slug": "hashboard",
-    "hits": 174,
-    "latestYear": 2024
-  },
-  {
-    "slug": "boilerroom",
-    "hits": 172,
+    "hits": 208,
     "latestYear": 2024
   },
   {
     "slug": "canopyconnect",
-    "hits": 162,
+    "hits": 206,
     "latestYear": 2024
   },
   {
-    "slug": "forallsecure",
-    "hits": 150,
+    "slug": "hashboard",
+    "hits": 202,
     "latestYear": 2024
   },
   {
-    "slug": "meaningfulgigs",
-    "hits": 144,
+    "slug": "wormholelabs",
+    "hits": 200,
+    "latestYear": 2024
+  },
+  {
+    "slug": "boilerroom",
+    "hits": 190,
+    "latestYear": 2024
+  },
+  {
+    "slug": "avalabsecosystem",
+    "hits": 184,
     "latestYear": 2024
   },
   {
     "slug": "upbound",
-    "hits": 144,
+    "hits": 176,
     "latestYear": 2024
   },
   {
-    "slug": "wikimedia",
-    "hits": 126,
+    "slug": "forallsecure",
+    "hits": 154,
     "latestYear": 2024
   },
   {
-    "slug": "tmc",
-    "hits": 116,
+    "slug": "meaningfulgigs",
+    "hits": 140,
+    "latestYear": 2024
+  },
+  {
+    "slug": "webai",
+    "hits": 120,
     "latestYear": 2024
   },
   {
@@ -715,18 +5195,23 @@
     "latestYear": 2024
   },
   {
+    "slug": "mutiny",
+    "hits": 104,
+    "latestYear": 2024
+  },
+  {
+    "slug": "spanio",
+    "hits": 102,
+    "latestYear": 2024
+  },
+  {
     "slug": "campusedu",
     "hits": 100,
     "latestYear": 2024
   },
   {
-    "slug": "mutiny",
-    "hits": 98,
-    "latestYear": 2024
-  },
-  {
-    "slug": "webai",
-    "hits": 98,
+    "slug": "mesamember",
+    "hits": 100,
     "latestYear": 2024
   },
   {
@@ -741,11 +5226,11 @@
   },
   {
     "slug": "ascertain",
-    "hits": 96,
+    "hits": 94,
     "latestYear": 2024
   },
   {
-    "slug": "mesamember",
+    "slug": "enveritas",
     "hits": 94,
     "latestYear": 2024
   },
@@ -755,38 +5240,18 @@
     "latestYear": 2024
   },
   {
-    "slug": "procurify",
-    "hits": 92,
-    "latestYear": 2024
-  },
-  {
-    "slug": "spanio",
-    "hits": 90,
-    "latestYear": 2024
-  },
-  {
-    "slug": "recursionpharmaceuticals",
-    "hits": 84,
-    "latestYear": 2024
-  },
-  {
-    "slug": "wonderschool",
-    "hits": 84,
+    "slug": "admarketplaceinc",
+    "hits": 88,
     "latestYear": 2024
   },
   {
     "slug": "standardai",
-    "hits": 82,
+    "hits": 86,
     "latestYear": 2024
   },
   {
-    "slug": "enveritas",
-    "hits": 78,
-    "latestYear": 2024
-  },
-  {
-    "slug": "admarketplaceinc",
-    "hits": 78,
+    "slug": "slingshotbiosciences",
+    "hits": 84,
     "latestYear": 2024
   },
   {
@@ -795,42 +5260,27 @@
     "latestYear": 2024
   },
   {
-    "slug": "arcadiacareers",
+    "slug": "ambiencehealthcare",
     "hits": 76,
     "latestYear": 2024
   },
   {
-    "slug": "slingshotbiosciences",
-    "hits": 74,
-    "latestYear": 2024
-  },
-  {
-    "slug": "ambiencehealthcare",
-    "hits": 60,
-    "latestYear": 2024
-  },
-  {
-    "slug": "solsten",
-    "hits": 52,
-    "latestYear": 2024
-  },
-  {
-    "slug": "carbon",
-    "hits": 52,
-    "latestYear": 2024
-  },
-  {
     "slug": "knowbe4",
+    "hits": 58,
+    "latestYear": 2024
+  },
+  {
+    "slug": "samlabs",
     "hits": 52,
     "latestYear": 2024
   },
   {
-    "slug": "mozilla",
-    "hits": 50,
+    "slug": "outlier",
+    "hits": 52,
     "latestYear": 2024
   },
   {
-    "slug": "steercrm",
+    "slug": "rabbit",
     "hits": 50,
     "latestYear": 2024
   },
@@ -840,17 +5290,17 @@
     "latestYear": 2024
   },
   {
-    "slug": "outlier",
+    "slug": "sonyinteractiveentertainmentglo",
     "hits": 48,
     "latestYear": 2024
   },
   {
-    "slug": "range",
+    "slug": "kaiahealthsoftwaregmbh",
     "hits": 48,
     "latestYear": 2024
   },
   {
-    "slug": "tenableinc",
+    "slug": "steercrm",
     "hits": 48,
     "latestYear": 2024
   },
@@ -860,52 +5310,17 @@
     "latestYear": 2024
   },
   {
-    "slug": "astranis",
+    "slug": "bertramcapitalmanagement",
     "hits": 46,
     "latestYear": 2024
   },
   {
-    "slug": "openeye",
+    "slug": "integralneuro",
     "hits": 44,
-    "latestYear": 2024
-  },
-  {
-    "slug": "samlabs",
-    "hits": 44,
-    "latestYear": 2024
-  },
-  {
-    "slug": "rabbit",
-    "hits": 44,
-    "latestYear": 2024
-  },
-  {
-    "slug": "sonyinteractiveentertainmentglobal",
-    "hits": 42,
-    "latestYear": 2024
-  },
-  {
-    "slug": "sonyinteractiveentertainmentglo",
-    "hits": 42,
     "latestYear": 2024
   },
   {
     "slug": "hivestack",
-    "hits": 42,
-    "latestYear": 2024
-  },
-  {
-    "slug": "laudioinc",
-    "hits": 40,
-    "latestYear": 2024
-  },
-  {
-    "slug": "kaiahealthsoftwaregmbh",
-    "hits": 40,
-    "latestYear": 2024
-  },
-  {
-    "slug": "radiant",
     "hits": 40,
     "latestYear": 2024
   },
@@ -915,382 +5330,317 @@
     "latestYear": 2024
   },
   {
-    "slug": "temporaltechnologies",
-    "hits": 38,
-    "latestYear": 2024
-  },
-  {
-    "slug": "integralneuro",
-    "hits": 38,
-    "latestYear": 2024
-  },
-  {
-    "slug": "bertramcapitalmanagement",
+    "slug": "laudioinc",
     "hits": 38,
     "latestYear": 2024
   },
   {
     "slug": "phantom45",
-    "hits": 36,
+    "hits": 34,
     "latestYear": 2024
   },
   {
     "slug": "forgerock",
-    "hits": 30,
+    "hits": 34,
     "latestYear": 2024
   },
   {
     "slug": "latchbio",
-    "hits": 24,
+    "hits": 30,
     "latestYear": 2024
   },
   {
     "slug": "janetechnologies",
-    "hits": 2808,
+    "hits": 3874,
     "latestYear": 2023
   },
   {
     "slug": "inscopixinc",
-    "hits": 828,
-    "latestYear": 2023
-  },
-  {
-    "slug": "render",
-    "hits": 666,
+    "hits": 1054,
     "latestYear": 2023
   },
   {
     "slug": "sparrow",
-    "hits": 616,
+    "hits": 812,
     "latestYear": 2023
   },
   {
-    "slug": "sigmacomputing",
-    "hits": 554,
+    "slug": "render",
+    "hits": 780,
     "latestYear": 2023
   },
   {
     "slug": "cocoon",
-    "hits": 526,
-    "latestYear": 2023
-  },
-  {
-    "slug": "fluxai",
-    "hits": 434,
+    "hits": 616,
     "latestYear": 2023
   },
   {
     "slug": "firstresonance",
-    "hits": 432,
+    "hits": 536,
+    "latestYear": 2023
+  },
+  {
+    "slug": "fluxai",
+    "hits": 522,
     "latestYear": 2023
   },
   {
     "slug": "parker",
-    "hits": 340,
-    "latestYear": 2023
-  },
-  {
-    "slug": "gro",
-    "hits": 282,
+    "hits": 400,
     "latestYear": 2023
   },
   {
     "slug": "0x",
-    "hits": 280,
+    "hits": 380,
+    "latestYear": 2023
+  },
+  {
+    "slug": "gro",
+    "hits": 356,
     "latestYear": 2023
   },
   {
     "slug": "ihiterrasun",
-    "hits": 258,
-    "latestYear": 2023
-  },
-  {
-    "slug": "canonical",
-    "hits": 228,
-    "latestYear": 2023
-  },
-  {
-    "slug": "substack",
-    "hits": 224,
-    "latestYear": 2023
-  },
-  {
-    "slug": "customerio",
-    "hits": 210,
-    "latestYear": 2023
-  },
-  {
-    "slug": "growtherapy",
-    "hits": 204,
+    "hits": 302,
     "latestYear": 2023
   },
   {
     "slug": "soloioinc",
-    "hits": 204,
-    "latestYear": 2023
-  },
-  {
-    "slug": "atomai",
-    "hits": 202,
+    "hits": 264,
     "latestYear": 2023
   },
   {
     "slug": "striveworks",
-    "hits": 190,
+    "hits": 254,
     "latestYear": 2023
   },
   {
-    "slug": "alma",
-    "hits": 180,
-    "latestYear": 2023
-  },
-  {
-    "slug": "u410",
-    "hits": 176,
-    "latestYear": 2023
-  },
-  {
-    "slug": "bondfinancialtechnologies",
-    "hits": 174,
+    "slug": "atomai",
+    "hits": 252,
     "latestYear": 2023
   },
   {
     "slug": "moovfinancial",
-    "hits": 172,
+    "hits": 232,
+    "latestYear": 2023
+  },
+  {
+    "slug": "bondfinancialtechnologies",
+    "hits": 228,
+    "latestYear": 2023
+  },
+  {
+    "slug": "u410",
+    "hits": 226,
     "latestYear": 2023
   },
   {
     "slug": "bobsledinc",
-    "hits": 168,
-    "latestYear": 2023
-  },
-  {
-    "slug": "okx",
-    "hits": 168,
-    "latestYear": 2023
-  },
-  {
-    "slug": "maven",
-    "hits": 164,
+    "hits": 200,
     "latestYear": 2023
   },
   {
     "slug": "ibkrexternal",
-    "hits": 140,
-    "latestYear": 2023
-  },
-  {
-    "slug": "veza",
-    "hits": 136,
+    "hits": 168,
     "latestYear": 2023
   },
   {
     "slug": "applytofortue",
-    "hits": 126,
+    "hits": 162,
+    "latestYear": 2023
+  },
+  {
+    "slug": "veza",
+    "hits": 160,
     "latestYear": 2023
   },
   {
     "slug": "dialoguehealthtechnologiesinc",
-    "hits": 120,
+    "hits": 142,
     "latestYear": 2023
   },
   {
     "slug": "adim",
-    "hits": 114,
-    "latestYear": 2023
-  },
-  {
-    "slug": "gocardless",
-    "hits": 112,
+    "hits": 140,
     "latestYear": 2023
   },
   {
     "slug": "dagsterlabs",
-    "hits": 108,
+    "hits": 126,
     "latestYear": 2023
   },
   {
     "slug": "cordial81",
-    "hits": 108,
+    "hits": 126,
     "latestYear": 2023
   },
   {
     "slug": "level",
-    "hits": 108,
+    "hits": 126,
     "latestYear": 2023
   },
   {
     "slug": "sentilink",
-    "hits": 96,
-    "latestYear": 2023
-  },
-  {
-    "slug": "waltzhealth",
-    "hits": 90,
-    "latestYear": 2023
-  },
-  {
-    "slug": "osmo",
-    "hits": 84,
+    "hits": 114,
     "latestYear": 2023
   },
   {
     "slug": "syllable",
-    "hits": 84,
+    "hits": 104,
     "latestYear": 2023
   },
   {
-    "slug": "touchbistro",
-    "hits": 82,
+    "slug": "waltzhealth",
+    "hits": 102,
     "latestYear": 2023
   },
   {
-    "slug": "skupos",
-    "hits": 78,
-    "latestYear": 2023
-  },
-  {
-    "slug": "getbuilt",
-    "hits": 76,
-    "latestYear": 2023
-  },
-  {
-    "slug": "afresh",
-    "hits": 72,
-    "latestYear": 2023
-  },
-  {
-    "slug": "forerunner",
-    "hits": 72,
+    "slug": "osmo",
+    "hits": 96,
     "latestYear": 2023
   },
   {
     "slug": "atticus",
-    "hits": 72,
+    "hits": 88,
     "latestYear": 2023
   },
   {
-    "slug": "paradigm62",
-    "hits": 72,
+    "slug": "getbuilt",
+    "hits": 88,
     "latestYear": 2023
   },
   {
-    "slug": "turo",
-    "hits": 70,
+    "slug": "skupos",
+    "hits": 86,
+    "latestYear": 2023
+  },
+  {
+    "slug": "afresh",
+    "hits": 84,
+    "latestYear": 2023
+  },
+  {
+    "slug": "forerunner",
+    "hits": 84,
     "latestYear": 2023
   },
   {
     "slug": "wellth",
-    "hits": 68,
+    "hits": 84,
+    "latestYear": 2023
+  },
+  {
+    "slug": "paradigm62",
+    "hits": 84,
+    "latestYear": 2023
+  },
+  {
+    "slug": "turo",
+    "hits": 82,
     "latestYear": 2023
   },
   {
     "slug": "merge",
-    "hits": 68,
-    "latestYear": 2023
-  },
-  {
-    "slug": "gradientcomfort",
-    "hits": 60,
+    "hits": 80,
     "latestYear": 2023
   },
   {
     "slug": "applytopopulate",
-    "hits": 60,
+    "hits": 76,
+    "latestYear": 2023
+  },
+  {
+    "slug": "gradientcomfort",
+    "hits": 72,
     "latestYear": 2023
   },
   {
     "slug": "hiya",
+    "hits": 64,
+    "latestYear": 2023
+  },
+  {
+    "slug": "pulumicorporation",
     "hits": 60,
     "latestYear": 2023
   },
   {
     "slug": "well",
-    "hits": 52,
-    "latestYear": 2023
-  },
-  {
-    "slug": "pulumicorporation",
-    "hits": 48,
-    "latestYear": 2023
-  },
-  {
-    "slug": "hebbia",
-    "hits": 44,
+    "hits": 60,
     "latestYear": 2023
   },
   {
     "slug": "awardedsoftware",
-    "hits": 42,
+    "hits": 48,
     "latestYear": 2023
   },
   {
     "slug": "applytodruxia",
-    "hits": 40,
+    "hits": 48,
     "latestYear": 2023
   },
   {
     "slug": "isrg",
-    "hits": 40,
-    "latestYear": 2023
-  },
-  {
-    "slug": "sezzle",
-    "hits": 38,
-    "latestYear": 2023
-  },
-  {
-    "slug": "aegisventures",
-    "hits": 38,
-    "latestYear": 2023
-  },
-  {
-    "slug": "applytoshelfcycle",
-    "hits": 38,
-    "latestYear": 2023
-  },
-  {
-    "slug": "blueroseresearch",
-    "hits": 36,
-    "latestYear": 2023
-  },
-  {
-    "slug": "submittable",
-    "hits": 36,
-    "latestYear": 2023
-  },
-  {
-    "slug": "atherdigital",
-    "hits": 36,
-    "latestYear": 2023
-  },
-  {
-    "slug": "chalkinc",
-    "hits": 36,
-    "latestYear": 2023
-  },
-  {
-    "slug": "chanzuckerbergbiohubinternship",
-    "hits": 34,
-    "latestYear": 2023
-  },
-  {
-    "slug": "careervillage",
-    "hits": 34,
-    "latestYear": 2023
-  },
-  {
-    "slug": "saltbox",
-    "hits": 34,
-    "latestYear": 2023
-  },
-  {
-    "slug": "thousandeyes",
-    "hits": 34,
+    "hits": 48,
     "latestYear": 2023
   },
   {
     "slug": "fireworkcareers",
+    "hits": 46,
+    "latestYear": 2023
+  },
+  {
+    "slug": "blueroseresearch",
+    "hits": 44,
+    "latestYear": 2023
+  },
+  {
+    "slug": "submittable",
+    "hits": 44,
+    "latestYear": 2023
+  },
+  {
+    "slug": "applytoshelfcycle",
+    "hits": 44,
+    "latestYear": 2023
+  },
+  {
+    "slug": "saltbox",
+    "hits": 42,
+    "latestYear": 2023
+  },
+  {
+    "slug": "chanzuckerbergbiohubinternship",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "careervillage",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "onesignal",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "nzero",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "thousandeyes",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "atherdigital",
+    "hits": 40,
+    "latestYear": 2023
+  },
+  {
+    "slug": "hopskipdrive",
     "hits": 34,
     "latestYear": 2023
   },
@@ -1300,43 +5650,13 @@
     "latestYear": 2023
   },
   {
-    "slug": "nzero",
-    "hits": 32,
-    "latestYear": 2023
-  },
-  {
-    "slug": "coreweave",
-    "hits": 32,
-    "latestYear": 2023
-  },
-  {
-    "slug": "onesignal",
-    "hits": 30,
-    "latestYear": 2023
-  },
-  {
-    "slug": "bitgo",
-    "hits": 30,
-    "latestYear": 2023
-  },
-  {
     "slug": "halcyon",
-    "hits": 30,
-    "latestYear": 2023
-  },
-  {
-    "slug": "hopskipdrive",
-    "hits": 28,
+    "hits": 32,
     "latestYear": 2023
   },
   {
     "slug": "startree",
-    "hits": 26,
-    "latestYear": 2023
-  },
-  {
-    "slug": "trailofbits",
-    "hits": 22,
+    "hits": 28,
     "latestYear": 2023
   },
   {
@@ -1345,3073 +5665,2598 @@
     "latestYear": 2023
   },
   {
-    "slug": "protocollabs",
-    "hits": 22,
-    "latestYear": 2023
-  },
-  {
-    "slug": "omadahealth",
-    "hits": 2906,
-    "latestYear": 2022
-  },
-  {
     "slug": "fullstory",
-    "hits": 1574,
+    "hits": 1972,
     "latestYear": 2022
   },
   {
     "slug": "8thwall",
-    "hits": 960,
+    "hits": 1276,
     "latestYear": 2022
   },
   {
     "slug": "amun",
-    "hits": 908,
+    "hits": 1140,
     "latestYear": 2022
   },
   {
     "slug": "modeanalytics",
-    "hits": 818,
+    "hits": 1004,
     "latestYear": 2022
   },
   {
     "slug": "7shifts",
-    "hits": 748,
-    "latestYear": 2022
-  },
-  {
-    "slug": "karat",
-    "hits": 626,
+    "hits": 872,
     "latestYear": 2022
   },
   {
     "slug": "qualli",
-    "hits": 552,
+    "hits": 738,
+    "latestYear": 2022
+  },
+  {
+    "slug": "karat",
+    "hits": 736,
     "latestYear": 2022
   },
   {
     "slug": "cameo",
-    "hits": 548,
-    "latestYear": 2022
-  },
-  {
-    "slug": "relativity",
-    "hits": 474,
-    "latestYear": 2022
-  },
-  {
-    "slug": "repeatinc",
-    "hits": 474,
+    "hits": 714,
     "latestYear": 2022
   },
   {
     "slug": "replicated",
-    "hits": 438,
+    "hits": 638,
     "latestYear": 2022
   },
   {
-    "slug": "ladder33",
-    "hits": 402,
+    "slug": "relativity",
+    "hits": 618,
+    "latestYear": 2022
+  },
+  {
+    "slug": "repeatinc",
+    "hits": 590,
     "latestYear": 2022
   },
   {
     "slug": "virtahealth",
-    "hits": 392,
+    "hits": 558,
     "latestYear": 2022
   },
   {
-    "slug": "jellyfish",
-    "hits": 384,
-    "latestYear": 2022
-  },
-  {
-    "slug": "skydio",
-    "hits": 378,
-    "latestYear": 2022
-  },
-  {
-    "slug": "moon",
-    "hits": 364,
-    "latestYear": 2022
-  },
-  {
-    "slug": "clipboardhealth",
-    "hits": 358,
+    "slug": "ladder33",
+    "hits": 532,
     "latestYear": 2022
   },
   {
     "slug": "stylitics",
-    "hits": 354,
+    "hits": 526,
+    "latestYear": 2022
+  },
+  {
+    "slug": "skydio",
+    "hits": 518,
     "latestYear": 2022
   },
   {
     "slug": "invitae",
-    "hits": 338,
+    "hits": 502,
     "latestYear": 2022
   },
   {
-    "slug": "monzo",
-    "hits": 338,
+    "slug": "moon",
+    "hits": 476,
+    "latestYear": 2022
+  },
+  {
+    "slug": "jellyfish",
+    "hits": 464,
+    "latestYear": 2022
+  },
+  {
+    "slug": "clipboardhealth",
+    "hits": 448,
     "latestYear": 2022
   },
   {
     "slug": "sendwaveapp",
-    "hits": 334,
-    "latestYear": 2022
-  },
-  {
-    "slug": "voxmedia",
-    "hits": 330,
+    "hits": 428,
     "latestYear": 2022
   },
   {
     "slug": "rivian",
-    "hits": 320,
-    "latestYear": 2022
-  },
-  {
-    "slug": "path",
-    "hits": 294,
+    "hits": 426,
     "latestYear": 2022
   },
   {
     "slug": "classy",
-    "hits": 288,
-    "latestYear": 2022
-  },
-  {
-    "slug": "trellis",
-    "hits": 272,
+    "hits": 416,
     "latestYear": 2022
   },
   {
     "slug": "threeflow",
-    "hits": 264,
-    "latestYear": 2022
-  },
-  {
-    "slug": "l5",
-    "hits": 258,
-    "latestYear": 2022
-  },
-  {
-    "slug": "curativeinc",
-    "hits": 254,
-    "latestYear": 2022
-  },
-  {
-    "slug": "permutive",
-    "hits": 254,
+    "hits": 360,
     "latestYear": 2022
   },
   {
     "slug": "prisma",
-    "hits": 252,
+    "hits": 360,
+    "latestYear": 2022
+  },
+  {
+    "slug": "l5",
+    "hits": 358,
+    "latestYear": 2022
+  },
+  {
+    "slug": "path",
+    "hits": 354,
     "latestYear": 2022
   },
   {
     "slug": "point",
-    "hits": 244,
+    "hits": 350,
+    "latestYear": 2022
+  },
+  {
+    "slug": "trellis",
+    "hits": 340,
+    "latestYear": 2022
+  },
+  {
+    "slug": "permutive",
+    "hits": 340,
     "latestYear": 2022
   },
   {
     "slug": "vendia",
-    "hits": 224,
+    "hits": 330,
     "latestYear": 2022
   },
   {
-    "slug": "planetlabs",
-    "hits": 220,
+    "slug": "curativeinc",
+    "hits": 326,
     "latestYear": 2022
   },
   {
     "slug": "aptible",
-    "hits": 220,
-    "latestYear": 2022
-  },
-  {
-    "slug": "foursquare26",
-    "hits": 218,
-    "latestYear": 2022
-  },
-  {
-    "slug": "meltano",
-    "hits": 210,
-    "latestYear": 2022
-  },
-  {
-    "slug": "coursekey",
-    "hits": 202,
+    "hits": 294,
     "latestYear": 2022
   },
   {
     "slug": "newstore",
-    "hits": 198,
+    "hits": 268,
     "latestYear": 2022
   },
   {
-    "slug": "northstar",
-    "hits": 184,
+    "slug": "foursquare26",
+    "hits": 262,
     "latestYear": 2022
   },
   {
-    "slug": "beyondidentity",
-    "hits": 180,
-    "latestYear": 2022
-  },
-  {
-    "slug": "affirm",
-    "hits": 172,
+    "slug": "coursekey",
+    "hits": 252,
     "latestYear": 2022
   },
   {
     "slug": "recurrent",
-    "hits": 168,
+    "hits": 240,
+    "latestYear": 2022
+  },
+  {
+    "slug": "northstar",
+    "hits": 222,
+    "latestYear": 2022
+  },
+  {
+    "slug": "beyondidentity",
+    "hits": 222,
     "latestYear": 2022
   },
   {
     "slug": "dominodatalab",
-    "hits": 166,
+    "hits": 218,
     "latestYear": 2022
   },
   {
     "slug": "junglescout",
-    "hits": 164,
+    "hits": 206,
     "latestYear": 2022
   },
   {
     "slug": "knoetic",
-    "hits": 160,
-    "latestYear": 2022
-  },
-  {
-    "slug": "fairwinds",
-    "hits": 152,
+    "hits": 204,
     "latestYear": 2022
   },
   {
     "slug": "around",
-    "hits": 150,
+    "hits": 196,
     "latestYear": 2022
   },
   {
-    "slug": "ramp",
-    "hits": 140,
-    "latestYear": 2022
-  },
-  {
-    "slug": "gitlab",
-    "hits": 138,
-    "latestYear": 2022
-  },
-  {
-    "slug": "braze",
-    "hits": 136,
-    "latestYear": 2022
-  },
-  {
-    "slug": "convoy",
-    "hits": 134,
-    "latestYear": 2022
-  },
-  {
-    "slug": "synura",
-    "hits": 130,
-    "latestYear": 2022
-  },
-  {
-    "slug": "modaoperandi",
-    "hits": 128,
-    "latestYear": 2022
-  },
-  {
-    "slug": "nulogy",
-    "hits": 122,
-    "latestYear": 2022
-  },
-  {
-    "slug": "wizardsofthecoast",
-    "hits": 122,
-    "latestYear": 2022
-  },
-  {
-    "slug": "creditkarma",
-    "hits": 120,
-    "latestYear": 2022
-  },
-  {
-    "slug": "regrow",
-    "hits": 120,
-    "latestYear": 2022
-  },
-  {
-    "slug": "peloton",
-    "hits": 114,
+    "slug": "fairwinds",
+    "hits": 190,
     "latestYear": 2022
   },
   {
     "slug": "trialspark",
-    "hits": 112,
+    "hits": 186,
     "latestYear": 2022
   },
   {
-    "slug": "sourcegraph91",
-    "hits": 110,
+    "slug": "modaoperandi",
+    "hits": 176,
     "latestYear": 2022
   },
   {
-    "slug": "truebill",
-    "hits": 108,
+    "slug": "convoy",
+    "hits": 168,
+    "latestYear": 2022
+  },
+  {
+    "slug": "nulogy",
+    "hits": 164,
+    "latestYear": 2022
+  },
+  {
+    "slug": "wizardsofthecoast",
+    "hits": 162,
+    "latestYear": 2022
+  },
+  {
+    "slug": "regrow",
+    "hits": 160,
+    "latestYear": 2022
+  },
+  {
+    "slug": "synura",
+    "hits": 156,
+    "latestYear": 2022
+  },
+  {
+    "slug": "peloton",
+    "hits": 152,
     "latestYear": 2022
   },
   {
     "slug": "sothebys",
-    "hits": 100,
+    "hits": 140,
     "latestYear": 2022
   },
   {
-    "slug": "eleanorhealth",
-    "hits": 100,
-    "latestYear": 2022
-  },
-  {
-    "slug": "paveakatroveinformationtechnologies",
-    "hits": 99,
-    "latestYear": 2022
-  },
-  {
-    "slug": "paveakatroveinformationtechnolo",
-    "hits": 99,
-    "latestYear": 2022
-  },
-  {
-    "slug": "neuralink",
-    "hits": 96,
+    "slug": "creditkarma",
+    "hits": 128,
     "latestYear": 2022
   },
   {
     "slug": "manifoldai",
-    "hits": 96,
+    "hits": 128,
     "latestYear": 2022
   },
   {
-    "slug": "blueconic",
-    "hits": 88,
+    "slug": "paveakatroveinformationtechnologies",
+    "hits": 126,
     "latestYear": 2022
   },
   {
-    "slug": "singleops",
-    "hits": 86,
+    "slug": "paveakatroveinformationtechnolo",
+    "hits": 126,
     "latestYear": 2022
   },
   {
-    "slug": "alt",
-    "hits": 84,
+    "slug": "eleanorhealth",
+    "hits": 124,
     "latestYear": 2022
   },
   {
     "slug": "horizon3",
-    "hits": 80,
+    "hits": 120,
     "latestYear": 2022
   },
   {
-    "slug": "insider",
-    "hits": 78,
+    "slug": "blueconic",
+    "hits": 118,
+    "latestYear": 2022
+  },
+  {
+    "slug": "singleops",
+    "hits": 114,
+    "latestYear": 2022
+  },
+  {
+    "slug": "alt",
+    "hits": 110,
     "latestYear": 2022
   },
   {
     "slug": "shaker",
-    "hits": 72,
+    "hits": 104,
+    "latestYear": 2022
+  },
+  {
+    "slug": "insider",
+    "hits": 96,
     "latestYear": 2022
   },
   {
     "slug": "semprehealth",
-    "hits": 70,
-    "latestYear": 2022
-  },
-  {
-    "slug": "tesseract",
-    "hits": 64,
-    "latestYear": 2022
-  },
-  {
-    "slug": "farmstead",
-    "hits": 64,
+    "hits": 90,
     "latestYear": 2022
   },
   {
     "slug": "applytonavvable",
-    "hits": 60,
+    "hits": 90,
     "latestYear": 2022
   },
   {
     "slug": "firaxis",
-    "hits": 60,
+    "hits": 84,
+    "latestYear": 2022
+  },
+  {
+    "slug": "farmstead",
+    "hits": 82,
+    "latestYear": 2022
+  },
+  {
+    "slug": "tesseract",
+    "hits": 80,
     "latestYear": 2022
   },
   {
     "slug": "mendaerainc",
-    "hits": 58,
+    "hits": 72,
     "latestYear": 2022
   },
   {
     "slug": "pieinsurance",
-    "hits": 56,
+    "hits": 68,
     "latestYear": 2022
   },
   {
     "slug": "applytowaysync",
-    "hits": 54,
-    "latestYear": 2022
-  },
-  {
-    "slug": "branch",
-    "hits": 52,
+    "hits": 68,
     "latestYear": 2022
   },
   {
     "slug": "ripple",
-    "hits": 52,
-    "latestYear": 2022
-  },
-  {
-    "slug": "fossa",
-    "hits": 50,
-    "latestYear": 2022
-  },
-  {
-    "slug": "gofundme",
-    "hits": 48,
-    "latestYear": 2022
-  },
-  {
-    "slug": "titan",
-    "hits": 48,
-    "latestYear": 2022
-  },
-  {
-    "slug": "consumeredge",
-    "hits": 48,
-    "latestYear": 2022
-  },
-  {
-    "slug": "samedayhealth",
-    "hits": 46,
-    "latestYear": 2022
-  },
-  {
-    "slug": "recur",
-    "hits": 44,
+    "hits": 68,
     "latestYear": 2022
   },
   {
     "slug": "urbanfootprint",
-    "hits": 44,
-    "latestYear": 2022
-  },
-  {
-    "slug": "switchboard",
-    "hits": 44,
-    "latestYear": 2022
-  },
-  {
-    "slug": "elementary",
-    "hits": 44,
-    "latestYear": 2022
-  },
-  {
-    "slug": "closedloop",
-    "hits": 42,
-    "latestYear": 2022
-  },
-  {
-    "slug": "perceptiveautomata",
-    "hits": 42,
+    "hits": 64,
     "latestYear": 2022
   },
   {
     "slug": "mdai",
-    "hits": 40,
+    "hits": 64,
     "latestYear": 2022
   },
   {
-    "slug": "thirtymadison",
-    "hits": 38,
+    "slug": "titan",
+    "hits": 64,
+    "latestYear": 2022
+  },
+  {
+    "slug": "samedayhealth",
+    "hits": 64,
+    "latestYear": 2022
+  },
+  {
+    "slug": "closedloop",
+    "hits": 60,
+    "latestYear": 2022
+  },
+  {
+    "slug": "perceptiveautomata",
+    "hits": 60,
     "latestYear": 2022
   },
   {
     "slug": "forbes",
-    "hits": 38,
+    "hits": 58,
+    "latestYear": 2022
+  },
+  {
+    "slug": "branch",
+    "hits": 58,
+    "latestYear": 2022
+  },
+  {
+    "slug": "consumeredge",
+    "hits": 58,
+    "latestYear": 2022
+  },
+  {
+    "slug": "elementary",
+    "hits": 58,
+    "latestYear": 2022
+  },
+  {
+    "slug": "recur",
+    "hits": 56,
     "latestYear": 2022
   },
   {
     "slug": "newglobesandbox",
-    "hits": 36,
+    "hits": 56,
     "latestYear": 2022
   },
   {
-    "slug": "dustyrobotics",
-    "hits": 32,
+    "slug": "switchboard",
+    "hits": 56,
     "latestYear": 2022
   },
   {
-    "slug": "cypressio",
-    "hits": 32,
+    "slug": "gofundme",
+    "hits": 54,
     "latestYear": 2022
   },
   {
-    "slug": "ncx",
-    "hits": 32,
+    "slug": "thirtymadison",
+    "hits": 44,
     "latestYear": 2022
   },
   {
     "slug": "bluevine",
+    "hits": 42,
+    "latestYear": 2022
+  },
+  {
+    "slug": "dustyrobotics",
+    "hits": 40,
+    "latestYear": 2022
+  },
+  {
+    "slug": "cypressio",
+    "hits": 40,
+    "latestYear": 2022
+  },
+  {
+    "slug": "ncx",
+    "hits": 38,
+    "latestYear": 2022
+  },
+  {
+    "slug": "parkmobileus",
+    "hits": 38,
+    "latestYear": 2022
+  },
+  {
+    "slug": "yipitdata",
+    "hits": 36,
+    "latestYear": 2022
+  },
+  {
+    "slug": "classkick",
+    "hits": 36,
+    "latestYear": 2022
+  },
+  {
+    "slug": "blacklane",
+    "hits": 36,
+    "latestYear": 2022
+  },
+  {
+    "slug": "optimism",
+    "hits": 36,
+    "latestYear": 2022
+  },
+  {
+    "slug": "sparksandhoney",
+    "hits": 34,
+    "latestYear": 2022
+  },
+  {
+    "slug": "thearenagroup",
+    "hits": 34,
+    "latestYear": 2022
+  },
+  {
+    "slug": "jasper23",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "bluecove",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "flagshippioneeringinc",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "dashworks",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "spacelift",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "applytoguava",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "mantrahealth",
+    "hits": 32,
+    "latestYear": 2022
+  },
+  {
+    "slug": "shortcut",
+    "hits": 30,
+    "latestYear": 2022
+  },
+  {
+    "slug": "blacksky",
     "hits": 30,
     "latestYear": 2022
   },
   {
     "slug": "goodjobgames",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "parkmobileus",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "jasper23",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "navtechnologies",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "intrinsicrobotics",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "blacklane",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "optimism",
-    "hits": 28,
-    "latestYear": 2022
-  },
-  {
-    "slug": "sparksandhoney",
-    "hits": 26,
-    "latestYear": 2022
-  },
-  {
-    "slug": "risczero",
-    "hits": 26,
-    "latestYear": 2022
-  },
-  {
-    "slug": "yipitdata",
-    "hits": 26,
-    "latestYear": 2022
-  },
-  {
-    "slug": "classkick",
-    "hits": 26,
-    "latestYear": 2022
-  },
-  {
-    "slug": "shortcut",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "blacksky",
-    "hits": 24,
+    "hits": 30,
     "latestYear": 2022
   },
   {
     "slug": "tallywallet",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "airbyte",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "flagshippioneeringinc",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "applytobelfry",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "impala",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "mantrahealth",
-    "hits": 24,
-    "latestYear": 2022
-  },
-  {
-    "slug": "opencoreventures",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "pythnetwork",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "dashworks",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "entera",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "publicrelay",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "shapetherapeutics",
-    "hits": 22,
-    "latestYear": 2022
-  },
-  {
-    "slug": "oplabs",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "applytotruebuilt",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "bluecove",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "grindr",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "notablehealth",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "mosaicml",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "sofarocean",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "spacelift",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "applytoguava",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "papercliptechnologiesinc",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "pushpay",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "whipmedia",
-    "hits": 20,
-    "latestYear": 2022
-  },
-  {
-    "slug": "livelyhearingcorporation",
-    "hits": 18,
-    "latestYear": 2022
-  },
-  {
-    "slug": "thearenagroup",
-    "hits": 18,
+    "hits": 30,
     "latestYear": 2022
   },
   {
     "slug": "applytoglazier",
-    "hits": 18,
+    "hits": 30,
     "latestYear": 2022
   },
   {
-    "slug": "healthie",
-    "hits": 18,
+    "slug": "grindr",
+    "hits": 30,
     "latestYear": 2022
   },
   {
-    "slug": "o1labs",
-    "hits": 18,
+    "slug": "pythnetwork",
+    "hits": 30,
+    "latestYear": 2022
+  },
+  {
+    "slug": "mosaicml",
+    "hits": 30,
+    "latestYear": 2022
+  },
+  {
+    "slug": "publicrelay",
+    "hits": 30,
+    "latestYear": 2022
+  },
+  {
+    "slug": "applytobelfry",
+    "hits": 28,
+    "latestYear": 2022
+  },
+  {
+    "slug": "whipmedia",
+    "hits": 28,
+    "latestYear": 2022
+  },
+  {
+    "slug": "opencoreventures",
+    "hits": 26,
+    "latestYear": 2022
+  },
+  {
+    "slug": "livelyhearingcorporation",
+    "hits": 26,
+    "latestYear": 2022
+  },
+  {
+    "slug": "notablehealth",
+    "hits": 26,
+    "latestYear": 2022
+  },
+  {
+    "slug": "entera",
+    "hits": 26,
     "latestYear": 2022
   },
   {
     "slug": "pointdigitalfinance",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2022
   },
   {
-    "slug": "figment",
-    "hits": 18,
+    "slug": "sofarocean",
+    "hits": 24,
+    "latestYear": 2022
+  },
+  {
+    "slug": "papercliptechnologiesinc",
+    "hits": 24,
+    "latestYear": 2022
+  },
+  {
+    "slug": "shapetherapeutics",
+    "hits": 24,
     "latestYear": 2022
   },
   {
     "slug": "griffin",
-    "hits": 14,
+    "hits": 22,
     "latestYear": 2022
   },
   {
     "slug": "globalincomecoin",
-    "hits": 14,
+    "hits": 20,
     "latestYear": 2022
   },
   {
     "slug": "neondatabase",
-    "hits": 10,
-    "latestYear": 2022
-  },
-  {
-    "slug": "tweag",
-    "hits": 10,
+    "hits": 18,
     "latestYear": 2022
   },
   {
     "slug": "trayio",
-    "hits": 2866,
+    "hits": 3674,
     "latestYear": 2021
   },
   {
     "slug": "betterup",
-    "hits": 1392,
-    "latestYear": 2021
-  },
-  {
-    "slug": "mavenclinic",
-    "hits": 1256,
+    "hits": 1788,
     "latestYear": 2021
   },
   {
     "slug": "datacamp",
-    "hits": 1204,
+    "hits": 1680,
     "latestYear": 2021
   },
   {
     "slug": "valohealth",
-    "hits": 1102,
-    "latestYear": 2021
-  },
-  {
-    "slug": "grailed",
-    "hits": 988,
+    "hits": 1414,
     "latestYear": 2021
   },
   {
     "slug": "myfitnesspal",
-    "hits": 986,
+    "hits": 1272,
     "latestYear": 2021
   },
   {
-    "slug": "carerev",
-    "hits": 840,
+    "slug": "grailed",
+    "hits": 1250,
     "latestYear": 2021
   },
   {
     "slug": "relex",
-    "hits": 764,
+    "hits": 984,
     "latestYear": 2021
   },
   {
     "slug": "indigo",
-    "hits": 524,
+    "hits": 658,
     "latestYear": 2021
   },
   {
     "slug": "savvyinsure",
-    "hits": 486,
-    "latestYear": 2021
-  },
-  {
-    "slug": "paige",
-    "hits": 480,
-    "latestYear": 2021
-  },
-  {
-    "slug": "amplitude",
-    "hits": 378,
+    "hits": 624,
     "latestYear": 2021
   },
   {
     "slug": "bcgdv",
-    "hits": 376,
+    "hits": 528,
     "latestYear": 2021
   },
   {
     "slug": "warbyparker",
-    "hits": 336,
-    "latestYear": 2021
-  },
-  {
-    "slug": "loyal",
-    "hits": 300,
-    "latestYear": 2021
-  },
-  {
-    "slug": "github",
-    "hits": 290,
-    "latestYear": 2021
-  },
-  {
-    "slug": "wistia",
-    "hits": 272,
+    "hits": 428,
     "latestYear": 2021
   },
   {
     "slug": "braintree",
-    "hits": 272,
+    "hits": 414,
     "latestYear": 2021
   },
   {
-    "slug": "rudderstack",
-    "hits": 216,
-    "latestYear": 2021
-  },
-  {
-    "slug": "thefarmersdog",
-    "hits": 214,
+    "slug": "loyal",
+    "hits": 390,
     "latestYear": 2021
   },
   {
     "slug": "bensonhillinc",
-    "hits": 208,
+    "hits": 274,
+    "latestYear": 2021
+  },
+  {
+    "slug": "thefarmersdog",
+    "hits": 274,
+    "latestYear": 2021
+  },
+  {
+    "slug": "rudderstack",
+    "hits": 252,
     "latestYear": 2021
   },
   {
     "slug": "nichecom",
-    "hits": 178,
-    "latestYear": 2021
-  },
-  {
-    "slug": "skilljar",
-    "hits": 164,
-    "latestYear": 2021
-  },
-  {
-    "slug": "remotecom",
-    "hits": 160,
-    "latestYear": 2021
-  },
-  {
-    "slug": "stord13",
-    "hits": 154,
+    "hits": 234,
     "latestYear": 2021
   },
   {
     "slug": "hanson",
-    "hits": 152,
+    "hits": 212,
     "latestYear": 2021
   },
   {
-    "slug": "rocketmiles",
-    "hits": 146,
+    "slug": "skilljar",
+    "hits": 196,
     "latestYear": 2021
   },
   {
-    "slug": "gusto",
-    "hits": 144,
-    "latestYear": 2021
-  },
-  {
-    "slug": "netlify",
-    "hits": 144,
-    "latestYear": 2021
-  },
-  {
-    "slug": "predictiveindex",
-    "hits": 144,
-    "latestYear": 2021
-  },
-  {
-    "slug": "kustomer",
-    "hits": 142,
+    "slug": "stord13",
+    "hits": 196,
     "latestYear": 2021
   },
   {
     "slug": "100x",
-    "hits": 136,
+    "hits": 188,
     "latestYear": 2021
   },
   {
-    "slug": "mixpanel",
-    "hits": 134,
-    "latestYear": 2021
-  },
-  {
-    "slug": "parity",
-    "hits": 132,
+    "slug": "rocketmiles",
+    "hits": 184,
     "latestYear": 2021
   },
   {
     "slug": "goclio",
-    "hits": 132,
+    "hits": 182,
     "latestYear": 2021
   },
   {
-    "slug": "duolingo",
-    "hits": 128,
+    "slug": "parity",
+    "hits": 180,
+    "latestYear": 2021
+  },
+  {
+    "slug": "kustomer",
+    "hits": 178,
+    "latestYear": 2021
+  },
+  {
+    "slug": "predictiveindex",
+    "hits": 178,
     "latestYear": 2021
   },
   {
     "slug": "pachyderm",
-    "hits": 122,
-    "latestYear": 2021
-  },
-  {
-    "slug": "nearby",
-    "hits": 120,
-    "latestYear": 2021
-  },
-  {
-    "slug": "bittrex",
-    "hits": 118,
-    "latestYear": 2021
-  },
-  {
-    "slug": "promptworks",
-    "hits": 116,
+    "hits": 164,
     "latestYear": 2021
   },
   {
     "slug": "vicai",
-    "hits": 116,
+    "hits": 156,
     "latestYear": 2021
   },
   {
-    "slug": "doubleverify",
-    "hits": 114,
-    "latestYear": 2021
-  },
-  {
-    "slug": "tubitv",
-    "hits": 112,
+    "slug": "bittrex",
+    "hits": 154,
     "latestYear": 2021
   },
   {
     "slug": "plumguide",
-    "hits": 110,
+    "hits": 150,
     "latestYear": 2021
   },
   {
-    "slug": "mozinternalmana",
-    "hits": 110,
+    "slug": "promptworks",
+    "hits": 146,
     "latestYear": 2021
   },
   {
-    "slug": "public",
-    "hits": 106,
-    "latestYear": 2021
-  },
-  {
-    "slug": "modernhealth",
-    "hits": 98,
-    "latestYear": 2021
-  },
-  {
-    "slug": "hopin",
-    "hits": 96,
+    "slug": "nearby",
+    "hits": 144,
     "latestYear": 2021
   },
   {
     "slug": "mapbox",
-    "hits": 92,
+    "hits": 128,
+    "latestYear": 2021
+  },
+  {
+    "slug": "tubitv",
+    "hits": 128,
     "latestYear": 2021
   },
   {
     "slug": "quip",
-    "hits": 90,
-    "latestYear": 2021
-  },
-  {
-    "slug": "life360",
-    "hits": 90,
-    "latestYear": 2021
-  },
-  {
-    "slug": "stationa",
-    "hits": 88,
-    "latestYear": 2021
-  },
-  {
-    "slug": "stir",
-    "hits": 88,
-    "latestYear": 2021
-  },
-  {
-    "slug": "caffeine",
-    "hits": 84,
+    "hits": 122,
     "latestYear": 2021
   },
   {
     "slug": "coindesk",
-    "hits": 80,
+    "hits": 120,
     "latestYear": 2021
   },
   {
-    "slug": "bmnt",
-    "hits": 80,
+    "slug": "hopin",
+    "hits": 120,
     "latestYear": 2021
   },
   {
-    "slug": "hugoinsurance",
-    "hits": 78,
+    "slug": "mozinternalmana",
+    "hits": 120,
     "latestYear": 2021
   },
   {
-    "slug": "bloomreach",
-    "hits": 72,
+    "slug": "stir",
+    "hits": 116,
     "latestYear": 2021
   },
   {
-    "slug": "rapha",
-    "hits": 72,
+    "slug": "stationa",
+    "hits": 112,
     "latestYear": 2021
   },
   {
-    "slug": "reptrak",
-    "hits": 66,
-    "latestYear": 2021
-  },
-  {
-    "slug": "forestry",
-    "hits": 64,
+    "slug": "caffeine",
+    "hits": 108,
     "latestYear": 2021
   },
   {
     "slug": "whisperai",
-    "hits": 64,
+    "hits": 98,
     "latestYear": 2021
   },
   {
-    "slug": "easypost",
-    "hits": 64,
+    "slug": "bmnt",
+    "hits": 96,
     "latestYear": 2021
   },
   {
-    "slug": "lambda",
-    "hits": 62,
-    "latestYear": 2021
-  },
-  {
-    "slug": "altanaai",
-    "hits": 60,
+    "slug": "rapha",
+    "hits": 96,
     "latestYear": 2021
   },
   {
     "slug": "elementaryrobotics",
-    "hits": 60,
+    "hits": 94,
     "latestYear": 2021
   },
   {
-    "slug": "prios",
-    "hits": 56,
+    "slug": "hugoinsurance",
+    "hits": 90,
+    "latestYear": 2021
+  },
+  {
+    "slug": "easypost",
+    "hits": 86,
+    "latestYear": 2021
+  },
+  {
+    "slug": "forestry",
+    "hits": 84,
+    "latestYear": 2021
+  },
+  {
+    "slug": "altanaai",
+    "hits": 84,
     "latestYear": 2021
   },
   {
     "slug": "digit",
-    "hits": 56,
+    "hits": 82,
+    "latestYear": 2021
+  },
+  {
+    "slug": "lambda",
+    "hits": 78,
+    "latestYear": 2021
+  },
+  {
+    "slug": "reptrak",
+    "hits": 78,
     "latestYear": 2021
   },
   {
     "slug": "cruise",
-    "hits": 48,
+    "hits": 72,
     "latestYear": 2021
   },
   {
-    "slug": "candid",
-    "hits": 48,
-    "latestYear": 2021
-  },
-  {
-    "slug": "highalphaprelaunch",
-    "hits": 44,
-    "latestYear": 2021
-  },
-  {
-    "slug": "pearlhealth",
-    "hits": 44,
-    "latestYear": 2021
-  },
-  {
-    "slug": "pathstream",
-    "hits": 44,
-    "latestYear": 2021
-  },
-  {
-    "slug": "klara",
-    "hits": 44,
-    "latestYear": 2021
-  },
-  {
-    "slug": "beanstalk",
-    "hits": 44,
+    "slug": "prios",
+    "hits": 72,
     "latestYear": 2021
   },
   {
     "slug": "rokt",
-    "hits": 44,
+    "hits": 68,
+    "latestYear": 2021
+  },
+  {
+    "slug": "pearlhealth",
+    "hits": 60,
+    "latestYear": 2021
+  },
+  {
+    "slug": "highalphaprelaunch",
+    "hits": 58,
+    "latestYear": 2021
+  },
+  {
+    "slug": "klara",
+    "hits": 56,
+    "latestYear": 2021
+  },
+  {
+    "slug": "candid",
+    "hits": 56,
     "latestYear": 2021
   },
   {
     "slug": "radarlabs",
-    "hits": 44,
+    "hits": 56,
+    "latestYear": 2021
+  },
+  {
+    "slug": "beanstalk",
+    "hits": 54,
     "latestYear": 2021
   },
   {
     "slug": "qualia",
-    "hits": 40,
+    "hits": 52,
     "latestYear": 2021
   },
   {
     "slug": "streamlit",
-    "hits": 40,
+    "hits": 52,
+    "latestYear": 2021
+  },
+  {
+    "slug": "pathstream",
+    "hits": 52,
     "latestYear": 2021
   },
   {
     "slug": "fender",
-    "hits": 40,
-    "latestYear": 2021
-  },
-  {
-    "slug": "sfgiants",
-    "hits": 40,
-    "latestYear": 2021
-  },
-  {
-    "slug": "cabify",
-    "hits": 40,
-    "latestYear": 2021
-  },
-  {
-    "slug": "rasa",
-    "hits": 38,
-    "latestYear": 2021
-  },
-  {
-    "slug": "tcapequity",
-    "hits": 36,
-    "latestYear": 2021
-  },
-  {
-    "slug": "lyft",
-    "hits": 36,
+    "hits": 52,
     "latestYear": 2021
   },
   {
     "slug": "changeorg58",
-    "hits": 36,
-    "latestYear": 2021
-  },
-  {
-    "slug": "recharge",
-    "hits": 34,
+    "hits": 52,
     "latestYear": 2021
   },
   {
     "slug": "medigo",
-    "hits": 34,
+    "hits": 52,
     "latestYear": 2021
   },
   {
-    "slug": "cloudbees",
-    "hits": 28,
+    "slug": "rasa",
+    "hits": 50,
+    "latestYear": 2021
+  },
+  {
+    "slug": "tcapequity",
+    "hits": 44,
     "latestYear": 2021
   },
   {
     "slug": "friendsurance",
-    "hits": 28,
+    "hits": 40,
+    "latestYear": 2021
+  },
+  {
+    "slug": "cloudbees",
+    "hits": 34,
     "latestYear": 2021
   },
   {
     "slug": "syncari",
-    "hits": 26,
+    "hits": 32,
     "latestYear": 2021
   },
   {
     "slug": "mercato",
-    "hits": 24,
-    "latestYear": 2021
-  },
-  {
-    "slug": "pendo",
-    "hits": 24,
-    "latestYear": 2021
-  },
-  {
-    "slug": "tribe",
-    "hits": 24,
-    "latestYear": 2021
-  },
-  {
-    "slug": "goody",
-    "hits": 24,
+    "hits": 32,
     "latestYear": 2021
   },
   {
     "slug": "circle",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "maxrewards",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "acelerate",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "raft",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "output",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "opploans",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "pano",
-    "hits": 22,
-    "latestYear": 2021
-  },
-  {
-    "slug": "nerdery",
-    "hits": 20,
-    "latestYear": 2021
-  },
-  {
-    "slug": "acuitymd",
-    "hits": 20,
-    "latestYear": 2021
-  },
-  {
-    "slug": "timescale",
-    "hits": 20,
-    "latestYear": 2021
-  },
-  {
-    "slug": "blend",
-    "hits": 20,
+    "hits": 30,
     "latestYear": 2021
   },
   {
     "slug": "godaddy",
-    "hits": 20,
+    "hits": 28,
     "latestYear": 2021
   },
   {
-    "slug": "beacons",
-    "hits": 20,
+    "slug": "acelerate",
+    "hits": 28,
     "latestYear": 2021
   },
   {
-    "slug": "eightsleep",
-    "hits": 20,
-    "latestYear": 2021
-  },
-  {
-    "slug": "kalepa",
-    "hits": 20,
-    "latestYear": 2021
-  },
-  {
-    "slug": "classpass",
-    "hits": 20,
+    "slug": "output",
+    "hits": 28,
     "latestYear": 2021
   },
   {
     "slug": "therma",
-    "hits": 20,
+    "hits": 28,
     "latestYear": 2021
   },
   {
-    "slug": "triplebyte",
-    "hits": 20,
+    "slug": "opploans",
+    "hits": 28,
     "latestYear": 2021
   },
   {
-    "slug": "bevy",
-    "hits": 20,
+    "slug": "tribe",
+    "hits": 28,
+    "latestYear": 2021
+  },
+  {
+    "slug": "goody",
+    "hits": 28,
     "latestYear": 2021
   },
   {
     "slug": "tiney",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "vicarioussurgical",
-    "hits": 18,
+    "slug": "nerdery",
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "ksanahealthinc",
-    "hits": 18,
+    "slug": "maxrewards",
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "brex",
-    "hits": 18,
+    "slug": "blend",
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "onepointone",
-    "hits": 18,
+    "slug": "beacons",
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "fig",
-    "hits": 16,
+    "slug": "eightsleep",
+    "hits": 26,
     "latestYear": 2021
   },
   {
-    "slug": "legalist",
-    "hits": 16,
+    "slug": "kalepa",
+    "hits": 26,
+    "latestYear": 2021
+  },
+  {
+    "slug": "triplebyte",
+    "hits": 26,
+    "latestYear": 2021
+  },
+  {
+    "slug": "bevy",
+    "hits": 26,
     "latestYear": 2021
   },
   {
     "slug": "vault",
-    "hits": 16,
+    "hits": 26,
+    "latestYear": 2021
+  },
+  {
+    "slug": "pano",
+    "hits": 26,
+    "latestYear": 2021
+  },
+  {
+    "slug": "acuitymd",
+    "hits": 24,
+    "latestYear": 2021
+  },
+  {
+    "slug": "ksanahealthinc",
+    "hits": 24,
     "latestYear": 2021
   },
   {
     "slug": "voice",
-    "hits": 14,
+    "hits": 24,
+    "latestYear": 2021
+  },
+  {
+    "slug": "fig",
+    "hits": 24,
+    "latestYear": 2021
+  },
+  {
+    "slug": "onepointone",
+    "hits": 24,
+    "latestYear": 2021
+  },
+  {
+    "slug": "legalist",
+    "hits": 24,
     "latestYear": 2021
   },
   {
     "slug": "rhino",
-    "hits": 14,
+    "hits": 22,
     "latestYear": 2021
   },
   {
-    "slug": "instacart",
-    "hits": 1712,
-    "latestYear": 2020
-  },
-  {
     "slug": "connectedfitness",
-    "hits": 1062,
+    "hits": 1486,
     "latestYear": 2020
   },
   {
     "slug": "stateless",
-    "hits": 962,
+    "hits": 1272,
     "latestYear": 2020
   },
   {
     "slug": "lightstep",
-    "hits": 876,
+    "hits": 1192,
     "latestYear": 2020
   },
   {
     "slug": "alto",
-    "hits": 832,
-    "latestYear": 2020
-  },
-  {
-    "slug": "txm",
-    "hits": 534,
+    "hits": 1094,
     "latestYear": 2020
   },
   {
     "slug": "sumologic",
-    "hits": 512,
+    "hits": 844,
+    "latestYear": 2020
+  },
+  {
+    "slug": "txm",
+    "hits": 686,
     "latestYear": 2020
   },
   {
     "slug": "aclima",
-    "hits": 392,
+    "hits": 510,
     "latestYear": 2020
   },
   {
     "slug": "pitch",
-    "hits": 288,
-    "latestYear": 2020
-  },
-  {
-    "slug": "intercom",
-    "hits": 230,
+    "hits": 408,
     "latestYear": 2020
   },
   {
     "slug": "current81",
-    "hits": 190,
+    "hits": 264,
     "latestYear": 2020
   },
   {
     "slug": "enigmaio",
-    "hits": 170,
+    "hits": 220,
     "latestYear": 2020
   },
   {
     "slug": "magicleapinc",
-    "hits": 154,
+    "hits": 216,
     "latestYear": 2020
   },
   {
     "slug": "statestitle",
-    "hits": 152,
-    "latestYear": 2020
-  },
-  {
-    "slug": "cleoai",
-    "hits": 142,
+    "hits": 200,
     "latestYear": 2020
   },
   {
     "slug": "muckrack",
-    "hits": 122,
-    "latestYear": 2020
-  },
-  {
-    "slug": "logdna",
-    "hits": 114,
+    "hits": 164,
     "latestYear": 2020
   },
   {
     "slug": "survata",
-    "hits": 110,
+    "hits": 162,
+    "latestYear": 2020
+  },
+  {
+    "slug": "logdna",
+    "hits": 160,
     "latestYear": 2020
   },
   {
     "slug": "beacon67",
-    "hits": 108,
-    "latestYear": 2020
-  },
-  {
-    "slug": "pager",
-    "hits": 102,
-    "latestYear": 2020
-  },
-  {
-    "slug": "aetion",
-    "hits": 100,
-    "latestYear": 2020
-  },
-  {
-    "slug": "khanacademy",
-    "hits": 100,
+    "hits": 156,
     "latestYear": 2020
   },
   {
     "slug": "drop",
-    "hits": 98,
+    "hits": 144,
+    "latestYear": 2020
+  },
+  {
+    "slug": "pager",
+    "hits": 134,
+    "latestYear": 2020
+  },
+  {
+    "slug": "aetion",
+    "hits": 132,
     "latestYear": 2020
   },
   {
     "slug": "chronosphere",
-    "hits": 88,
-    "latestYear": 2020
-  },
-  {
-    "slug": "dots",
-    "hits": 80,
-    "latestYear": 2020
-  },
-  {
-    "slug": "jyve",
-    "hits": 76,
+    "hits": 116,
     "latestYear": 2020
   },
   {
     "slug": "larkhealth",
-    "hits": 72,
+    "hits": 110,
     "latestYear": 2020
   },
   {
-    "slug": "feather",
-    "hits": 72,
+    "slug": "dots",
+    "hits": 106,
     "latestYear": 2020
   },
   {
     "slug": "reflexionmedical",
-    "hits": 64,
+    "hits": 104,
     "latestYear": 2020
   },
   {
-    "slug": "edx",
-    "hits": 60,
+    "slug": "jyve",
+    "hits": 104,
     "latestYear": 2020
   },
   {
-    "slug": "equityzen",
-    "hits": 60,
+    "slug": "feather",
+    "hits": 104,
     "latestYear": 2020
   },
   {
     "slug": "behavox",
-    "hits": 60,
+    "hits": 84,
     "latestYear": 2020
   },
   {
     "slug": "lingolive",
-    "hits": 58,
-    "latestYear": 2020
-  },
-  {
-    "slug": "consensys",
-    "hits": 54,
-    "latestYear": 2020
-  },
-  {
-    "slug": "perch1",
-    "hits": 52,
+    "hits": 78,
     "latestYear": 2020
   },
   {
     "slug": "chainalysis",
-    "hits": 50,
-    "latestYear": 2020
-  },
-  {
-    "slug": "opentable",
-    "hits": 48,
+    "hits": 74,
     "latestYear": 2020
   },
   {
     "slug": "verishop",
-    "hits": 46,
+    "hits": 72,
     "latestYear": 2020
   },
   {
-    "slug": "patreon",
-    "hits": 44,
+    "slug": "equityzen",
+    "hits": 72,
     "latestYear": 2020
   },
   {
-    "slug": "playvs",
-    "hits": 44,
+    "slug": "edx",
+    "hits": 68,
     "latestYear": 2020
   },
   {
-    "slug": "inventables",
-    "hits": 42,
+    "slug": "perch1",
+    "hits": 68,
     "latestYear": 2020
   },
   {
-    "slug": "firstlookmedia",
-    "hits": 40,
-    "latestYear": 2020
-  },
-  {
-    "slug": "aspireiq",
-    "hits": 40,
-    "latestYear": 2020
-  },
-  {
-    "slug": "aminohealth",
-    "hits": 40,
+    "slug": "opentable",
+    "hits": 64,
     "latestYear": 2020
   },
   {
     "slug": "feedbackloop",
-    "hits": 36,
+    "hits": 56,
     "latestYear": 2020
   },
   {
     "slug": "truework",
-    "hits": 36,
+    "hits": 56,
     "latestYear": 2020
   },
   {
-    "slug": "dkatalissingapore",
-    "hits": 36,
+    "slug": "playvs",
+    "hits": 56,
     "latestYear": 2020
   },
   {
-    "slug": "joinswoop",
-    "hits": 36,
+    "slug": "aminohealth",
+    "hits": 54,
     "latestYear": 2020
   },
   {
-    "slug": "adhocteam",
-    "hits": 36,
+    "slug": "aspireiq",
+    "hits": 52,
+    "latestYear": 2020
+  },
+  {
+    "slug": "inventables",
+    "hits": 50,
     "latestYear": 2020
   },
   {
     "slug": "beaconbiosignals",
-    "hits": 34,
+    "hits": 50,
     "latestYear": 2020
   },
   {
-    "slug": "summer",
-    "hits": 34,
+    "slug": "dkatalissingapore",
+    "hits": 48,
+    "latestYear": 2020
+  },
+  {
+    "slug": "joinswoop",
+    "hits": 48,
     "latestYear": 2020
   },
   {
     "slug": "galileo",
-    "hits": 34,
+    "hits": 48,
+    "latestYear": 2020
+  },
+  {
+    "slug": "summer",
+    "hits": 46,
+    "latestYear": 2020
+  },
+  {
+    "slug": "adhocteam",
+    "hits": 44,
     "latestYear": 2020
   },
   {
     "slug": "keeptruckin",
-    "hits": 32,
-    "latestYear": 2020
-  },
-  {
-    "slug": "postmates",
-    "hits": 30,
+    "hits": 42,
     "latestYear": 2020
   },
   {
     "slug": "righthandrobotics",
+    "hits": 40,
+    "latestYear": 2020
+  },
+  {
+    "slug": "postmates",
+    "hits": 38,
+    "latestYear": 2020
+  },
+  {
+    "slug": "boostedai",
+    "hits": 32,
+    "latestYear": 2020
+  },
+  {
+    "slug": "mavrck",
+    "hits": 28,
+    "latestYear": 2020
+  },
+  {
+    "slug": "atolla",
+    "hits": 28,
+    "latestYear": 2020
+  },
+  {
+    "slug": "emotiveio",
     "hits": 28,
     "latestYear": 2020
   },
   {
     "slug": "quora",
-    "hits": 26,
-    "latestYear": 2020
-  },
-  {
-    "slug": "boostedai",
-    "hits": 24,
+    "hits": 28,
     "latestYear": 2020
   },
   {
     "slug": "adahealth",
-    "hits": 22,
+    "hits": 26,
     "latestYear": 2020
   },
   {
     "slug": "recogni",
-    "hits": 22,
-    "latestYear": 2020
-  },
-  {
-    "slug": "atolla",
-    "hits": 22,
-    "latestYear": 2020
-  },
-  {
-    "slug": "emotiveio",
-    "hits": 22,
-    "latestYear": 2020
-  },
-  {
-    "slug": "mavrck",
-    "hits": 20,
-    "latestYear": 2020
-  },
-  {
-    "slug": "wisdomhealth",
-    "hits": 20,
-    "latestYear": 2020
-  },
-  {
-    "slug": "proper",
-    "hits": 20,
-    "latestYear": 2020
-  },
-  {
-    "slug": "signifyd95",
-    "hits": 20,
-    "latestYear": 2020
-  },
-  {
-    "slug": "paytronix",
-    "hits": 20,
-    "latestYear": 2020
-  },
-  {
-    "slug": "notablelabs",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2020
   },
   {
     "slug": "alayacare",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2020
   },
   {
-    "slug": "geneva",
-    "hits": 18,
+    "slug": "wisdomhealth",
+    "hits": 26,
     "latestYear": 2020
   },
   {
-    "slug": "simberobotics",
-    "hits": 18,
+    "slug": "proper",
+    "hits": 26,
     "latestYear": 2020
   },
   {
-    "slug": "virtu",
-    "hits": 18,
+    "slug": "signifyd95",
+    "hits": 26,
     "latestYear": 2020
   },
   {
     "slug": "cylera",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2020
   },
   {
-    "slug": "spins",
-    "hits": 16,
+    "slug": "notablelabs",
+    "hits": 24,
     "latestYear": 2020
   },
   {
     "slug": "thumbtack",
-    "hits": 16,
+    "hits": 24,
     "latestYear": 2020
   },
   {
     "slug": "blab",
-    "hits": 16,
+    "hits": 24,
+    "latestYear": 2020
+  },
+  {
+    "slug": "paytronix",
+    "hits": 24,
+    "latestYear": 2020
+  },
+  {
+    "slug": "spins",
+    "hits": 22,
+    "latestYear": 2020
+  },
+  {
+    "slug": "simberobotics",
+    "hits": 22,
     "latestYear": 2020
   },
   {
     "slug": "greenparksports",
-    "hits": 16,
+    "hits": 22,
     "latestYear": 2020
   },
   {
-    "slug": "peak6",
-    "hits": 16,
-    "latestYear": 2020
-  },
-  {
-    "slug": "ultramobile",
-    "hits": 14,
-    "latestYear": 2020
-  },
-  {
-    "slug": "webflow",
-    "hits": 14,
-    "latestYear": 2020
-  },
-  {
-    "slug": "himshers",
-    "hits": 14,
+    "slug": "geneva",
+    "hits": 20,
     "latestYear": 2020
   },
   {
     "slug": "appannie",
-    "hits": 12,
+    "hits": 18,
     "latestYear": 2020
   },
   {
-    "slug": "samsara",
-    "hits": 1018,
+    "slug": "cbinsights",
+    "hits": 820,
     "latestYear": 2019
   },
   {
     "slug": "remind",
-    "hits": 640,
+    "hits": 820,
     "latestYear": 2019
   },
   {
     "slug": "secondmeasure",
-    "hits": 580,
-    "latestYear": 2019
-  },
-  {
-    "slug": "cbinsights",
-    "hits": 564,
+    "hits": 708,
     "latestYear": 2019
   },
   {
     "slug": "policygenius",
-    "hits": 458,
+    "hits": 664,
     "latestYear": 2019
   },
   {
     "slug": "paxlabs",
-    "hits": 334,
-    "latestYear": 2019
-  },
-  {
-    "slug": "twilio",
-    "hits": 294,
+    "hits": 498,
     "latestYear": 2019
   },
   {
     "slug": "sumup",
-    "hits": 272,
-    "latestYear": 2019
-  },
-  {
-    "slug": "beekeeper",
-    "hits": 242,
+    "hits": 402,
     "latestYear": 2019
   },
   {
     "slug": "common",
-    "hits": 240,
-    "latestYear": 2019
-  },
-  {
-    "slug": "joinhandshake",
-    "hits": 214,
+    "hits": 362,
     "latestYear": 2019
   },
   {
     "slug": "bonobos",
-    "hits": 196,
+    "hits": 308,
     "latestYear": 2019
   },
   {
-    "slug": "away",
-    "hits": 184,
+    "slug": "beekeeper",
+    "hits": 296,
     "latestYear": 2019
   },
   {
-    "slug": "liveramp",
-    "hits": 176,
+    "slug": "joinhandshake",
+    "hits": 264,
     "latestYear": 2019
   },
   {
     "slug": "hustle",
-    "hits": 166,
+    "hits": 252,
+    "latestYear": 2019
+  },
+  {
+    "slug": "away",
+    "hits": 248,
+    "latestYear": 2019
+  },
+  {
+    "slug": "liveramp",
+    "hits": 246,
     "latestYear": 2019
   },
   {
     "slug": "first",
-    "hits": 150,
+    "hits": 224,
     "latestYear": 2019
   },
   {
     "slug": "adjust",
-    "hits": 140,
+    "hits": 210,
     "latestYear": 2019
   },
   {
     "slug": "vsco39",
-    "hits": 126,
-    "latestYear": 2019
-  },
-  {
-    "slug": "zume",
-    "hits": 116,
-    "latestYear": 2019
-  },
-  {
-    "slug": "argo",
-    "hits": 114,
+    "hits": 196,
     "latestYear": 2019
   },
   {
     "slug": "ondeck",
-    "hits": 110,
+    "hits": 170,
     "latestYear": 2019
   },
   {
-    "slug": "contentful",
-    "hits": 106,
+    "slug": "argo",
+    "hits": 166,
+    "latestYear": 2019
+  },
+  {
+    "slug": "zume",
+    "hits": 158,
     "latestYear": 2019
   },
   {
     "slug": "fluidity",
-    "hits": 104,
-    "latestYear": 2019
-  },
-  {
-    "slug": "originate",
-    "hits": 98,
+    "hits": 140,
     "latestYear": 2019
   },
   {
     "slug": "98point6",
-    "hits": 90,
+    "hits": 130,
     "latestYear": 2019
   },
   {
-    "slug": "teacherspayteachers",
-    "hits": 88,
+    "slug": "originate",
+    "hits": 128,
     "latestYear": 2019
   },
   {
     "slug": "caper",
-    "hits": 88,
+    "hits": 120,
     "latestYear": 2019
   },
   {
     "slug": "yoyowallet",
-    "hits": 88,
+    "hits": 118,
     "latestYear": 2019
   },
   {
-    "slug": "thanx",
-    "hits": 78,
-    "latestYear": 2019
-  },
-  {
-    "slug": "farmersbusinessnetwork",
-    "hits": 76,
-    "latestYear": 2019
-  },
-  {
-    "slug": "algorithmia",
-    "hits": 66,
+    "slug": "teacherspayteachers",
+    "hits": 112,
     "latestYear": 2019
   },
   {
     "slug": "pathlight",
-    "hits": 64,
+    "hits": 98,
     "latestYear": 2019
   },
   {
-    "slug": "clearstreet",
-    "hits": 64,
-    "latestYear": 2019
-  },
-  {
-    "slug": "lyric",
-    "hits": 62,
-    "latestYear": 2019
-  },
-  {
-    "slug": "telaria",
-    "hits": 62,
+    "slug": "farmersbusinessnetwork",
+    "hits": 98,
     "latestYear": 2019
   },
   {
     "slug": "gridspace",
-    "hits": 60,
+    "hits": 98,
+    "latestYear": 2019
+  },
+  {
+    "slug": "thanx",
+    "hits": 98,
+    "latestYear": 2019
+  },
+  {
+    "slug": "lyric",
+    "hits": 90,
+    "latestYear": 2019
+  },
+  {
+    "slug": "telaria",
+    "hits": 88,
     "latestYear": 2019
   },
   {
     "slug": "theinfatuation",
-    "hits": 56,
+    "hits": 82,
     "latestYear": 2019
   },
   {
     "slug": "faunadb",
-    "hits": 52,
-    "latestYear": 2019
-  },
-  {
-    "slug": "buzzfeed",
-    "hits": 46,
-    "latestYear": 2019
-  },
-  {
-    "slug": "38degrees",
-    "hits": 44,
+    "hits": 80,
     "latestYear": 2019
   },
   {
     "slug": "bluebeam",
-    "hits": 42,
+    "hits": 68,
     "latestYear": 2019
   },
   {
-    "slug": "able",
-    "hits": 40,
-    "latestYear": 2019
-  },
-  {
-    "slug": "datto",
-    "hits": 36,
+    "slug": "38degrees",
+    "hits": 60,
     "latestYear": 2019
   },
   {
     "slug": "omaze",
-    "hits": 36,
+    "hits": 56,
     "latestYear": 2019
   },
   {
-    "slug": "splice",
-    "hits": 34,
+    "slug": "able",
+    "hits": 52,
+    "latestYear": 2019
+  },
+  {
+    "slug": "datto",
+    "hits": 48,
     "latestYear": 2019
   },
   {
     "slug": "flashpoint",
-    "hits": 32,
+    "hits": 48,
     "latestYear": 2019
   },
   {
-    "slug": "pivotalsoftware",
-    "hits": 32,
-    "latestYear": 2019
-  },
-  {
-    "slug": "scout24",
-    "hits": 30,
+    "slug": "splice",
+    "hits": 48,
     "latestYear": 2019
   },
   {
     "slug": "scalefactor",
-    "hits": 28,
+    "hits": 44,
     "latestYear": 2019
   },
   {
-    "slug": "keyme",
-    "hits": 24,
+    "slug": "pivotalsoftware",
+    "hits": 44,
     "latestYear": 2019
   },
   {
     "slug": "airmap",
-    "hits": 24,
-    "latestYear": 2019
-  },
-  {
-    "slug": "viagogo",
-    "hits": 22,
-    "latestYear": 2019
-  },
-  {
-    "slug": "sensei",
-    "hits": 22,
+    "hits": 36,
     "latestYear": 2019
   },
   {
     "slug": "crunchyroll",
-    "hits": 22,
+    "hits": 34,
+    "latestYear": 2019
+  },
+  {
+    "slug": "viagogo",
+    "hits": 30,
+    "latestYear": 2019
+  },
+  {
+    "slug": "keyme",
+    "hits": 30,
+    "latestYear": 2019
+  },
+  {
+    "slug": "sensei",
+    "hits": 28,
     "latestYear": 2019
   },
   {
     "slug": "comfy",
-    "hits": 20,
+    "hits": 28,
     "latestYear": 2019
   },
   {
     "slug": "ordergroove",
-    "hits": 20,
-    "latestYear": 2019
-  },
-  {
-    "slug": "hawkfish",
-    "hits": 18,
-    "latestYear": 2019
-  },
-  {
-    "slug": "charmindustrial",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2019
   },
   {
     "slug": "memsql",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2019
   },
   {
     "slug": "trustory",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2019
   },
   {
-    "slug": "sweetgreen",
-    "hits": 16,
-    "latestYear": 2019
-  },
-  {
-    "slug": "weaveworks",
-    "hits": 16,
+    "slug": "hawkfish",
+    "hits": 26,
     "latestYear": 2019
   },
   {
     "slug": "113134",
-    "hits": 16,
+    "hits": 26,
     "latestYear": 2019
   },
   {
-    "slug": "abstract",
-    "hits": 16,
+    "slug": "charmindustrial",
+    "hits": 26,
     "latestYear": 2019
   },
   {
-    "slug": "eikontx",
-    "hits": 14,
+    "slug": "sweetgreen",
+    "hits": 24,
     "latestYear": 2019
   },
   {
     "slug": "defmethod",
-    "hits": 14,
+    "hits": 24,
     "latestYear": 2019
   },
   {
     "slug": "anchorage",
-    "hits": 14,
-    "latestYear": 2019
-  },
-  {
-    "slug": "sendle",
-    "hits": 14,
+    "hits": 24,
     "latestYear": 2019
   },
   {
     "slug": "canopy31",
-    "hits": 14,
+    "hits": 24,
     "latestYear": 2019
   },
   {
-    "slug": "integralhealth",
-    "hits": 12,
-    "latestYear": 2019
-  },
-  {
-    "slug": "autonomic",
-    "hits": 12,
-    "latestYear": 2019
-  },
-  {
-    "slug": "blockfi",
-    "hits": 12,
+    "slug": "weaveworks",
+    "hits": 22,
     "latestYear": 2019
   },
   {
     "slug": "corescientific",
-    "hits": 12,
+    "hits": 22,
+    "latestYear": 2019
+  },
+  {
+    "slug": "sendle",
+    "hits": 22,
+    "latestYear": 2019
+  },
+  {
+    "slug": "eikontx",
+    "hits": 20,
+    "latestYear": 2019
+  },
+  {
+    "slug": "integralhealth",
+    "hits": 20,
+    "latestYear": 2019
+  },
+  {
+    "slug": "autonomic",
+    "hits": 20,
     "latestYear": 2019
   },
   {
     "slug": "trunkclub",
-    "hits": 2204,
-    "latestYear": 2018
-  },
-  {
-    "slug": "robinhood",
-    "hits": 1720,
+    "hits": 2973,
     "latestYear": 2018
   },
   {
     "slug": "drip",
-    "hits": 320,
-    "latestYear": 2018
-  },
-  {
-    "slug": "scribd",
-    "hits": 276,
+    "hits": 480,
     "latestYear": 2018
   },
   {
     "slug": "qubit",
-    "hits": 260,
+    "hits": 392,
     "latestYear": 2018
   },
   {
-    "slug": "strava",
-    "hits": 260,
+    "slug": "scribd",
+    "hits": 368,
     "latestYear": 2018
   },
   {
     "slug": "petuum",
-    "hits": 240,
+    "hits": 352,
+    "latestYear": 2018
+  },
+  {
+    "slug": "strava",
+    "hits": 300,
     "latestYear": 2018
   },
   {
     "slug": "eden18",
-    "hits": 178,
+    "hits": 270,
     "latestYear": 2018
   },
   {
     "slug": "okcupid",
-    "hits": 135,
+    "hits": 210,
     "latestYear": 2018
   },
   {
     "slug": "hackerrank",
-    "hits": 132,
+    "hits": 182,
     "latestYear": 2018
   },
   {
     "slug": "voxy",
-    "hits": 114,
+    "hits": 162,
     "latestYear": 2018
   },
   {
     "slug": "caremessage",
-    "hits": 110,
-    "latestYear": 2018
-  },
-  {
-    "slug": "boxinc",
-    "hits": 108,
+    "hits": 154,
     "latestYear": 2018
   },
   {
     "slug": "juvo",
-    "hits": 106,
-    "latestYear": 2018
-  },
-  {
-    "slug": "qualtrics",
-    "hits": 104,
-    "latestYear": 2018
-  },
-  {
-    "slug": "autogravitycorporation",
-    "hits": 100,
+    "hits": 154,
     "latestYear": 2018
   },
   {
     "slug": "wag",
-    "hits": 90,
+    "hits": 148,
     "latestYear": 2018
   },
   {
-    "slug": "followupboss",
-    "hits": 82,
+    "slug": "autogravitycorporation",
+    "hits": 134,
     "latestYear": 2018
   },
   {
     "slug": "sailthru",
-    "hits": 82,
+    "hits": 130,
     "latestYear": 2018
   },
   {
-    "slug": "drw",
-    "hits": 80,
-    "latestYear": 2018
-  },
-  {
-    "slug": "anchor",
-    "hits": 72,
+    "slug": "followupboss",
+    "hits": 112,
     "latestYear": 2018
   },
   {
     "slug": "workforef",
-    "hits": 66,
+    "hits": 102,
     "latestYear": 2018
   },
   {
-    "slug": "songtrust",
-    "hits": 66,
-    "latestYear": 2018
-  },
-  {
-    "slug": "doordash",
-    "hits": 62,
+    "slug": "anchor",
+    "hits": 96,
     "latestYear": 2018
   },
   {
     "slug": "redbooth",
-    "hits": 58,
+    "hits": 86,
     "latestYear": 2018
   },
   {
-    "slug": "renttherunway",
-    "hits": 50,
-    "latestYear": 2018
-  },
-  {
-    "slug": "casper",
-    "hits": 50,
-    "latestYear": 2018
-  },
-  {
-    "slug": "wheelhouse",
-    "hits": 50,
+    "slug": "songtrust",
+    "hits": 78,
     "latestYear": 2018
   },
   {
     "slug": "peek",
-    "hits": 48,
+    "hits": 70,
     "latestYear": 2018
   },
   {
     "slug": "groupninemedia",
-    "hits": 48,
+    "hits": 70,
     "latestYear": 2018
   },
   {
     "slug": "goodrx",
-    "hits": 48,
+    "hits": 70,
+    "latestYear": 2018
+  },
+  {
+    "slug": "renttherunway",
+    "hits": 70,
     "latestYear": 2018
   },
   {
     "slug": "patientpop",
-    "hits": 48,
+    "hits": 70,
     "latestYear": 2018
   },
   {
-    "slug": "civisanalytics",
-    "hits": 46,
-    "latestYear": 2018
-  },
-  {
-    "slug": "greenbits",
-    "hits": 44,
-    "latestYear": 2018
-  },
-  {
-    "slug": "stride",
-    "hits": 44,
-    "latestYear": 2018
-  },
-  {
-    "slug": "beeswax",
-    "hits": 42,
+    "slug": "wheelhouse",
+    "hits": 70,
     "latestYear": 2018
   },
   {
     "slug": "drift",
-    "hits": 42,
+    "hits": 66,
     "latestYear": 2018
   },
   {
-    "slug": "pocketco",
-    "hits": 40,
+    "slug": "stride",
+    "hits": 64,
+    "latestYear": 2018
+  },
+  {
+    "slug": "beeswax",
+    "hits": 62,
     "latestYear": 2018
   },
   {
     "slug": "greatist",
-    "hits": 38,
+    "hits": 58,
     "latestYear": 2018
   },
   {
     "slug": "plushcare",
-    "hits": 36,
+    "hits": 56,
     "latestYear": 2018
   },
   {
-    "slug": "paywithpenguin",
-    "hits": 36,
-    "latestYear": 2018
-  },
-  {
-    "slug": "anaconda",
-    "hits": 36,
+    "slug": "greenbits",
+    "hits": 56,
     "latestYear": 2018
   },
   {
     "slug": "dgraph",
-    "hits": 36,
-    "latestYear": 2018
-  },
-  {
-    "slug": "storefront",
-    "hits": 32,
+    "hits": 56,
     "latestYear": 2018
   },
   {
     "slug": "arenanet",
-    "hits": 30,
+    "hits": 54,
+    "latestYear": 2018
+  },
+  {
+    "slug": "storefront",
+    "hits": 54,
+    "latestYear": 2018
+  },
+  {
+    "slug": "paywithpenguin",
+    "hits": 50,
+    "latestYear": 2018
+  },
+  {
+    "slug": "pocketco",
+    "hits": 50,
     "latestYear": 2018
   },
   {
     "slug": "remine",
-    "hits": 30,
-    "latestYear": 2018
-  },
-  {
-    "slug": "cogolabs",
-    "hits": 30,
+    "hits": 48,
     "latestYear": 2018
   },
   {
     "slug": "triplelift",
-    "hits": 28,
+    "hits": 46,
     "latestYear": 2018
   },
   {
-    "slug": "panoramaed",
-    "hits": 28,
+    "slug": "anaconda",
+    "hits": 46,
     "latestYear": 2018
   },
   {
     "slug": "mlab",
-    "hits": 26,
+    "hits": 44,
     "latestYear": 2018
   },
   {
-    "slug": "clear",
-    "hits": 24,
+    "slug": "cogolabs",
+    "hits": 44,
+    "latestYear": 2018
+  },
+  {
+    "slug": "panoramaed",
+    "hits": 40,
     "latestYear": 2018
   },
   {
     "slug": "honestbee",
-    "hits": 22,
-    "latestYear": 2018
-  },
-  {
-    "slug": "swiftnavigation",
-    "hits": 22,
-    "latestYear": 2018
-  },
-  {
-    "slug": "desktopmetal",
-    "hits": 20,
-    "latestYear": 2018
-  },
-  {
-    "slug": "taketwo",
-    "hits": 18,
+    "hits": 30,
     "latestYear": 2018
   },
   {
     "slug": "better",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2018
   },
   {
     "slug": "aura",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2018
   },
   {
     "slug": "qubittech",
-    "hits": 18,
-    "latestYear": 2018
-  },
-  {
-    "slug": "bitmex",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2018
   },
   {
     "slug": "nuna",
-    "hits": 18,
+    "hits": 28,
     "latestYear": 2018
   },
   {
     "slug": "brandless",
-    "hits": 16,
-    "latestYear": 2018
-  },
-  {
-    "slug": "engineersgate",
-    "hits": 16,
+    "hits": 26,
     "latestYear": 2018
   },
   {
     "slug": "spin",
-    "hits": 16,
+    "hits": 26,
     "latestYear": 2018
   },
   {
-    "slug": "spring",
-    "hits": 16,
+    "slug": "swiftnavigation",
+    "hits": 26,
     "latestYear": 2018
   },
   {
-    "slug": "twg",
-    "hits": 16,
+    "slug": "desktopmetal",
+    "hits": 26,
     "latestYear": 2018
   },
   {
-    "slug": "quartzy",
-    "hits": 16,
-    "latestYear": 2018
-  },
-  {
-    "slug": "phreesia",
-    "hits": 16,
-    "latestYear": 2018
-  },
-  {
-    "slug": "axial",
-    "hits": 14,
+    "slug": "engineersgate",
+    "hits": 24,
     "latestYear": 2018
   },
   {
     "slug": "stitchdata",
-    "hits": 14,
+    "hits": 24,
+    "latestYear": 2018
+  },
+  {
+    "slug": "spring",
+    "hits": 24,
     "latestYear": 2018
   },
   {
     "slug": "decibelinsight",
-    "hits": 14,
+    "hits": 22,
     "latestYear": 2018
   },
   {
     "slug": "bayanetwork",
-    "hits": 12,
+    "hits": 20,
+    "latestYear": 2018
+  },
+  {
+    "slug": "axial",
+    "hits": 20,
+    "latestYear": 2018
+  },
+  {
+    "slug": "twg",
+    "hits": 20,
+    "latestYear": 2018
+  },
+  {
+    "slug": "quartzy",
+    "hits": 20,
+    "latestYear": 2018
+  },
+  {
+    "slug": "phreesia",
+    "hits": 20,
     "latestYear": 2018
   },
   {
     "slug": "memebox",
-    "hits": 8,
+    "hits": 16,
     "latestYear": 2018
   },
   {
     "slug": "honeybook",
-    "hits": 634,
+    "hits": 740,
     "latestYear": 2017
   },
   {
     "slug": "locusenergy",
-    "hits": 250,
-    "latestYear": 2017
-  },
-  {
-    "slug": "sourcegraph",
-    "hits": 214,
+    "hits": 320,
     "latestYear": 2017
   },
   {
     "slug": "mmlafleur",
-    "hits": 196,
+    "hits": 306,
     "latestYear": 2017
   },
   {
     "slug": "vettery",
-    "hits": 158,
+    "hits": 200,
     "latestYear": 2017
   },
   {
     "slug": "intersection",
-    "hits": 134,
-    "latestYear": 2017
-  },
-  {
-    "slug": "hologram",
-    "hits": 120,
+    "hits": 194,
     "latestYear": 2017
   },
   {
     "slug": "everwise",
-    "hits": 116,
+    "hits": 170,
+    "latestYear": 2017
+  },
+  {
+    "slug": "hologram",
+    "hits": 166,
     "latestYear": 2017
   },
   {
     "slug": "airware",
-    "hits": 100,
+    "hits": 164,
     "latestYear": 2017
   },
   {
     "slug": "majorleaguebaseballadvancedmedia",
-    "hits": 91,
+    "hits": 139,
     "latestYear": 2017
   },
   {
     "slug": "majorleaguebaseballadvancedmedi",
-    "hits": 91,
+    "hits": 139,
     "latestYear": 2017
   },
   {
     "slug": "xdotai",
-    "hits": 90,
-    "latestYear": 2017
-  },
-  {
-    "slug": "metromile",
-    "hits": 76,
-    "latestYear": 2017
-  },
-  {
-    "slug": "polymathventures",
-    "hits": 74,
+    "hits": 120,
     "latestYear": 2017
   },
   {
     "slug": "eero",
-    "hits": 72,
+    "hits": 118,
+    "latestYear": 2017
+  },
+  {
+    "slug": "polymathventures",
+    "hits": 106,
     "latestYear": 2017
   },
   {
     "slug": "blackwoodseven",
-    "hits": 66,
-    "latestYear": 2017
-  },
-  {
-    "slug": "insikt",
-    "hits": 62,
-    "latestYear": 2017
-  },
-  {
-    "slug": "periscopedata",
-    "hits": 56,
+    "hits": 90,
     "latestYear": 2017
   },
   {
     "slug": "fiftythree",
-    "hits": 54,
+    "hits": 84,
+    "latestYear": 2017
+  },
+  {
+    "slug": "periscopedata",
+    "hits": 76,
+    "latestYear": 2017
+  },
+  {
+    "slug": "insikt",
+    "hits": 74,
     "latestYear": 2017
   },
   {
     "slug": "sigfig",
-    "hits": 54,
-    "latestYear": 2017
-  },
-  {
-    "slug": "tripadvisor",
-    "hits": 48,
-    "latestYear": 2017
-  },
-  {
-    "slug": "andela",
-    "hits": 36,
-    "latestYear": 2017
-  },
-  {
-    "slug": "token",
-    "hits": 34,
-    "latestYear": 2017
-  },
-  {
-    "slug": "moz",
-    "hits": 32,
-    "latestYear": 2017
-  },
-  {
-    "slug": "zagster",
-    "hits": 32,
+    "hits": 66,
     "latestYear": 2017
   },
   {
     "slug": "snapchat",
-    "hits": 32,
+    "hits": 50,
     "latestYear": 2017
   },
   {
     "slug": "trackmaven",
-    "hits": 30,
+    "hits": 48,
+    "latestYear": 2017
+  },
+  {
+    "slug": "moz",
+    "hits": 48,
     "latestYear": 2017
   },
   {
     "slug": "founders",
-    "hits": 30,
+    "hits": 48,
+    "latestYear": 2017
+  },
+  {
+    "slug": "zagster",
+    "hits": 46,
     "latestYear": 2017
   },
   {
     "slug": "livestream",
-    "hits": 28,
-    "latestYear": 2017
-  },
-  {
-    "slug": "healthtap",
-    "hits": 24,
-    "latestYear": 2017
-  },
-  {
-    "slug": "headspace",
-    "hits": 24,
+    "hits": 44,
     "latestYear": 2017
   },
   {
     "slug": "plangrid",
-    "hits": 22,
+    "hits": 42,
+    "latestYear": 2017
+  },
+  {
+    "slug": "healthtap",
+    "hits": 34,
     "latestYear": 2017
   },
   {
     "slug": "breather",
-    "hits": 20,
-    "latestYear": 2017
-  },
-  {
-    "slug": "captain401",
-    "hits": 20,
+    "hits": 30,
     "latestYear": 2017
   },
   {
     "slug": "followup",
-    "hits": 20,
+    "hits": 28,
     "latestYear": 2017
   },
   {
-    "slug": "canopy",
-    "hits": 20,
+    "slug": "headspace",
+    "hits": 28,
     "latestYear": 2017
   },
   {
     "slug": "careportalinc",
-    "hits": 18,
+    "hits": 26,
     "latestYear": 2017
   },
   {
-    "slug": "elationhealth",
-    "hits": 18,
-    "latestYear": 2017
-  },
-  {
-    "slug": "quorum",
-    "hits": 18,
-    "latestYear": 2017
-  },
-  {
-    "slug": "letote",
-    "hits": 18,
-    "latestYear": 2017
-  },
-  {
-    "slug": "brightcove",
-    "hits": 16,
-    "latestYear": 2017
-  },
-  {
-    "slug": "movesalesinc",
-    "hits": 14,
+    "slug": "captain401",
+    "hits": 26,
     "latestYear": 2017
   },
   {
     "slug": "logichub",
-    "hits": 14,
+    "hits": 24,
+    "latestYear": 2017
+  },
+  {
+    "slug": "canopy",
+    "hits": 24,
     "latestYear": 2017
   },
   {
     "slug": "giphy",
-    "hits": 14,
+    "hits": 24,
     "latestYear": 2017
   },
   {
-    "slug": "demandbase",
-    "hits": 12,
+    "slug": "brightcove",
+    "hits": 24,
     "latestYear": 2017
   },
   {
-    "slug": "signpost",
-    "hits": 12,
+    "slug": "elationhealth",
+    "hits": 22,
+    "latestYear": 2017
+  },
+  {
+    "slug": "quorum",
+    "hits": 22,
+    "latestYear": 2017
+  },
+  {
+    "slug": "movesalesinc",
+    "hits": 22,
+    "latestYear": 2017
+  },
+  {
+    "slug": "letote",
+    "hits": 22,
     "latestYear": 2017
   },
   {
     "slug": "appboy",
-    "hits": 10,
+    "hits": 20,
+    "latestYear": 2017
+  },
+  {
+    "slug": "demandbase",
+    "hits": 18,
     "latestYear": 2017
   },
   {
     "slug": "catalant",
-    "hits": 8,
+    "hits": 18,
+    "latestYear": 2017
+  },
+  {
+    "slug": "signpost",
+    "hits": 16,
     "latestYear": 2017
   },
   {
     "slug": "hellosign",
-    "hits": 584,
+    "hits": 818,
     "latestYear": 2016
   },
   {
     "slug": "dstillery",
-    "hits": 368,
+    "hits": 470,
     "latestYear": 2016
   },
   {
     "slug": "pixlee",
-    "hits": 180,
+    "hits": 238,
     "latestYear": 2016
   },
   {
     "slug": "generalassembly",
-    "hits": 128,
-    "latestYear": 2016
-  },
-  {
-    "slug": "vimeo",
-    "hits": 122,
+    "hits": 164,
     "latestYear": 2016
   },
   {
     "slug": "lendinghome",
-    "hits": 120,
+    "hits": 156,
     "latestYear": 2016
   },
   {
     "slug": "theblacktux",
-    "hits": 108,
+    "hits": 154,
     "latestYear": 2016
   },
   {
     "slug": "fueled",
-    "hits": 90,
+    "hits": 110,
     "latestYear": 2016
   },
   {
     "slug": "minodes",
-    "hits": 80,
-    "latestYear": 2016
-  },
-  {
-    "slug": "betterment",
-    "hits": 64,
+    "hits": 104,
     "latestYear": 2016
   },
   {
     "slug": "trulia",
-    "hits": 64,
-    "latestYear": 2016
-  },
-  {
-    "slug": "keenio",
-    "hits": 60,
-    "latestYear": 2016
-  },
-  {
-    "slug": "carvana",
-    "hits": 60,
-    "latestYear": 2016
-  },
-  {
-    "slug": "canary",
-    "hits": 56,
+    "hits": 84,
     "latestYear": 2016
   },
   {
     "slug": "attn",
-    "hits": 52,
+    "hits": 82,
+    "latestYear": 2016
+  },
+  {
+    "slug": "keenio",
+    "hits": 72,
+    "latestYear": 2016
+  },
+  {
+    "slug": "canary",
+    "hits": 68,
     "latestYear": 2016
   },
   {
     "slug": "ibotta",
-    "hits": 48,
-    "latestYear": 2016
-  },
-  {
-    "slug": "disqus",
-    "hits": 44,
+    "hits": 66,
     "latestYear": 2016
   },
   {
     "slug": "ginlane",
-    "hits": 30,
+    "hits": 60,
+    "latestYear": 2016
+  },
+  {
+    "slug": "disqus",
+    "hits": 58,
     "latestYear": 2016
   },
   {
     "slug": "harrys",
+    "hits": 48,
+    "latestYear": 2016
+  },
+  {
+    "slug": "jornaya",
+    "hits": 40,
+    "latestYear": 2016
+  },
+  {
+    "slug": "conversocial",
+    "hits": 34,
+    "latestYear": 2016
+  },
+  {
+    "slug": "verve",
     "hits": 28,
     "latestYear": 2016
   },
   {
     "slug": "expectlabs",
-    "hits": 24,
+    "hits": 28,
     "latestYear": 2016
   },
   {
-    "slug": "conversocial",
-    "hits": 24,
+    "slug": "quid",
+    "hits": 26,
     "latestYear": 2016
   },
   {
     "slug": "britandco",
+    "hits": 24,
+    "latestYear": 2016
+  },
+  {
+    "slug": "ginger",
+    "hits": 22,
+    "latestYear": 2016
+  },
+  {
+    "slug": "thesourcery",
     "hits": 22,
     "latestYear": 2016
   },
   {
     "slug": "mondo",
-    "hits": 20,
-    "latestYear": 2016
-  },
-  {
-    "slug": "jornaya",
-    "hits": 20,
-    "latestYear": 2016
-  },
-  {
-    "slug": "verve",
-    "hits": 18,
-    "latestYear": 2016
-  },
-  {
-    "slug": "quid",
-    "hits": 18,
-    "latestYear": 2016
-  },
-  {
-    "slug": "kivaorg",
-    "hits": 16,
-    "latestYear": 2016
-  },
-  {
-    "slug": "ginger",
-    "hits": 14,
-    "latestYear": 2016
-  },
-  {
-    "slug": "thesourcery",
-    "hits": 14,
+    "hits": 22,
     "latestYear": 2016
   },
   {
     "slug": "granular",
-    "hits": 14,
-    "latestYear": 2016
-  },
-  {
-    "slug": "wework",
-    "hits": 12,
+    "hits": 22,
     "latestYear": 2016
   },
   {
     "slug": "evercar",
-    "hits": 10,
+    "hits": 20,
+    "latestYear": 2016
+  },
+  {
+    "slug": "kivaorg",
+    "hits": 18,
+    "latestYear": 2016
+  },
+  {
+    "slug": "wework",
+    "hits": 18,
     "latestYear": 2016
   },
   {
     "slug": "futureadvisor",
-    "hits": 248,
+    "hits": 284,
     "latestYear": 2015
   },
   {
     "slug": "zenpayroll",
-    "hits": 222,
+    "hits": 280,
     "latestYear": 2015
   },
   {
     "slug": "yplan",
-    "hits": 154,
+    "hits": 168,
     "latestYear": 2015
   },
   {
     "slug": "grovo",
-    "hits": 132,
+    "hits": 156,
     "latestYear": 2015
   },
   {
     "slug": "cotap",
-    "hits": 84,
-    "latestYear": 2015
-  },
-  {
-    "slug": "curalate",
-    "hits": 54,
+    "hits": 98,
     "latestYear": 2015
   },
   {
     "slug": "improbable",
-    "hits": 48,
-    "latestYear": 2015
-  },
-  {
-    "slug": "chartboost",
-    "hits": 40,
+    "hits": 66,
     "latestYear": 2015
   },
   {
     "slug": "optoro",
-    "hits": 36,
+    "hits": 44,
+    "latestYear": 2015
+  },
+  {
+    "slug": "chartboost",
+    "hits": 44,
     "latestYear": 2015
   },
   {
     "slug": "changeheroes",
-    "hits": 30,
-    "latestYear": 2015
-  },
-  {
-    "slug": "opendoor",
-    "hits": 30,
-    "latestYear": 2015
-  },
-  {
-    "slug": "continuum",
-    "hits": 20,
-    "latestYear": 2015
-  },
-  {
-    "slug": "cloverhealth",
-    "hits": 20,
+    "hits": 42,
     "latestYear": 2015
   },
   {
     "slug": "magoosh",
-    "hits": 20,
+    "hits": 24,
     "latestYear": 2015
   },
   {
     "slug": "refinery29",
-    "hits": 18,
+    "hits": 24,
     "latestYear": 2015
   },
   {
-    "slug": "flexport",
-    "hits": 14,
+    "slug": "continuum",
+    "hits": 22,
     "latestYear": 2015
   },
   {
-    "slug": "pocket",
-    "hits": 14,
-    "latestYear": 2015
-  },
-  {
-    "slug": "kespryinc",
-    "hits": 14,
+    "slug": "cloverhealth",
+    "hits": 22,
     "latestYear": 2015
   },
   {
     "slug": "creativelive",
-    "hits": 14,
-    "latestYear": 2015
-  },
-  {
-    "slug": "orion",
-    "hits": 14,
+    "hits": 22,
     "latestYear": 2015
   },
   {
     "slug": "itbit",
+    "hits": 20,
+    "latestYear": 2015
+  },
+  {
+    "slug": "pocket",
+    "hits": 18,
+    "latestYear": 2015
+  },
+  {
+    "slug": "orion",
+    "hits": 18,
+    "latestYear": 2015
+  },
+  {
+    "slug": "vts",
+    "hits": 16,
+    "latestYear": 2015
+  },
+  {
+    "slug": "kespryinc",
+    "hits": 16,
+    "latestYear": 2015
+  },
+  {
+    "slug": "betterworks",
     "hits": 14,
     "latestYear": 2015
   },
   {
     "slug": "leadid",
-    "hits": 10,
-    "latestYear": 2015
-  },
-  {
-    "slug": "betterworks",
-    "hits": 10,
-    "latestYear": 2015
-  },
-  {
-    "slug": "vts",
-    "hits": 6,
+    "hits": 12,
     "latestYear": 2015
   },
   {
     "slug": "prismatic",
-    "hits": 176,
+    "hits": 220,
     "latestYear": 2014
   },
   {
     "slug": "urx",
-    "hits": 56,
-    "latestYear": 2014
-  },
-  {
-    "slug": "riotgames",
-    "hits": 50,
+    "hits": 74,
     "latestYear": 2014
   },
   {
     "slug": "canaanpartners18",
-    "hits": 40,
+    "hits": 48,
     "latestYear": 2014
   },
   {
     "slug": "tumblr",
-    "hits": 14,
+    "hits": 16,
     "latestYear": 2014
   },
   {
     "slug": "thehuffingtonpost",
-    "hits": 12,
+    "hits": 14,
     "latestYear": 2014
   }
 ]

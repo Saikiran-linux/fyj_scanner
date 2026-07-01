@@ -22,7 +22,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { select, update } from '../src/supabase-client.mjs';
+import { select, update, upsert } from '../src/supabase-client.mjs';
 import {
   fetchJobDescription,
   hasDescriptionFetcher,
@@ -56,12 +56,74 @@ let totalFailed = 0;
 const startedAt = Date.now();
 let lastLog = 0;
 
+// Process a page with a small worker pool instead of one row at a time. The
+// per-job fetch is dominated by upstream latency (~0.5s for SmartRecruiters),
+// so a purely sequential pass leaves the rate limiter's per-provider
+// concurrency budget (SR=3) idle and crawls at ~2 rows/s. Workers all pull
+// from the same cursor and every fetch still goes through the limiter, so the
+// per-provider rate stays within budget — we just stop waiting serially.
+// Default 8 comfortably saturates SR's conc-3 bucket with headroom; tune via
+// BACKFILL_WORKER_POOL.
+const WORKER_POOL = Number(process.env.BACKFILL_WORKER_POOL || 8);
+
+function maybeLog() {
+  const now = Date.now();
+  if (now - lastLog < 10_000) return;
+  lastLog = now;
+  const elapsed = ((now - startedAt) / 1000).toFixed(0);
+  const rate = totalAttempted > 0 ? (totalAttempted / ((now - startedAt) / 1000)).toFixed(1) : '0';
+  console.log(`  ${totalAttempted} attempted (${totalOk} ok, ${totalFailed} failed), ${elapsed}s elapsed, ${rate}/s`);
+}
+
+async function processRow(row) {
+  const ats = row.companies?.ats;
+  const slug = row.companies?.slug;
+  if (!ats || !slug) return;
+  totalAttempted++;
+  try {
+    const res = await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
+    if (!res.ok) {
+      totalFailed++;
+      return;
+    }
+    await update(
+      'jobs',
+      { id: `eq.${row.id}` },
+      {
+        description_hash: describeHash(res.description ?? null),
+        description_fetched_at: new Date().toISOString(),
+      },
+      { returning: 'minimal' },
+    );
+    // Text -> job_descriptions (f-119); jobs no longer has a description column.
+    if (res.description != null) {
+      await upsert(
+        'job_descriptions',
+        [{ job_id: row.id, company_id: row.companies.id, description: res.description, updated_at: new Date().toISOString() }],
+        'job_id',
+        { returning: 'minimal' },
+      );
+    }
+    totalOk++;
+  } catch (e) {
+    totalFailed++;
+    console.error(`fetch failed ${ats}/${slug}/${row.external_id}: ${e.message}`);
+  }
+  maybeLog();
+}
+
 while (true) {
   // Pull a page of candidates that belong to a fetchable provider. PostgREST's
-  // `companies.ats=in.(...)` filters through the embedded resource.
+  // `companies.ats=in.(...)` filters through the embedded resource. Filled rows
+  // drop out of the `description is null` filter, so re-querying advances us
+  // through the backlog without an explicit offset (and makes this resumable).
   const inClause = `(${fetchableAts.join(',')})`;
   const page = await select('jobs', {
-    description: 'is.null',
+    // Only rows we've never attempted. description_fetched_at is set on every
+    // attempt, so this makes the pass advance/terminate and stops re-hitting
+    // the upstream for descriptions that genuinely don't exist. (jobs no longer
+    // has a description column — f-119; text lives in job_descriptions.)
+    description_fetched_at: 'is.null',
     closed_at: 'is.null',
     limit: String(PAGE_SIZE),
     select: 'id,external_id,companies!inner(id,ats,slug)',
@@ -70,40 +132,15 @@ while (true) {
 
   if (!Array.isArray(page) || page.length === 0) break;
 
-  for (const row of page) {
-    const ats = row.companies?.ats;
-    const slug = row.companies?.slug;
-    if (!ats || !slug) continue;
-    totalAttempted++;
-    try {
-      const res = await fetchJobDescription(ats, slug, row.external_id, { timeoutMs: TIMEOUT_MS, limiter });
-      if (!res.ok) {
-        totalFailed++;
-        continue;
-      }
-      await update(
-        'jobs',
-        { id: `eq.${row.id}` },
-        {
-          description: res.description ?? null,
-          description_hash: describeHash(res.description ?? null),
-          description_fetched_at: new Date().toISOString(),
-        },
-        { returning: 'minimal' },
-      );
-      totalOk++;
-    } catch (e) {
-      totalFailed++;
-      console.error(`fetch failed ${ats}/${slug}/${row.external_id}: ${e.message}`);
+  // Worker pool over this page: a shared cursor hands each worker the next row.
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < page.length) {
+      const row = page[cursor++];
+      await processRow(row);
     }
-
-    const now = Date.now();
-    if (now - lastLog >= 10_000) {
-      lastLog = now;
-      const elapsed = ((now - startedAt) / 1000).toFixed(0);
-      console.log(`  ${totalAttempted} attempted (${totalOk} ok, ${totalFailed} failed), ${elapsed}s elapsed`);
-    }
-  }
+  };
+  await Promise.all(Array.from({ length: WORKER_POOL }, worker));
 }
 
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);

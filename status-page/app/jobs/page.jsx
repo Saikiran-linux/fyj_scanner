@@ -7,6 +7,9 @@ export const revalidate = 0;
 
 const PAGE_SIZE = 50;
 const ATS_OPTIONS = ['', 'greenhouse', 'ashby', 'lever', 'smartrecruiters', 'workatastartup'];
+// Relevance lens (f-113/f-121). is_target: true = surface to customers,
+// false = known non-target (blue-collar/service/etc.), null = not yet classified.
+const RELEVANCE_OPTIONS = ['', 'target', 'non-target', 'unclassified'];
 
 export default async function JobsPage({ searchParams }) {
   const sp = (await searchParams) || {};
@@ -22,10 +25,12 @@ export default async function JobsPage({ searchParams }) {
   const select = 'id,title,location,url,first_seen_at,last_seen_at,closed_at,'
     + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
     + 'remote,source_updated_at,source_published_at,'
+    + 'is_target,job_family,seniority,classified_by,'
     + 'company:companies(ats,slug)';
 
   const remoteFilter = ['remote', 'hybrid', 'onsite'].includes(sp.remote) ? sp.remote : '';
   const compOnly = sp.comp === '1';
+  const relevance = RELEVANCE_OPTIONS.includes(sp.relevance) ? sp.relevance : '';
 
   // Build filters.
   const query = { select, order: 'first_seen_at.desc' };
@@ -41,6 +46,10 @@ export default async function JobsPage({ searchParams }) {
     query.company = 'not.is.null';
   }
   if (remoteFilter) query.remote = `eq.${remoteFilter}`;
+  // Relevance lens. PostgREST boolean filters: is.true / is.false / is.null.
+  if (relevance === 'target') query.is_target = 'is.true';
+  else if (relevance === 'non-target') query.is_target = 'is.false';
+  else if (relevance === 'unclassified') query.is_target = 'is.null';
   if (compOnly) {
     // "has any comp signal" — either structured or free-text.
     query.or = '(comp_min.not.is.null,comp_text.not.is.null)';
@@ -49,11 +58,16 @@ export default async function JobsPage({ searchParams }) {
   let rows = [];
   let total = 0;
   let error = null;
+  // Count strategy: the planner's row estimate for a `title ilike '%…%'` search
+  // is wildly inaccurate (it estimates 10 for a result set of 4), which made the
+  // header and pagination claim more rows than actually exist. A title search is
+  // backed by the jobs_title_trgm_idx trigram index, so an EXACT count is both
+  // accurate and cheap there. Reserve the planner estimate ('planned') for the
+  // broad, near-full-table listing (no text search) — the only case whose exact
+  // count risks the 8s statement_timeout.
+  const countStrategy = q ? 'exact' : 'planned';
   try {
-    // Planner-estimated count: a precise count over 70k+ filtered rows hits
-    // the 8s statement_timeout. The estimate is within a few % and only
-    // drives "X total / page N of M" — accuracy isn't critical here.
-    const r = await pgSelectRange('jobs', query, { from, to, count: 'planned' });
+    const r = await pgSelectRange('jobs', query, { from, to, count: countStrategy });
     rows = r.rows;
     total = r.total;
     // ats filter on embedded resource doesn't drop parent rows by default;
@@ -88,6 +102,15 @@ export default async function JobsPage({ searchParams }) {
           <input type="checkbox" name="active" value="1" defaultChecked={activeOnly}
             className="w-4 h-4 accent-sky-500" />
         </Field>
+        <Field label="Relevance">
+          <select name="relevance" defaultValue={relevance}
+            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-sky-500">
+            <option value="">any</option>
+            <option value="target">target</option>
+            <option value="non-target">non-target</option>
+            <option value="unclassified">unclassified</option>
+          </select>
+        </Field>
         <Field label="Remote">
           <select name="remote" defaultValue={remoteFilter}
             className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-sky-500">
@@ -118,6 +141,7 @@ export default async function JobsPage({ searchParams }) {
           <thead className="text-zinc-500 text-left bg-zinc-900/60">
             <tr>
               <Th>title</Th>
+              <Th>relevance</Th>
               <Th>company</Th>
               <Th>ats</Th>
               <Th>location</Th>
@@ -131,7 +155,7 @@ export default async function JobsPage({ searchParams }) {
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <Empty cols={10}>no jobs match</Empty>
+              <Empty cols={11}>no jobs match</Empty>
             ) : (
               rows.map((j) => {
                 const comp = formatComp(j);
@@ -143,6 +167,7 @@ export default async function JobsPage({ searchParams }) {
                     <Td className="max-w-xl">
                       <span className="text-zinc-100">{j.title}</span>
                     </Td>
+                    <Td className="whitespace-nowrap">{renderRelevance(j)}</Td>
                     <Td>
                       {j.company?.slug && (
                         <Link href={`/jobs?q=&ats=${j.company.ats}&company=${j.company.slug}`}
@@ -183,7 +208,7 @@ export default async function JobsPage({ searchParams }) {
         page={page}
         pageSize={PAGE_SIZE}
         total={total}
-        params={{ q, ats, active: activeOnly ? '' : '0', remote: remoteFilter, comp: compOnly ? '1' : '' }}
+        params={{ q, ats, active: activeOnly ? '' : '0', relevance, remote: remoteFilter, comp: compOnly ? '1' : '' }}
       />
     </main>
   );
@@ -232,4 +257,19 @@ function remoteTone(remote) {
   if (remote === 'remote') return 'green';
   if (remote === 'hybrid') return 'blue';
   return 'zinc';
+}
+
+// Relevance verdict (f-113/f-121): target (surface) / non-target (hide) /
+// unclassified (null — still surfaced, pending the LLM pass). Shows the
+// job_family + how it was classified (rules / sr_function / llm) as a tooltip.
+function renderRelevance(j) {
+  const family = j.job_family ? <span className="text-zinc-500 text-xs">{j.job_family}</span> : null;
+  const by = j.classified_by ? ` · ${j.classified_by}` : '';
+  if (j.is_target === true) {
+    return <span title={`target${by}`} className="flex items-center gap-1.5"><Badge tone="green">target</Badge>{family}</span>;
+  }
+  if (j.is_target === false) {
+    return <span title={`non-target${by}`} className="flex items-center gap-1.5"><Badge tone="red">non-target</Badge>{family}</span>;
+  }
+  return <span title="unclassified — not yet resolved (pending LLM pass)"><Badge tone="zinc">unclassified</Badge></span>;
 }

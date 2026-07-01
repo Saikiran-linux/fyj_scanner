@@ -21,6 +21,20 @@ env:
 
 jobs:
   scan:
+    strategy:
+      # One shard failing must NOT cancel its siblings — each shard owns a
+      # disjoint slice of companies, so a failure is isolated to that slice.
+      fail-fast: false
+      matrix:
+        # Scan sharding (f-109). List 0..N-1 to fan the scan out across N
+        # parallel jobs (N ≤ 60); SHARD_COUNT below derives from the matrix
+        # length via strategy.job-total, so this list is the ONLY thing to
+        # change. Safe to parallelize because close_unseen_jobs() is
+        # per-company, so shards never touch each other's jobs. N=4: each shard
+        # owns a 15-bucket slice of the [0,60) company-hash range
+        # (disjoint+complete, validated live). Each runs on its own runner IP,
+        # so per-provider rate limits aren't divided -> ~N x aggregate throughput.
+        shard: [0, 1, 2, 3]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -54,13 +68,28 @@ jobs:
           # cascades. The rate limiter still caps per-provider concurrency
           # separately for the ATS HTTP calls.
           SCAN_WORKER_POOL: '10'
+          # Cloudflare R2 — raw ATS response archive (Workstream A). All four
+          # are required to enable archiving; if any is absent the scanner's
+          # r2Enabled() gate returns false and the archive pass is a no-op, so
+          # the scan still runs. These are repo secrets and must be mapped here
+          # explicitly — GitHub does not auto-expose secrets as env vars.
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          # Sharding: each matrix job scans its slice. SHARD_COUNT derives from
+          # the matrix length, so adding shards to the matrix above is the only
+          # change needed. Default matrix [0] → SHARD_COUNT=1 (unsharded).
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_COUNT: ${{ strategy.job-total }}
         run: node src/scan.mjs
 
       - name: Upload logs (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scan-log-${{ github.run_id }}
+          # Per-shard name — matrix jobs can't share one artifact name (v4).
+          name: scan-log-${{ github.run_id }}-shard${{ matrix.shard }}
           path: |
             *.log
           if-no-files-found: ignore

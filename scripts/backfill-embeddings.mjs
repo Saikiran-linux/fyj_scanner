@@ -46,14 +46,14 @@ const startedAt = Date.now();
 
 // selectAll paginates past PostgREST's 1k limit. We only need the columns
 // the embedder reads — kept in sync with buildJobText() in src/embeddings.mjs.
-// `description` moved off `jobs` into its own table (public.job_descriptions,
-// keyed 1:1 by job_id) at some point without this script being updated —
-// fetched separately below and merged in, since PostgREST can't embed the
-// join (no FK between the two tables, just a matching primary key).
+// Queries v_jobs_enriched (not jobs) since `description` moved off jobs into
+// its own table (public.job_descriptions, keyed 1:1 by job_id) — the view
+// already joins it in, so a plain select= column list is enough; no separate
+// fetch needed.
 const query = {
   embedding: 'is.null',
   closed_at: 'is.null',
-  select: 'id,title,department,location,description_summary,'
+  select: 'id,title,department,location,description,description_summary,'
     + 'comp_min,comp_max,comp_currency,comp_interval,comp_text,'
     + 'remote,employment_type',
 };
@@ -63,32 +63,13 @@ if (SUMMARIZED_ONLY) {
   // fallback, which is fine but pollutes the eval comparison.
   query.description_summary = 'not.is.null';
 }
-const rows = await selectAll('jobs', query);
+const rows = await selectAll('v_jobs_enriched', query);
 
 console.log(`Found ${rows.length} jobs to embed`);
 if (rows.length === 0) {
   console.log('Nothing to do.');
   process.exit(0);
 }
-
-// Fill in raw description text for buildJobText's fallback (rows without a
-// description_summary would otherwise embed with just title + signals — most
-// active rows have no summary yet, so skipping this would gut embedding
-// quality for the bulk of the index). Chunked `job_id=in.(...)` lookups keep
-// each request's query string bounded.
-console.log('Fetching raw descriptions from job_descriptions...');
-const DESC_CHUNK = 200;
-const descByJobId = new Map();
-for (let i = 0; i < rows.length; i += DESC_CHUNK) {
-  const ids = rows.slice(i, i + DESC_CHUNK).map((r) => r.id);
-  const descs = await selectAll('job_descriptions', {
-    job_id: `in.(${ids.join(',')})`,
-    select: 'job_id,description',
-  });
-  for (const d of descs) descByJobId.set(d.job_id, d.description);
-}
-for (const row of rows) row.description = descByJobId.get(row.id) ?? null;
-console.log(`Matched descriptions for ${descByJobId.size}/${rows.length} jobs`);
 
 let lastLog = 0;
 const stats = await embedAndPersistJobs(rows, {

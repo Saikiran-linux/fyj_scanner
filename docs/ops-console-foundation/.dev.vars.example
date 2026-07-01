@@ -1,0 +1,16 @@
+# Copy to .dev.vars for local `wrangler dev`. Set the real values in production
+# with `wrangler secret put <NAME>`. NEVER commit .dev.vars.
+
+# Neon — use the DIRECT (non-pooled) URL for migrations; the Worker uses Hyperdrive.
+DATABASE_URL="postgres://ops_app:PASSWORD@ep-xxxx.neon.tech/ops_console?sslmode=require"
+
+# Better Auth session signing secret (generate: openssl rand -base64 32)
+BETTER_AUTH_SECRET=""
+
+# Embeddings (profile resume -> vector) and deep-eval (A–G + CV)
+OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""
+
+# Read-only access to the fyj job index (search_jobs / get_job)
+FYJ_INDEX_URL="https://mwcpoaefmggapztkxakp.supabase.co"
+FYJ_INDEX_KEY=""

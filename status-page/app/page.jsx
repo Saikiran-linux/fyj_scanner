@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { pgSelect, pgCount, pgRpc } from '../lib/supabase';
 import { Sla, Sparkline, Bars, StatusDot, Th, Td, Empty, RangePills, fmtTs, relativeAgo } from '../components/ui';
+import AutoRefresh from '../components/AutoRefresh';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,7 +43,10 @@ export default async function Page({ searchParams }) {
       pgSelect('scans', { select: 'ended_at', status: 'eq.ok', order: 'ended_at.desc', limit: '1' }),
       pgCount('jobs', { closed_at: 'is.null' }),
       pgCount('jobs', { first_seen_at: `gte.${isoMinus(24 * 3600)}` }),
-      pgSelect('scans', {
+      // Sparkline new-jobs series reads from v_recent_scans (first_seen_at-window
+      // count), NOT scans.new_jobs — the raw counter over-counts reopened
+      // postings and would spike the chart by 10-30k on some scans.
+      pgSelect('v_recent_scans', {
         select: 'started_at,new_jobs,closed_jobs,active_jobs_after',
         status: 'eq.ok',
         order: 'started_at.desc',
@@ -102,7 +106,7 @@ export default async function Page({ searchParams }) {
 
   return (
     <>
-      <meta httpEquiv="refresh" content="30" />
+      <AutoRefresh seconds={30} />
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         <header className="flex justify-between items-baseline">
           <div>
@@ -291,6 +295,7 @@ export default async function Page({ searchParams }) {
                   <Th className="text-right">probed</Th>
                   <Th className="text-right">ok/err</Th>
                   <Th className="text-right">new</Th>
+                  <Th className="text-right">reopened</Th>
                   <Th className="text-right">closed</Th>
                   <Th className="text-right">active after</Th>
                   <Th></Th>
@@ -298,7 +303,7 @@ export default async function Page({ searchParams }) {
               </thead>
               <tbody>
                 {recentScans.length === 0 ? (
-                  <Empty cols={9}>no scans yet</Empty>
+                  <Empty cols={10}>no scans yet</Empty>
                 ) : (
                   recentScans.map((s) => (
                     <tr key={s.id} className="border-t border-zinc-800 hover:bg-zinc-900/40">
@@ -308,6 +313,9 @@ export default async function Page({ searchParams }) {
                       <Td className="text-right">{Number(s.companies_probed ?? 0).toLocaleString()}</Td>
                       <Td className="text-right">{s.companies_ok}/{s.companies_error}</Td>
                       <Td className="text-right text-emerald-400">{Number(s.new_jobs ?? 0).toLocaleString()}</Td>
+                      {/* reopened: closed→active again this cycle. Explains why active
+                          can rise when closed > new (active Δ = new + reopened − closed). */}
+                      <Td className="text-right text-amber-400">{s.reopened == null ? '—' : Number(s.reopened).toLocaleString()}</Td>
                       <Td className="text-right text-pink-400">{Number(s.closed_jobs ?? 0).toLocaleString()}</Td>
                       <Td className="text-right">{s.active_jobs_after?.toLocaleString() ?? '—'}</Td>
                       <Td><Link href={`/scans/${s.id}`} className="text-sky-300 hover:underline text-xs">detail →</Link></Td>

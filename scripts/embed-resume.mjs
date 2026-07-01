@@ -59,6 +59,13 @@ const summary = [
 const input = `${title}\n\n${signals}\n\n${summary}`;
 console.error('---- embedding input ----\n' + input + '\n-------------------------');
 
+// Persist the resume TEXT next to the vector so the second-stage reranker
+// (src/rerank.mjs, via scripts/call-match.mjs) can score candidate fit against
+// the same resume. The vector goes to stdout (redirected to _resume.vec); the
+// text is a side-file because stdout is reserved for the vector literal.
+fs.writeFileSync('scripts/_resume.txt', input);
+console.error('wrote scripts/_resume.txt (' + input.length + ' chars)');
+
 const res = await fetch('https://api.voyageai.com/v1/embeddings', {
   method: 'POST',
   headers: {

@@ -239,9 +239,14 @@ export const PROVIDERS = {
         // Compensation: prefer the first tier's first Salary-typed component
         // (Ashby tiers cover regions/levels; tier[0] is the canonical one in
         // ~all cases we've seen). Fall back to the human-readable summary.
+        // The numeric fields (minValue/maxValue/currencyCode/interval) live
+        // directly on the component — there is no `.value` wrapper — so reading
+        // salaryComp.value.* silently yielded null comp_min/max on every job
+        // even when tierSummary populated comp_text. A tier can also carry a
+        // non-salary component first (e.g. EquityPercentage with null values),
+        // which is why we filter to the Salary-typed one before reading numbers.
         const tier = j.compensation?.compensationTiers?.[0];
         const salaryComp = tier?.components?.find((c) => /salary/i.test(c?.compensationType || ''));
-        const value = salaryComp?.value || {};
         const comp_text = j.compensation?.compensationTierSummary
           || tier?.tierSummary
           || salaryComp?.summary
@@ -261,9 +266,9 @@ export const PROVIDERS = {
           description: j.descriptionPlain
             ? normaliseWhitespace(j.descriptionPlain)
             : (j.descriptionHtml ? htmlToText(j.descriptionHtml) : null),
-          comp_min: Number.isFinite(value.minValue) ? value.minValue : null,
-          comp_max: Number.isFinite(value.maxValue) ? value.maxValue : null,
-          comp_currency: value.unit || value.currencyCode || null,
+          comp_min: Number.isFinite(salaryComp?.minValue) ? salaryComp.minValue : null,
+          comp_max: Number.isFinite(salaryComp?.maxValue) ? salaryComp.maxValue : null,
+          comp_currency: salaryComp?.currencyCode || null,
           comp_interval: normaliseInterval(salaryComp?.interval),
           comp_text,
           remote: normaliseRemote({
@@ -338,12 +343,22 @@ export const PROVIDERS = {
     parse(json) {
       return (json?.content || []).map((j) => {
         const location = [j.location?.city, j.location?.country].filter(Boolean).join(', ');
+        // The listing's `ref` is the *API* URL (api.smartrecruiters.com/...),
+        // which renders as raw JSON in a browser — not something to hand a job
+        // seeker. The listing has no applyUrl/postingUrl field, so build the
+        // public posting page ourselves: jobs.smartrecruiters.com/{identifier}/
+        // {id} resolves 200 to the real posting (the careers.* host instead
+        // 302-redirects the bare id to the company landing page, losing the job).
+        const identifier = j.company?.identifier || j.companyName;
+        const url = identifier && j.id
+          ? `https://jobs.smartrecruiters.com/${identifier}/${j.id}`
+          : (identifier ? `https://careers.smartrecruiters.com/${identifier}` : '');
         return {
           ...EMPTY_OPTIONAL_FIELDS,
           external_id: String(j.id || j.uuid || ''),
           title: j.name || '',
           location,
-          url: j.ref || `https://careers.smartrecruiters.com/${j.companyName}/${j.id}`,
+          url,
           department: j.department?.label || null,
           employment_type: j.typeOfEmployment?.label || null,
           // The listing endpoint has summaries only; the description pass
@@ -357,28 +372,76 @@ export const PROVIDERS = {
             locationStr: location,
           }),
           source_published_at: toIso(j.releasedDate),
+          // SR-only structured taxonomy (f-121). Present in the listing at zero
+          // extra fetch cost; consumed by classifyJob() as a relevance prior
+          // (function), a seniority fill (experienceLevel), and metadata
+          // (industry). Other providers don't expose these — left undefined.
+          sr_function: j.function?.label || null,
+          sr_industry: j.industry?.label || null,
+          sr_experience_level: j.experienceLevel?.label || null,
         };
       });
     },
-    // Per-job fetch: hits /v1/companies/{slug}/postings/{id} and pulls the
-    // jobAd.sections.* blocks (jobDescription, qualifications, responsibilities,
-    // additionalInformation). Each section has a `text` field with HTML.
-    async fetchDescription(slug, externalId, { timeoutMs = 15_000 } = {}) {
+    // Per-job fetch: hits /v1/companies/{slug}/postings/{id}. The detail
+    // response carries far more than the listing — the jobAd.sections.* text
+    // blocks AND structured fields (compensation, location remote/hybrid flags,
+    // department, employment type) that the listing omits. fetchDetail returns
+    // both; fetchDescription is the thin description-only wrapper the scan's
+    // description pass and backfill-descriptions already use.
+    async fetchDetail(slug, externalId, { timeoutMs = 15_000 } = {}) {
       const url = `https://api.smartrecruiters.com/v1/companies/${slug}/postings/${externalId}`;
       const res = await fetchJson(url, timeoutMs);
       if (!res.ok) return res;
-      const sections = res.json?.jobAd?.sections || {};
+      const j = res.json || {};
+      const sections = j.jobAd?.sections || {};
       const parts = [];
       for (const key of ['jobDescription', 'responsibilities', 'qualifications', 'additionalInformation']) {
         const text = sections[key]?.text;
         if (text) parts.push(htmlToText(text));
       }
+      // Compensation: SR ships a flat { min, max, currency, period } object when
+      // the tenant publishes pay (≈18% do — mostly US pay-transparency roles).
+      const comp = j.compensation || {};
+      const comp_min = Number.isFinite(comp.min) ? comp.min : null;
+      const comp_max = Number.isFinite(comp.max) ? comp.max : null;
+      // Location flags are authoritative here (the listing only had a single
+      // `remote` bool); fall back to onsite when a location exists but neither
+      // flag is set, rather than leaving it null.
+      const loc = j.location || {};
+      const remote = loc.remote === true ? 'remote'
+        : loc.hybrid === true ? 'hybrid'
+        : (loc.city || loc.country || loc.fullLocation) ? 'onsite'
+        : null;
       return {
         ok: true,
         http_status: res.http_status,
         latency_ms: res.latency_ms,
         description: parts.join('\n\n') || null,
+        fields: {
+          comp_min,
+          comp_max,
+          comp_currency: comp.currency || null,
+          comp_interval: normaliseInterval(comp.period),
+          comp_text: (comp_min != null || comp_max != null)
+            ? [comp_min, comp_max].filter((v) => v != null).map((v) => v.toLocaleString()).join(' – ')
+              + (comp.currency ? ` ${comp.currency}` : '')
+            : null,
+          remote,
+          department: j.department?.label || null,
+          employment_type: j.typeOfEmployment?.label || null,
+          location: loc.fullLocation || [loc.city, loc.country].filter(Boolean).join(', ') || null,
+          source_published_at: toIso(j.releasedDate),
+          // Structured taxonomy (f-121) — also present on the detail payload.
+          sr_function: j.function?.label || null,
+          sr_industry: j.industry?.label || null,
+          sr_experience_level: j.experienceLevel?.label || null,
+        },
       };
+    },
+    async fetchDescription(slug, externalId, opts = {}) {
+      const res = await this.fetchDetail(slug, externalId, opts);
+      if (!res.ok) return res;
+      return { ok: true, http_status: res.http_status, latency_ms: res.latency_ms, description: res.description };
     },
   },
 
@@ -572,6 +635,13 @@ export function hasDescriptionFetcher(ats) {
   return typeof PROVIDERS[ats]?.fetchDescription === 'function';
 }
 
+// Whether a provider's per-job fetch also yields structured fields (comp,
+// remote, department, …) beyond the description. Today only SmartRecruiters,
+// whose listing omits them.
+export function hasDetailFetcher(ats) {
+  return typeof PROVIDERS[ats]?.fetchDetail === 'function';
+}
+
 /**
  * Fetch a single job's description, going through the rate limiter so we
  * don't blow past the per-provider budget. Returns the same shape as the
@@ -589,6 +659,34 @@ export async function fetchJobDescription(ats, slug, externalId, { timeoutMs = 1
   const release = limiter ? await limiter.acquire(ats) : () => {};
   try {
     const res = await provider.fetchDescription(slug, externalId, { timeoutMs });
+    if (res.http_status === 429 && res.retry_after_s) {
+      const ms = Math.min(res.retry_after_s * 1000, 30_000);
+      await new Promise((r) => setTimeout(r, ms));
+    }
+    release(classify(res.http_status, res.error));
+    return res;
+  } catch (e) {
+    release('error');
+    throw e;
+  }
+}
+
+/**
+ * Fetch a single job's full detail (description + structured `fields`), through
+ * the rate limiter. Same contract as fetchJobDescription but the resolved value
+ * also carries a `fields` object (comp_*, remote, department, employment_type,
+ * location, source_published_at) on success. Used by the enrichment backfill
+ * and the scan's per-job pass to populate columns the listing can't supply.
+ */
+export async function fetchJobPosting(ats, slug, externalId, { timeoutMs = 15_000, limiter = null } = {}) {
+  const provider = PROVIDERS[ats];
+  if (!provider) throw new Error(`Unknown ATS: ${ats}`);
+  if (!provider.fetchDetail) {
+    return { ok: false, error: 'no_detail_fetcher', http_status: null, latency_ms: 0 };
+  }
+  const release = limiter ? await limiter.acquire(ats) : () => {};
+  try {
+    const res = await provider.fetchDetail(slug, externalId, { timeoutMs });
     if (res.http_status === 429 && res.retry_after_s) {
       const ms = Math.min(res.retry_after_s * 1000, 30_000);
       await new Promise((r) => setTimeout(r, ms));
@@ -643,7 +741,10 @@ async function doFetch(url, timeoutMs, provider) {
     } catch {
       return { ok: false, http_status: res.status, latency_ms, error: 'invalid_json', url };
     }
-    return { ok: true, http_status: res.status, latency_ms, json, url };
+    // raw_text is the exact response body (pre-parse). The scanner archives it
+    // to R2 (src/r2.mjs) for replay/audit; kept separate from `json` so we
+    // store the provider's original bytes, not a re-serialized copy.
+    return { ok: true, http_status: res.status, latency_ms, json, raw_text: text, url };
   } catch (e) {
     return {
       ok: false,

@@ -1,14 +1,17 @@
 {
   "$comment": "Machine-readable work tracker for fyj_scanner. Migrated from TODO.md. The agent updates `status` and `evidence` as work lands; humans skim `priority` + `phase` to plan. See docs/evaluator-rubric.md for what 'shipped' means.",
   "schema_version": 1,
-  "updated_at": "2026-05-23",
+  "updated_at": "2026-06-17",
   "phases": {
     "phase-1": "Shared scan layer (cron, scanner, rate limiter, dedup, lifecycle, basic enrichment) — SHIPPED",
     "phase-2": "Auth + onboarding + aha moment (Clerk, CV upload, targets, live SQL filter)",
     "phase-3": "Per-user matching pipeline + inbox + daily digest",
     "phase-4": "On-demand Sonnet A–G deep eval + multi-agent CV-tailor + tracker",
     "phase-5": "Billing + feedback loop + polish",
-    "phase-6": "Growth instrumentation"
+    "phase-6": "Growth instrumentation",
+    "product-a": "AI-first staffing firm — tech/IT lens (is_target=true) over the shared index. Near-term revenue.",
+    "product-b": "Natural-language jobs search for AI agents & people via MCP/API — full-index lens. Platform play. See HOSTED_PLATFORM_PLAN.md 'Product Strategy — one DB, two lenses'.",
+    "ops-console": "Multi-tenant user-facing dashboard (Product A as a SaaS): org -> operator -> client -> profile -> 1:1 campaign, continuous matching, read-only client transparency portal with per-application feedback. SEPARATE REPO on Cloudflare (Workers + Pages + R2 + Queues), own DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs), Better Auth. Reads the fyj job index read-only via search_jobs/get_job over HTTPS. See docs/ops-console-plan.md."
   },
   "statuses": {
     "shipped": "Code merged + verified-deployed; evidence present.",
@@ -24,7 +27,11 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": ["src/rate-limiter.mjs", "src/scan.mjs", "scans.notes snapshot persists per scan"],
+      "evidence": [
+        "src/rate-limiter.mjs",
+        "src/scan.mjs",
+        "scans.notes snapshot persists per scan"
+      ],
       "verify": "select notes from public.scans order by started_at desc limit 1;",
       "notes": "GH 10·0ms · Ashby 3·200ms · Lever 5·100ms · SR 3·100ms. Halves conc on >5% rolling block-rate."
     },
@@ -34,7 +41,11 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": ["v_source_health_24h", "f_source_health(interval)", "supabase/dashboard-queries.sql query 0a"]
+      "evidence": [
+        "v_source_health_24h",
+        "f_source_health(interval)",
+        "supabase/dashboard-queries.sql query 0a"
+      ]
     },
     {
       "id": "f-003",
@@ -42,7 +53,11 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": ["src/fingerprint.mjs", "v_unique_active_jobs", "94.3% dedup ratio as of 2026-05-23"]
+      "evidence": [
+        "src/fingerprint.mjs",
+        "v_unique_active_jobs",
+        "94.3% dedup ratio as of 2026-05-23"
+      ]
     },
     {
       "id": "f-004",
@@ -50,7 +65,10 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": ["src/scan.mjs close-sweep", "jobs.closed_at column"]
+      "evidence": [
+        "src/scan.mjs close-sweep",
+        "jobs.closed_at column"
+      ]
     },
     {
       "id": "f-005",
@@ -58,7 +76,10 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": [".github/workflows/scan.yml", "38 scans in last 7 days"]
+      "evidence": [
+        ".github/workflows/scan.yml",
+        "38 scans in last 7 days"
+      ]
     },
     {
       "id": "f-006",
@@ -66,7 +87,10 @@
       "phase": "phase-1",
       "priority": "P0",
       "status": "shipped",
-      "evidence": ["src/providers.mjs fetchDescription", "59,872 / 70,518 active jobs have descriptions"]
+      "evidence": [
+        "src/providers.mjs fetchDescription",
+        "59,872 / 70,518 active jobs have descriptions"
+      ]
     },
     {
       "id": "f-007",
@@ -74,7 +98,10 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "evidence": ["src/summarize.mjs", "10,582 / 70,518 active jobs summarised (15.0%)"],
+      "evidence": [
+        "src/summarize.mjs",
+        "10,582 / 70,518 active jobs summarised (15.0%)"
+      ],
       "next": "Drain backlog via `npm run backfill-summaries` (~$14, 25 min). Cron has SKIP_LLM_PASSES=1.",
       "verify": "select count(*) filter (where description_summary is not null) from jobs where closed_at is null;"
     },
@@ -84,7 +111,11 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "evidence": ["src/embeddings.mjs", "jobs.embedding column", "11,197 / 70,518 active jobs embedded (15.9%)"],
+      "evidence": [
+        "src/embeddings.mjs",
+        "jobs.embedding column",
+        "11,197 / 70,518 active jobs embedded (15.9%)"
+      ],
       "verify": "select count(*) filter (where embedding is not null) from jobs where closed_at is null;"
     },
     {
@@ -93,7 +124,11 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "shipped",
-      "evidence": ["scripts/embed-resume.mjs", "scripts/call-match.mjs", "public.match_resume(vector,int) RPC"],
+      "evidence": [
+        "scripts/embed-resume.mjs",
+        "scripts/call-match.mjs",
+        "public.match_resume(vector,int) RPC"
+      ],
       "notes": "Symmetric to the JD embedding path. Pulled 30 matches in the 0.74–0.80 cosine band on first run."
     },
     {
@@ -102,7 +137,13 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "shipped",
-      "evidence": ["status-page/app/page.jsx", "status-page/app/scans/", "status-page/app/jobs/", "status-page/app/companies/", "status-page/app/charts/"]
+      "evidence": [
+        "status-page/app/page.jsx",
+        "status-page/app/scans/",
+        "status-page/app/jobs/",
+        "status-page/app/companies/",
+        "status-page/app/charts/"
+      ]
     },
     {
       "id": "f-011",
@@ -110,7 +151,9 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "shipped",
-      "evidence": ["docs/architecture.excalidraw — sections A through G"]
+      "evidence": [
+        "docs/architecture.excalidraw — sections A through G"
+      ]
     },
     {
       "id": "f-012",
@@ -118,18 +161,35 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "shipped",
-      "evidence": ["CLAUDE.md", "init.sh (9/9 pass)", "claude-progress.md", "feature_list.json (this file)", "docs/session-handoff.md", "docs/clean-state-checklist.md", "docs/evaluator-rubric.md", "docs/quality-document.md"]
+      "evidence": [
+        "CLAUDE.md",
+        "init.sh (9/9 pass)",
+        "claude-progress.md",
+        "feature_list.json (this file)",
+        "docs/session-handoff.md",
+        "docs/clean-state-checklist.md",
+        "docs/evaluator-rubric.md",
+        "docs/quality-document.md"
+      ]
     },
-
     {
       "id": "f-101",
-      "title": "Greenhouse 404 recovery (slug-drift heuristic)",
+      "title": "Greenhouse 404 recovery (cross-ATS + slug-drift)",
       "phase": "phase-1",
       "priority": "P1",
-      "status": "planned",
-      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run because the slug drifted (e.g. `notion` → `notion-labs`).",
-      "scope": "Try 2–3 slug variants, rewrite companies row if a variant succeeds.",
-      "touches": ["src/recover-greenhouse-slugs.mjs (new)"]
+      "status": "shipped",
+      "trigger": "132 of 254 Greenhouse seeds 404'd in the viability run; 518 Greenhouse companies sat disabled with a 404 last_error.",
+      "scope": "src/recover-greenhouse-slugs.mjs: re-verify base slug, probe Ashby/Lever/SR with the same slug (ATS migration), then 2–3 same-ATS slug variants; rewrite the companies row on the first live non-empty board. Never overwrites an (ats,slug) another row owns; writes data/recover-greenhouse-report.json.",
+      "touches": [
+        "src/recover-greenhouse-slugs.mjs (new)",
+        "package.json (recover-greenhouse script)",
+        ".gitignore"
+      ],
+      "finding": "Suffix slug-drift (notion→notion-labs) recovered 0/518 — notion-labs 404s too. Cross-ATS migration (same slug, mostly Greenhouse→Ashby) is the real pattern: 65/518 (12.5%) reclaimed, ~807 jobs. Remaining 453 are mostly dead/acquired companies, left disabled.",
+      "evidence": [
+        "Live run 2026-06-04: 65 companies re-enabled (58 ashby · 4 lever · 3 SR), 807 jobs. gh disabled-404 518→453. Collision guard left greenhouse/notion disabled (ashby/notion already covered)."
+      ],
+      "verify": "select count(*) from public.companies where ats='greenhouse' and enabled=false and last_error ilike '%404%';"
     },
     {
       "id": "f-102",
@@ -137,9 +197,22 @@
       "phase": "phase-1",
       "priority": "P1",
       "status": "in_progress",
-      "current": "2,465 slugs (Greenhouse 883 · Lever 1217 · Ashby 350 · SR 15) + YC workatastartup added.",
-      "next": "GitHub raw README search; curated SmartRecruiters bootstrap list.",
-      "touches": ["seed/scrape-github.mjs (new)", "data/slugs-*.json"]
+      "current": "Slug files: GH 1,652 · Lever 1,179 · Ashby 799 · SR 1,450 = 5,080 total. DB companies 5,165 → 7,783 (+2,618), loaded 2026-06-15. Index 106k → 169k active jobs on first post-expansion scan (scan 1fd89ee0, write_failed=0, 0% block-rate all sources).",
+      "finding": "Two-pass discovery this session: (1) scrape-github with GITHUB_TOKEN (code-search + curated-raw) harvested GH/Lever/Ashby/SR slugs — GitHub-sourced GH/Lever ~50% stale (old config repos) but the live ones are large boards (98–117 avg jobs). (2) scrape-smartrecruiters deep (SR_MAX_PAGES=30, ~150 keywords) discovered 1,182 unique SR slugs, 85% live, 0% 404 — self-verifying since it reads SR's own live index. SR is the highest-quality source. recover-greenhouse swept 457 disabled-404 rows, recovered 2 (diminishing returns post-06-04 harvest).",
+      "next": "Gap to 10k: ~2,200 companies. Current sources near-exhausted at current depth. Options: (a) workatastartup/Workable adapter (1,370 companies already tracked but not discoverable via scrapers), (b) additional curated GitHub config-repo lists, (c) re-run scrape-github after next rate-limit reset for more Lever/Ashby slugs.",
+      "evidence": [
+        "2026-06-15: companies 5,165→7,783; scan 1fd89ee0: new=64,299, active=169,375, write_failed=0, block_rate=0%, duration=36.4min unsharded"
+      ],
+      "touches": [
+        "seed/lib.mjs",
+        "seed/scrape-smartrecruiters.mjs",
+        "seed/scrape-github.mjs",
+        "data/slugs-greenhouse.json",
+        "data/slugs-lever.json",
+        "data/slugs-ashby.json",
+        "data/slugs-smartrecruiters.json",
+        "data/seeds.json"
+      ]
     },
     {
       "id": "f-103",
@@ -148,7 +221,10 @@
       "priority": "P1",
       "status": "planned",
       "scope": "Add scans.source_metrics jsonb, parse limiter output from notes once stable, graph block-rate over time.",
-      "touches": ["supabase/schema.sql", "src/scan.mjs"]
+      "touches": [
+        "supabase/schema.sql",
+        "src/scan.mjs"
+      ]
     },
     {
       "id": "f-104",
@@ -157,7 +233,10 @@
       "priority": "P1",
       "status": "planned",
       "scope": "Biggest unsupported ATS by enterprise share. JSON API at /wday/cxs/{tenant}/{site}/jobs but URL pattern isn't uniform — needs per-tenant config.",
-      "touches": ["src/providers.mjs", "new slug source"]
+      "touches": [
+        "src/providers.mjs",
+        "new slug source"
+      ]
     },
     {
       "id": "f-105",
@@ -166,16 +245,286 @@
       "priority": "P1",
       "status": "planned",
       "rationale": "Store everything; filter in SQL views so different users can apply different filters without re-scanning.",
-      "touches": ["supabase/schema.sql", "supabase/dashboard-queries.sql"]
+      "touches": [
+        "supabase/schema.sql",
+        "supabase/dashboard-queries.sql"
+      ]
     },
-
+    {
+      "id": "f-112",
+      "title": "Fix PGRST102 heterogeneous-keys upsert (frozen large companies)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Live audit 2026-06-05: 1,139 companies (incl. SpaceX, OpenAI, Databricks, Carvana, DoorDash) failed their ENTIRE per-company jobs upsert every scan with `db_write: 400 PGRST102 \"All object keys must match\"`. 62,182 active jobs (59% of the index) were frozen — last_seen_at never refreshed, no new postings added — since 2026-05-17.",
+      "root_cause": "PostgREST requires every object in a bulk insert/upsert array to carry an identical key set. The description hash-skip optimisation (landed 2026-05-17) attaches description/description_hash/description_fetched_at only to rows whose text changed, so any company with a MIX of changed + unchanged postings in one batch sent heterogeneous keys → 400 → whole-company write failed. Big boards (always ≥1 changed posting) failed every scan; the existing code fails safe by early-returning before the close-sweep, so jobs froze rather than being closed.",
+      "scope": "src/scan.mjs probeOne(): bucket jobRows by their sorted key signature and upsert each homogeneous group separately. Any group failure still early-returns before the close-sweep (no close on partial write). Self-healing: the next successful scan re-stamps these companies and closes whatever the providers no longer list.",
+      "touches": [
+        "src/scan.mjs"
+      ],
+      "evidence": [
+        "Proven on live prod mwcpoaefmggapztkxakp: 1,139 companies failing, 62,182 stale-open jobs, first_seen 2026-05-17 22:31. node --check passes.",
+        "VERIFIED LIVE 2026-06-05: ran the fixed scanner (scan f1a2b319) against prod — PGRST102 db_write failures 1,314 -> 0; 19-day freeze thawed (new=40,684 closed=10,214, stale-open 64,698 -> 10,024 with 0 stale among the 3,511 successful-write companies)."
+      ],
+      "verify": "select count(*) from public.probe_results pr join (select id from public.scans where status='ok' order by started_at desc limit 1) s on s.id=pr.scan_id where pr.error like 'db_write:%PGRST102%';  -- 0 on the fixed-code scan",
+      "next": "MERGE PR #33 — the deployed cron still runs the old code, so the next scheduled scan re-freezes the mixed-description boards until merge (no data harm, just re-stales)."
+    },
+    {
+      "id": "f-108",
+      "title": "Server-side close-sweep (last_seen_at watermark RPC)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "1M-scale architecture review (claude-progress.md 2026-06-05): the close-sweep diffed a global in-Node snapshot of every active job and PATCHed a per-company external_id IN-list — O(total jobs) memory and a write wall at 10x, and the reason scans can't be sharded (double-close).",
+      "scope": "Add public.close_unseen_jobs(company_id, scan_start) RPC: UPDATE jobs SET closed_at=now() WHERE company_id=$1 AND closed_at IS NULL AND last_seen_at < $scan_start. src/scan.mjs captures SCAN_START_ISO before any upsert and calls the RPC per successfully-probed company instead of the client-side diff. Idempotent, per-company → shard-safe (prerequisite for f-109 matrix sharding).",
+      "touches": [
+        "supabase/schema.sql",
+        "src/scan.mjs",
+        "migration add_close_unseen_jobs_rpc (applied to prod)"
+      ],
+      "evidence": [
+        "Migration applied to prod 2026-06-05; close_unseen_jobs('<fake-uuid>', now()) returns 0 (runs, non-destructive). Equivalence proven: across all 2,524 companies whose write succeeded last scan, 0 open jobs predate scan_start, so the watermark sweep closes exactly what the old diff did. node --check passes.",
+        "VERIFIED LIVE 2026-06-05 (scan f1a2b319): the RPC closed 10,214 jobs across companies with 0 over-closing — every one of the 3,511 successful-write companies ended with 0 stale-open jobs."
+      ],
+      "note": "The in-Node snapshot is still read — it now serves only the description hash-skip and new-job counting, not closing. Dropping it entirely is coupled to the COPY/bulk-write work (f-110).",
+      "verify": "select count(*) from pg_proc where proname='close_unseen_jobs';",
+      "next": "Verify closed_jobs/new_jobs behave sanely on the first post-deploy scan; then build on it for f-109 matrix sharding."
+    },
+    {
+      "id": "f-109",
+      "title": "Matrix-shard the scan (parallel jobs by company-hash)",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "The single ~30-min Actions job won't survive 10x company growth toward 1M jobs. Unblocked by f-108 (per-company server-side close-sweep), so parallel shards over disjoint companies never double-close.",
+      "scope": "Stored companies.shard bucket [0,60) (generated, indexed). Shard i of N owns range [floor(i*60/N), floor((i+1)*60/N)) — tiles [0,60) exactly for any N<=60 (disjoint+complete). scan.mjs reads SHARD_INDEX/SHARD_COUNT and scopes the company load, the active-job snapshot (jobs!inner companies.shard), and the description pass to its slice; writes scans.shard_index/shard_count. Workflow uses a matrix; SHARD_COUNT derives from strategy.job-total so only the matrix list changes. Per-provider rate-limit concurrency is NOT divided by N (providers throttle per-IP; each shard runs on its own runner IP → ~N× aggregate throughput; adaptive limiter backs off if globally limited). f_new_jobs_by_scan_source windows on shard_index=0 so a sharded cycle isn't mis-bucketed.",
+      "touches": [
+        "supabase/schema.sql (companies.shard, scans.shard_*, f_new_jobs_by_scan_source)",
+        "src/scan.mjs",
+        ".github/workflows/scan.yml",
+        "migrations add_company_shard_and_scan_shard_columns + f_new_jobs_by_scan_source_shard_aware (applied to prod)"
+      ],
+      "evidence": [
+        "Partition validated live (read-only): N=4 shards companies 898+921+887+957=3,663 (0 dupes) and jobs 25,860+25,107+25,138+29,634=105,739 (0 dupes) — disjoint AND complete. node --check passes. PostgREST and()/embedded companies.and() filter syntax verified against prod.",
+        "VERIFIED LIVE END-TO-END at N=2 (scans 5ffb7ec1 + 2fa87d8a): ran in parallel, 0 out-of-range probes either shard, union probed=3,663=total enabled, stale_among_healthy=0, active stable 105,737, new_jobs accurate (300), write_failed=0. Matrix reverted to default [0].",
+        "SCALED TO N=4 + VERIFIED LIVE (branch claude/f109-scale-shards-n4, dispatch 2026-06-11 23:19Z): matrix flipped [0]->[0,1,2,3], SHARD_COUNT=4 derived from strategy.job-total. All 4 shards status=ok; probed 895+918+885+954=3,652 = enabled set at scan-start; companies_write_failed=0 all shards. Partition disjoint+complete: owned-enabled per slice [0,15)/[15,30)/[30,45)/[45,60) = 895/918/884/954 = 3,651 total enabled, shard hashes span 0..59. Block-rate 0 (no 403/429/rate errors across 4x parallel runner IPs); only error all cycle = 1 HTTP 404 (slug drift, auto-disabled — unrelated to sharding). Active jobs 106,264 (no drop). Wall-clock ~3.5min (slowest shard 214s) vs ~6.5min unsharded."
+      ],
+      "status_note": "Matrix now N=4 ([0,1,2,3]) on branch claude/f109-scale-shards-n4; validated live (4 shards green, 0 block-rate, partition disjoint+complete). Flips to 'shipped' on PR merge to main.",
+      "verify": "select shard_count, count(*) from public.scans where started_at > now() - interval '1 day' group by 1;",
+      "next": "Merge the N=4 PR so the scheduled cron runs sharded. Then the discovery push (deepen SR, Workable, Workday) can land volume; bump matrix further (N<=60) if wall-clock creeps back up."
+    },
+    {
+      "id": "f-113",
+      "title": "Job relevance layer (target-role classification + filtering)",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "Product is an AI-first staffing agency for tech/IT professionals, knowledge-workers, senior/exec leaders and students in those fields. The index was full of service/manual/retail/clinical noise (waiter, dishwasher, care assistant, automotive technician), mostly from SmartRecruiters' generic keyword seeding — roles our customers would never pay to be matched to.",
+      "scope": "Classify every job by ROLE (not employer industry) into a family + is_target + seniority. Hybrid: src/classify.mjs high-precision rules (free, ~45% coverage) + gpt-4o-mini for the ambiguous middle (scripts/backfill-classification.mjs --llm). is_target NULL stays surfaced (only known-false hidden) so an unclassified backlog never hides good jobs. scan.mjs classifies new jobs at ingest and gates description/embedding spend to is_target is not false. match_resume(_candidates) filter is_target is not false.",
+      "touches": [
+        "src/classify.mjs (new)",
+        "scripts/backfill-classification.mjs (new)",
+        "src/scan.mjs",
+        "supabase/schema.sql (jobs.job_family/is_target/seniority/classified_*; match RPCs)",
+        "migrations add_job_classification_columns + match_rpcs_filter_target_roles (applied to prod)"
+      ],
+      "evidence": [
+        "Rules validated on 105k live titles: 45.5% high-precision (33.9% target, 11.6% non-target). Ran rules backfill: 48,162 tagged. 12,259 known-noise jobs now hidden from matching (not.is.false=93,603 surfaced). node --check passes; not.is.false filter verified live."
+      ],
+      "verify": "select count(*) filter (where is_target is false) as hidden, count(*) filter (where is_target is not false) as surfaced from public.jobs where closed_at is null;",
+      "coverage_2026_06_12": "Live: of 106,264 active jobs — 35,937 target (34%), 12,063 non-target/blue-collar already filtered (11%), 58,264 unclassified (55%). The 55% null bucket is where blue-collar still leaks (sampled misses: 'Food and Beverage Attendant', 'Auto Body Repair Technician', 'Licensed Practical Nurse', 'Mental Health Therapist', 'Distribution Technician'). Blue-collar caught by family: clinical 5,170 / trades 1,753 / manual 1,750 / service 1,629 / retail 1,558. See docs/blue-collar-filtering.md.",
+      "rule_gaps_found": "classify.mjs regex misses to add (free recall win): 'Food and Beverage' (only 'food & beverage' w/ ampersand matches), 'mental health therapist'/'spa therapist'/'diversional therapist', spelled-out 'licensed practical nurse'/'practical nurse' (\\blpn\\b doesn't match), 'distribution technician', 'auto body', 'reconditioning', 'maintenance technician'.",
+      "next": "1) Harden classify.mjs rules (rule_gaps_found, free). 2) Capture SmartRecruiters function/industry as a blue-collar prior (f-121). 3) Run backfill-classification.mjs --llm with OPENAI_API_KEY (~$6-12) to resolve the 58k unclassified. STRATEGY (2026-06-05): do NOT prune blue-collar tenants — Product B wants them; relevance is a parameterized lens (f-114), not a hardcoded filter."
+    },
+    {
+      "id": "f-114",
+      "title": "Parameterize relevance in search (target_only/family filters) — two-product backbone",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "Two products share one DB + one search engine (HOSTED_PLATFORM_PLAN.md 'one DB, two lenses'). Staffing wants tech-only; the agent/NL MCP wants the whole index. Relevance must be a query parameter, not baked in.",
+      "scope": "Replace the hardcoded `is_target is not false` in match_resume/match_resume_candidates with parameters (target_only boolean default true, optional family/seniority/location/remote/comp filters). Add a generalised search_jobs(query_vec, filters) RPC both products call. Staffing passes target_only=true (default, so today's path is unchanged); Product B passes target_only=false + any filters.",
+      "hard_filter_note": "These hard constraints (seniority band, comp floor, location, work-auth) must be SQL predicates, NOT embedded text — today they're embedded in buildJobText so seniority/comp get soft-matched (the 'senior roles to a new grad' risk). With tight filters on the 1M HNSW, use pgvector 0.8 iterative index scan or partial indexes to avoid the pre/post-filter recall cliff (we already lift hnsw.ef_search). See docs/matching-embedding-assessment.md.",
+      "touches": [
+        "supabase/schema.sql (match_resume*, new search_jobs RPC)",
+        "status-page/lib/match.js",
+        "status-page/app/api/match"
+      ],
+      "next": "Land alongside the launch so staffing keeps target_only=true while the engine is ready for Product B."
+    },
+    {
+      "id": "f-115",
+      "title": "Embeddings across the index (matchability)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "in_progress",
+      "trigger": "The matcher only sees embedded jobs. Live check 2026-06-05: of 93,847 surfaced target jobs only 7,249 (7.7%) are embedded — clients are matched against 8% of the index. Biggest single lever on product quality and the #1 launch blocker.",
+      "scope": "Run summary + embedding backfill. LAUNCH ORDER: classify (LLM) -> embed the tech/target slice first (~36k, cheap) to launch staffing (Product A); then embed the full index for Product B's NL search. Also decide ongoing freshness: enable LLM passes in cron OR a daily classify->summarize->embed backfill, else new jobs are unmatchable within days.",
+      "note_2026_06_12": "Embedding coverage alone is necessary but NOT the biggest accuracy lever — the bake-off shows the two-stage reranker (f-122) is +10.9 meanFit / +30 recall over dense cosine, which is dead-last of 10 methods. Embed the TARGET slice first (don't embed blue-collar that's filtered out) then ship f-122. See docs/matching-embedding-assessment.md.",
+      "touches": [
+        "scripts/backfill-summaries.mjs",
+        "scripts/backfill-embeddings.mjs",
+        ".github/workflows (a daily enrichment workflow)"
+      ],
+      "blocked_on": [
+        "OPENAI_API_KEY available to the backfill/CI"
+      ],
+      "verify": "select round(100.0*count(*) filter (where embedding is not null)/count(*),1) as pct_matchable from public.jobs where closed_at is null and is_target is not false;"
+    },
+    {
+      "id": "f-116",
+      "title": "Jobs MCP server + REST API (Product B)",
+      "phase": "product-b",
+      "priority": "P1",
+      "status": "planned",
+      "scope": "Curated MCP server (+ thin REST) exposing search_jobs(query, filters)/get_job(id)/list_families backed by the f-114 search_jobs RPC. NL query -> LLM extracts structured filters + semantic vector -> hybrid retrieve over the full index. Never raw DB access; rate-limited + per-key for usage-based monetization. Agents become a demand + distribution channel feeding Product A.",
+      "depends_on": [
+        "f-114 (parameterized search)",
+        "f-115 (full-index embeddings)"
+      ],
+      "touches": [
+        "new mcp-server/ (or edge function)",
+        "supabase search_jobs RPC"
+      ]
+    },
+    {
+      "id": "f-117",
+      "title": "Operator access control on /matches (lock down before client data)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "The /matches résumé-matcher is a PUBLIC Vercel URL (fyj-scanner.vercel.app). Before operators run real client résumés through it for the staffing launch, it must be access-controlled.",
+      "scope": "Add basic protection: Vercel password protection OR middleware basic-auth / a shared-secret header on /matches and /api/match. Cheapest path to a private operator console for day one; proper per-user auth (Clerk, f-201) comes later.",
+      "touches": [
+        "status-page/middleware.js (new) or Vercel project setting",
+        "status-page/app/api/match/route.js"
+      ]
+    },
+    {
+      "id": "f-118",
+      "title": "Daily enrichment freshness (classify -> summarize -> embed) so new jobs are matchable",
+      "phase": "product-a",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "Cron runs SKIP_LLM_PASSES=1, so new jobs get rules-classified at ingest but never summarized/embedded — they'd be unmatchable within days of launch even after the one-time backfill (f-115).",
+      "scope": "A scheduled workflow (or re-enable the scan's LLM passes) that runs backfill-classification --llm + backfill-summaries + embed-backfill daily over is_target-not-false rows lacking enrichment. Bounds cost (only target rows, only the day's new backlog).",
+      "depends_on": [
+        "f-115 (initial backfill)",
+        "OPENAI_API_KEY in CI"
+      ],
+      "touches": [
+        ".github/workflows (new enrichment workflow)",
+        "scripts/backfill-*"
+      ]
+    },
+    {
+      "id": "f-119",
+      "title": "Split storage by access pattern: job_descriptions table + jobs hash-partitioned by company_id",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "shipped",
+      "trigger": "Adding scan coverage will grow the index toward millions of jobs. The multi-KB description is the TOAST-heavy part of a jobs row (jobs total ~891MB: 112MB heap + 179MB index + ~600MB TOAST), driving update-amplification and the backup/PITR bill (docs/scaling-architecture.md). Do the structural moves while the table is still small (157k rows) and cheap to rewrite.",
+      "scope": "Step 1 (DONE): mirror jobs.description into a narrow public.job_descriptions(job_id pk, company_id, description, updated_at), kept in lockstep by an AFTER INSERT OR UPDATE OF description trigger (sync_job_description). 148,417 rows backfilled (every job with a non-empty description; still_missing=0). Step 2 (DONE): convert public.jobs to 16-way HASH partitioning on company_id — the only key compatible with the scanner's ON CONFLICT (company_id, external_id) upsert, keeps dedup exact and never moves a row between partitions. One-time atomic migration (supabase/migrations/0001_partition_jobs_by_company.sql): build partitioned table, copy under ACCESS EXCLUSIVE lock, swap, recreate every dependent index/trigger/view/MV/grant from the LIVE definitions (prod had drifted: jobs_sync_description, v_scans, jobs-aware v_recent_scans). schema.sql updated so fresh installs reproduce it.",
+      "evidence": [
+        "jobs: partstrat=HASH, 16 partitions, 157,508 rows preserved, PK (id,company_id), UNIQUE (company_id,external_id) intact, 9,114 embeddings preserved.",
+        "Verified live post-swap: scanner ON CONFLICT (company_id,external_id) resolves; HNSW vector search returns across partitions; match_resume_candidates RPC returns 10; v_active_jobs=106,299; f_refresh_totals_by_source() concurrent-refresh OK, mv total=157,508; both triggers re-attached.",
+        "Security advisor: no new regressions — findings (security-definer views, RLS-disabled public tables, mutable search_path) are pre-existing project-wide postures now enumerated per partition child."
+      ],
+      "step3": "DONE (PR #45). Readers (scan summary+embedding passes, backfill-summaries, backfill-embeddings) read from new v_jobs_enriched view (description sourced from job_descriptions). Description sync flipped AFTER-copy -> BEFORE-divert: jobs.description writes are routed into job_descriptions and the heap copy nulled, so the text never bloats jobs (scanner upsert UNCHANGED — avoids editing the PGRST102-sensitive path). invalidate_embedding trigger rekeyed off description_hash. Migrations 0002 (view) + 0003 (trigger swap + null-out 149,007 rows) applied; VACUUM FULL reclaimed the heap.",
+      "evidence_step3": [
+        "jobs.description heap_remaining=0; job_descriptions=149,007; view resolves all 149,007 descriptions; embeddings preserved (9,109).",
+        "Storage: jobs 883MB -> 259MB (-624MB / -71%); description text (484MB) isolated in job_descriptions.",
+        "Divert verified end-to-end (rolled-back txn): UPDATE jobs.description -> heap=NULL, job_descriptions=payload. Both triggers BEFORE; invalidate keys off description_hash."
+      ],
+      "cleanup": "DONE + APPLIED. Scanner writes job_descriptions DIRECTLY (main upsert returns ids for the changed-description group; per-job fetch pass upserts by id) — jobs.description has no writer left. All readers/writers repointed: src/scan.mjs, backfill-descriptions, backfill-summaries, backfill-embeddings, tailor-resume, and the voyage/matching/abembedding/embedding-experiments/reranker eval scripts. migration 0004 (applied to prod) dropped the divert trigger + sync_job_description fn + the description-referencing partial indexes (recreated without the ref) + the jobs.description COLUMN. schema.sql is the no-description-column steady state. View drift (v_scans/v_recent_scans) was already reconciled by PR #43.",
+      "evidence_cleanup": [
+        "PR #46 merged (code). Triggered a scan on the new code: status=ok, 3653 probed, companies_write_failed=0 (new main-upsert job_descriptions write path clean), jd grew +161 during the scan. THEN applied migration 0004.",
+        "Post-drop verified: jobs has NO description column; only the invalidate trigger remains; sync_job_description fn gone; both pending indexes recreated; v_jobs_enriched still resolves 152,805 descriptions from job_descriptions (153,480 rows)."
+      ],
+      "next": "f-119 COMPLETE. (Separate ideas: cold-archival of closed jobs — drop-by-month — is NOT delivered by hash partitioning, revisit a closed-jobs archive if/when needed; ~675 orphan job_descriptions rows with no matching job could be GC'd.)",
+      "touches": [
+        "supabase/migrations/0001_partition_jobs_by_company.sql",
+        "supabase/migrations/0002_jobs_enriched_view.sql",
+        "supabase/migrations/0003_descriptions_out_of_jobs_heap.sql",
+        "supabase/schema.sql",
+        "src/scan.mjs",
+        "scripts/backfill-summaries.mjs",
+        "scripts/backfill-embeddings.mjs"
+      ]
+    },
+    {
+      "id": "f-120",
+      "title": "Scale Supabase compute for 50k-company onboarding",
+      "phase": "phase-1",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "A ~50k active-company list (~13.7x today) is queued. Live audit 2026-06-12: DB is on the entry Micro instance (~1 GB RAM, ~2 shared vCPU, 60 conns, shared_buffers 256 MB). DB already 987 MB > effective_cache_size 768 MB, so cold queries don't fit cache (the reason the dashboard needed an MV to dodge the 8 s authenticator timeout). 14x data on Micro will not hold.",
+      "scope": "Move compute to ~Large-XL (8-16 GB RAM, dedicated vCPU) so the working set + HNSW index stay resident; max_connections scales 60 -> 200+ for sharded writers. Re-baseline dashboard + match latency after the bump. ~$110-210/mo compute. See docs/scale-50k-assessment.md.",
+      "touches": [
+        "Supabase compute add-on (infra, not code)"
+      ],
+      "verify": "select setting from pg_settings where name='shared_buffers';  -- 32768 (256MB) on Micro today"
+    },
+    {
+      "id": "f-121",
+      "title": "Capture SmartRecruiters function/industry/experienceLevel structured fields",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "in_progress",
+      "trigger": "The SR postings blob carries standardized enums (function, industry, experienceLevel) that the parser drops today (verified live 2026-06-12). function is a fixed taxonomy incl. Warehouse / Skilled Labor & Trades / Restaurant-Food Service / Retail / Transportation / Production / Health Care Provider — a clean blue-collar signal on the most blue-collar-heavy source. Helps relevance (f-113) and matching seniority (experienceLevel).",
+      "scope": "Extend SR parse()/fetchDetail() in src/providers.mjs to emit function/industry/experience_level; add nullable columns on jobs; use function as a positive blue-collar prior in classify (caveat: SR often sets function='Other', so a prior, not a gate). See docs/blue-collar-filtering.md.",
+      "status_note": "DONE (parser + classifier + ingest + columns + backfill script, branch claude/lucid-allen-139j1g). SR parse()/fetchDetail() emit sr_function/sr_industry/sr_experience_level. classifyJob() resolves with title-precedence + a guarded blue-collar-function prior — CRITICAL finding (user, live-verified): SR `function` is the ORG BUCKET not the role (Production hires PMs/BI Analysts/PCB Engineers), so a naive function→is_target=false gate mislabels ~7.4% of blue-function postings. Guard: function only flips title-NULL rows, and only when the title has NO knowledge-worker token; else left for the LLM. experienceLevel→seniority fill. scan.mjs ingest wired. COLUMNS sr_function/sr_industry/sr_experience_level added to jobs (schema.sql + applied migration add_smartrecruiters_structured_fields). BACKFILL scripts/backfill-sr-signals.mjs (npm run backfill-sr-signals): re-fetches SR listings, writes sr_* unconditionally, re-classifies only unclassified high-conf rows (no clobber). Bug caught+fixed: classifyJob returns `family` not `job_family` (first draft no-op'd). 16 unit tests green; verified on 300 live jobs (89 guard-flips/133 rules/78 null) + applied a real prod slice (TheTileShop1) confirming title-precedence live (VP under function=Manufacturing stays target). REMAINING: full backfill of 23,722 unclassified active SR rows needs SUPABASE_SERVICE_ROLE_KEY (absent in container); then the --llm pass for the protected/ambiguous residual (f-115/f-118). industry captured-but-unused.",
+      "touches": [
+        "src/providers.mjs",
+        "src/classify.mjs",
+        "src/scan.mjs",
+        "test/classify.test.mjs",
+        "supabase/schema.sql",
+        "scripts/backfill-sr-signals.mjs",
+        "package.json"
+      ]
+    },
+    {
+      "id": "f-122",
+      "title": "Ship the validated matching pipeline to /matches (reranker + hybrid retrieval feed)",
+      "phase": "product-a",
+      "priority": "P0",
+      "status": "planned",
+      "trigger": "The two-stage retrieve->rerank pipeline (src/match-resume.mjs + src/rerank.mjs) is BUILT and is the validated winner of the bake-off (+10.9 meanFit@10, +30 pts recall@10 over dense-only), but the live /matches path is still raw dense cosine over a ~9%-embedded index — the benchmark's worst of 10 methods. Biggest accuracy win is shipping what's built.",
+      "scope": "(1) Wire match-resume.mjs (reranker) into the live /matches app path; needs OPENAI_API_KEY in the app env + the target-slice embedded (f-115). (2) Add a hybrid lexical arm to FEED the reranker (bake-off rec #2: LEXICAL skill-overlap was the #2 retrieval method): tsvector/BM25 or skills[] GIN column, RRF-fuse with dense, pass the union to rerank. See docs/matching-embedding-assessment.md.",
+      "depends_on": [
+        "f-115 (target-slice embeddings)",
+        "OPENAI_API_KEY in the app/CI env"
+      ],
+      "touches": [
+        "status-page/app/api/match",
+        "src/match-resume.mjs",
+        "supabase/schema.sql (tsvector/skills column + hybrid RPC)"
+      ]
+    },
+    {
+      "id": "f-124",
+      "title": "Vector quantization + active-only HNSW for the 1M index",
+      "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "At ~1.45M embedded active jobs, vector(1536) + HNSW ~= 20 GB, which forces a big-RAM compute tier (f-120). Today only 9k are embedded so it's latent, but it sizes the instance once the index is embedded.",
+      "scope": "(1) Quantize: halfvec (2x) or binary (up to 32x) retrieve -> exact rerank (precision recovered by the existing f-122 rerank pass) — pgvector 0.7+. (2) Hot/cold: partial HNSW WHERE closed_at IS NULL (or pin active to a hot partition) so closed rows don't bloat the index. See docs/matching-embedding-assessment.md + docs/scaling-architecture.md.",
+      "touches": [
+        "supabase/schema.sql (halfvec/binary index, partial HNSW)",
+        "src/embeddings.mjs"
+      ]
+    },
     {
       "id": "f-201",
       "title": "Auth + onboarding + aha moment",
       "phase": "phase-2",
       "priority": "P1",
       "status": "planned",
-      "depends_on": ["Clerk account", "decision: Supabase Auth vs Clerk"],
+      "depends_on": [
+        "Clerk account",
+        "decision: Supabase Auth vs Clerk"
+      ],
       "scope": "Sign in → CV upload (LLM extract) → targets (LLM expands) → sliders → live SQL filter shows 10 matches in <5 s. See HOSTED_PLATFORM_PLAN.md Phase 2."
     },
     {
@@ -218,7 +567,6 @@
       "status": "planned",
       "scope": "Mark applications.status='applied'; surface tailored PDF + cover for copy-paste."
     },
-
     {
       "id": "f-901",
       "title": "Cross-company dedup (parent/subsidiary)",
@@ -245,12 +593,118 @@
     },
     {
       "id": "f-904",
-      "title": "Vacuum old probe_results",
+      "title": "Retention/rollup for probe_results (unbounded growth)",
       "phase": "phase-1",
+      "priority": "P1",
+      "status": "planned",
+      "trigger": "probe_results has no retention. Now 321k rows / 62 MB at 3.6k companies. At the queued 50k companies x ~4 scans/day = ~200k rows/day = ~73M/year, it dwarfs everything and bloats backups. MUST fix before 50k onboarding. See docs/scale-50k-assessment.md gate 2.",
+      "scope": "Keep last 7-30 days raw (or roll up into daily per-source aggregates then drop) via a scheduled SQL function."
+    },
+    {
+      "id": "f-130",
+      "title": "Ops Console — PRD + tenancy/RBAC plan",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "in_progress",
+      "evidence": [
+        "docs/ops-console-plan.md"
+      ],
+      "notes": "Multi-tenant SaaS front end for Product A. Decisions locked: SEPARATE REPO; backend on Cloudflare (Workers/Pages/R2/Queues); ops DB on Neon Postgres via Hyperdrive (RLS preserved, two-principal via per-request SET LOCAL GUCs); Better Auth; job index read-only via search_jobs/get_job over HTTPS; roles admin/operator/viewer; 1:1 profile->campaign; continuous matching (Cron+Queues); operator restricted to assigned clients; read-only client portal + per-application feedback, operator-toggleable. See docs/ops-console-plan.md. (Superseded earlier Supabase-Auth/monorepo direction.)"
+    },
+    {
+      "id": "f-131",
+      "title": "Neon tenancy schema + two-principal RLS (Drizzle migrations)",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "planned",
+      "depends_on": ["f-130"],
+      "scope": "Drizzle migrations against the ops-console's own Neon DB: users (Better Auth), organizations, memberships(admin|operator|viewer), clients(assigned_operator_id, auth_user_id, portal_enabled, portal_permissions), client_profiles(resume_text, parsed_profile, embedding vector(1536) via pgvector, target_filters), campaigns(profile_id UNIQUE), campaign_matches(job_id+company_id refs, no cross-DB FK, UNIQUE(campaign_id,job_id)), reports, placements, feedback(signal enum), audit_log. RLS helpers app.current_org_id()/principal()/role()/client_id() reading per-request SET LOCAL GUCs (not auth.jwt()) + can_access_client() security definer. Client principal = SELECT + feedback-INSERT-only allow-list. org_id + client_id denormalized for flat policies.",
+      "notes": "RLS preserved on Neon; claim source = GUCs set by the Worker per request. Worker connects as non-BYPASSRLS role (fails closed). NOTE: NOT applied to Supabase (earlier plan); targets Neon now. P1 foundation."
+    },
+    {
+      "id": "f-132",
+      "title": "search_jobs/get_job RPC (parameterized) — index read-API for ops-console",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "shipped",
+      "depends_on": ["f-114"],
+      "scope": "On the fyj job index (Supabase): search_jobs(query_vec, filters jsonb) RPC (target_only lens + family/seniority/remote/comp/recency filters) + get_job(id). Backward-compatible additive args. Exposed for HTTPS calls from Cloudflare Workers. The campaign matcher and the /jobs browse UI both call it. Supersedes hardcoded is_target filter in match_resume*.",
+      "evidence": [
+        "supabase/schema.sql: search_jobs(query_vec vector, filters jsonb) + get_job(p_job_id, p_company_id). Applied to prod (migration add_search_jobs_and_get_job_rpcs) 2026-06-17 and verified live: targetOnly/families/since paths correct (self-match 1.0000); get_job returns the 7 camelCase keys + slug + 1771-char description, null on miss. Grants to anon/authenticated/service_role. Matches the fyj Worker contract src/index-client.ts. fyj_scanner PR #57."
+      ],
+      "notes": "Blocking for the matching UI. Overlaps f-114; this is its concrete shape + the read-only contract the ops-console repo depends on. Lives in fyj_scanner."
+    },
+    {
+      "id": "f-133",
+      "title": "ops-console scaffold (new repo: Cloudflare Workers/Pages + Neon/Hyperdrive + Better Auth)",
+      "phase": "ops-console",
+      "priority": "P0",
+      "status": "in_progress",
+      "depends_on": ["f-131"],
+      "scope": "New repo. Next.js (TS, App Router) on Cloudflare Pages/Workers. Workers API; Drizzle over Neon via Hyperdrive; Better Auth (users in Neon); per-request SET LOCAL app.* GUC middleware + mandatory org-scoped Drizzle repository layer; non-BYPASSRLS DB role. Thin typed search_jobs/get_job index client. Org-create-on-first-signup + members/invite/role screen (admin). Visual design per docs/ops-console-ui.md (Clay-inspired: icon rail, command bar, action cards, clean tables; Tailwind tokens).",
+      "status_note": "BACKEND LANDED (fyj repo, PR #1): Better Auth factory (Drizzle adapter over Hyperdrive, per-request; app-owned orgs via SECURITY DEFINER signup bootstrap, not the org plugin) + auth-schema; resolvePrincipal() via SECURITY DEFINER resolvers; the mandatory org-scoped repository (every call -> withTenant -> RLS); Hono tenant API (auth mount + 401/403 middleware + role-guarded routes). db/policies.sql extended with resolvers + bootstrap. Verified: npm run typecheck clean + db:generate emits drizzle/0000 (14 tables). NOT runtime-verified (needs a provisioned Neon DB + Hyperdrive/secrets). REMAINING: the Next.js UI shell (docs/ops-console-ui.md); provision infra (db:migrate -> db:policies) + smoke-test auth->principal->RLS.",
+      "notes": "P1 foundation. Lives in its own repo (not fyj_scanner). Visual spec: docs/ops-console-ui.md."
+    },
+    {
+      "id": "f-134",
+      "title": "Clients + profiles + resume embed (R2 upload + parse/embed Worker)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-133", "f-132"],
+      "scope": "Assignment-scoped client CRUD; client_profiles with resume upload to R2; a Worker parses PDF/DOCX -> text -> OpenAI/Voyage embedding -> profile.embedding + parsed_profile (stored in Neon). P2.",
+      "notes": "Reuses src/embeddings.mjs patterns. R2 keys in resume_storage_path; access gated by app-layer authz + RLS."
+    },
+    {
+      "id": "f-135",
+      "title": "Continuous campaign matcher (scheduled fan-out)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "planned",
+      "depends_on": ["f-134", "f-132"],
+      "scope": "1:1 campaign per profile. Cloudflare Cron Trigger enqueues active campaigns -> Queue consumer per campaign calls index search_jobs (first_seen_at > last_run_at, embedded + target lens) over HTTPS, upserts campaign_matches in Neon. Matches feed UI + operator curation (save/shortlist/dismiss).",
+      "notes": "P3. Cron Triggers + Queues handle fan-out + retries. Read-only on the index (can't touch the close-sweep). Incremental keeps LLM/embed cost bounded."
+    },
+    {
+      "id": "f-136",
+      "title": "Deep eval (A–G) + tailored CV + placements tracker",
+      "phase": "ops-console",
       "priority": "P2",
       "status": "planned",
-      "trigger": "probe_results > 500k rows. At 4 scans/day × 3k companies ≈ 12k/day = 4.4M/year if unbounded.",
-      "scope": "Keep last 90 days, archive the rest via SQL function."
+      "depends_on": ["f-135"],
+      "scope": "On-demand Anthropic A–G report per match (Opus 4.8 / Sonnet 4.6 w/ prompt caching), tailored-CV PDF (port scripts/tailor-resume.mjs), placements kanban. Click-gated cost. P4.",
+      "notes": "reports + placements tables (f-131)."
+    },
+    {
+      "id": "f-137",
+      "title": "Client transparency portal (read-only) + per-application feedback loop",
+      "phase": "ops-console",
+      "priority": "P2",
+      "status": "planned",
+      "depends_on": ["f-135", "f-131"],
+      "scope": "Client invite/link (clients.auth_user_id), portal_enabled gating + portal_permissions. Read-only pipeline timeline (surfaced -> shortlisted -> applied -> outcome). Per-application feedback (structured signal enum + optional rating/note) — the ONLY write a client principal can make. v_campaign_feedback_signals aggregates signals per campaign/profile to drive target_filters tuning and process review.",
+      "notes": "P5. Realizes the HOSTED_PLATFORM_PLAN feedback loop with real per-application signal. Operator can revoke access anytime."
+    },
+    {
+      "id": "f-138",
+      "title": "Ops Console billing + daily digest + growth instrumentation",
+      "phase": "ops-console",
+      "priority": "P3",
+      "status": "planned",
+      "depends_on": ["f-136", "f-137"],
+      "scope": "Stripe checkout + plan limits per org, daily digest email (Resend), funnel/retention analytics. P6.",
+      "notes": "Last phase; gated by a working operator + client experience."
+    },
+    {
+      "id": "f-148",
+      "title": "Hybrid retrieval arm: lexical GIN index + search_jobs_hybrid RPC (RRF)",
+      "phase": "ops-console",
+      "priority": "P1",
+      "status": "done",
+      "depends_on": ["f-132"],
+      "scope": "Additive lexical/BM25 arm to feed a second-stage reranker in the ops-console (bake-off rec #2). New GIN expression index over to_tsvector(title + description_summary); new RPC search_jobs_hybrid(query_vec, lexical_query, filters) that runs a dense (HNSW cosine) arm + a lexical (websearch_to_tsquery/ts_rank_cd) arm over a shared filtered base and fuses them with Reciprocal Rank Fusion (k=60). Returns richer rows (title, description_summary, seniority, comp_*) so the Worker can rerank on text + score soft comp/seniority signals without N get_job round-trips. Hard filters kept minimal (closed_at, embedding, targetOnly, opt-in remote, since); NO compFloor/families/seniority predicates (sparse / vocab-mismatched -> soft signals in fyj). search_jobs / get_job / match_resume* untouched (Product B + CLI contract).",
+      "evidence": "supabase/schema.sql: jobs_tsv_idx (GIN expr index) + public.search_jobs_hybrid(vector,text,jsonb) with grants. Idempotent (create index if not exists / create or replace function). APPLIED TO PROD 2026-06-29 (project mwcpoaefmggapztkxakp via apply_migration f148_hybrid_search). Verified live: a self-query (job embedding + its title) returns a fused dense+lexical set incl. a lexical-only hit with recomputed cosine; the PostgREST RPC /rest/v1/rpc/search_jobs_hybrid returns HTTP 200 with fused rows (schema cache reloaded — no PGRST202).",
+      "notes": "Lexical strength tracks the description_summary backfill (degrades to title-only on unsummarised rows). Embedding model unchanged (text-embedding-3-small) — Voyage is rerank-only on the fyj side, so no re-embed."
     }
   ]
 }
