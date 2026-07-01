@@ -37,8 +37,11 @@ if [ -f .env ]; then
     else fail "  $k missing from .env"
     fi
   done
-  if grep -q "^OPENAI_API_KEY=." .env; then ok "  OPENAI_API_KEY set (LLM passes enabled)"
-  else say "  --    OPENAI_API_KEY not set (LLM summary + embed passes will skip)"
+  if grep -q "^OPENAI_API_KEY=." .env; then ok "  OPENAI_API_KEY set (LLM summary pass enabled)"
+  else say "  --    OPENAI_API_KEY not set (LLM summary pass will skip)"
+  fi
+  if grep -q "^VOYAGE_API_KEY=." .env; then ok "  VOYAGE_API_KEY set (embed pass enabled — f-152: voyage-4-large)"
+  else say "  --    VOYAGE_API_KEY not set (embed pass will skip — f-152 moved embeddings off OpenAI)"
   fi
 else
   fail ".env missing — copy from .env.example or fetch secrets"

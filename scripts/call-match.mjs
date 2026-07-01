@@ -26,7 +26,7 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const resumeVec = JSON.parse(fs.readFileSync('scripts/_resume.vec', 'utf8').trim());
-if (resumeVec.length !== 1536) throw new Error(`vec dim ${resumeVec.length}`);
+if (resumeVec.length !== 1024) throw new Error(`vec dim ${resumeVec.length}`);
 
 let resumeText;
 try { resumeText = fs.readFileSync('scripts/_resume.txt', 'utf8'); }

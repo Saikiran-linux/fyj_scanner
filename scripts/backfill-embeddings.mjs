@@ -9,7 +9,7 @@
  * inserted before embeddings existed.
  *
  * Usage:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... OPENAI_API_KEY=... \
+ *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... VOYAGE_API_KEY=... \
  *     node scripts/backfill-embeddings.mjs
  *
  * Or via npm:  npm run embed-backfill
@@ -20,7 +20,8 @@
  *
  *   EMBED_SUMMARIZED_ONLY=1 npm run embed-backfill
  *
- * Costs ~$0.50 and takes ~10 minutes for ~30k jobs.
+ * Voyage's first 200M tokens are free; see docs.voyageai.com/docs/pricing
+ * for cost beyond that. ~10 minutes for ~30k jobs (rate-limit bound).
  */
 
 import { selectAll } from '../src/supabase-client.mjs';
@@ -30,7 +31,7 @@ import {
 } from '../src/embeddings.mjs';
 
 if (!embeddingsEnabled()) {
-  console.error('OPENAI_API_KEY is not set — aborting');
+  console.error('VOYAGE_API_KEY is not set — aborting');
   process.exit(1);
 }
 
@@ -45,6 +46,10 @@ const startedAt = Date.now();
 
 // selectAll paginates past PostgREST's 1k limit. We only need the columns
 // the embedder reads — kept in sync with buildJobText() in src/embeddings.mjs.
+// Queries v_jobs_enriched (not jobs) since `description` moved off jobs into
+// its own table (public.job_descriptions, keyed 1:1 by job_id) — the view
+// already joins it in, so a plain select= column list is enough; no separate
+// fetch needed.
 const query = {
   embedding: 'is.null',
   closed_at: 'is.null',

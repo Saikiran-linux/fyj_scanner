@@ -13,7 +13,7 @@
  *
  * Note: a NOT-runnable module — the embedding of the resume (and producing its
  * text form) happens upstream in scripts/embed-resume.mjs. Callers pass the
- * 1536-dim vector and, for reranking, the resume text.
+ * 1024-dim vector and, for reranking, the resume text.
  */
 
 import { rpc } from './supabase-client.mjs';
@@ -27,7 +27,7 @@ export const MATCH_TOPK = Number(process.env.MATCH_TOPK || 20);
 
 /**
  * @param {object} args
- * @param {number[]} args.resumeVec     1536-dim resume embedding.
+ * @param {number[]} args.resumeVec     1024-dim resume embedding.
  * @param {string}  [args.resumeText]   Resume text for stage-2 rerank (omit to skip).
  * @param {number}  [args.topK]         Final result count (default MATCH_TOPK).
  * @param {number}  [args.candidateCount] Stage-1 over-fetch (default MATCH_CANDIDATES).
@@ -35,8 +35,8 @@ export const MATCH_TOPK = Number(process.env.MATCH_TOPK || 20);
  * @returns {Promise<{candidates: object[], reranked: boolean, retrieved: number}>}
  */
 export async function matchResume({ resumeVec, resumeText, topK = MATCH_TOPK, candidateCount = MATCH_CANDIDATES, rerank = true }) {
-  if (!Array.isArray(resumeVec) || resumeVec.length !== 1536) {
-    throw new Error(`matchResume: resumeVec must be a 1536-dim array (got ${resumeVec?.length})`);
+  if (!Array.isArray(resumeVec) || resumeVec.length !== 1024) {
+    throw new Error(`matchResume: resumeVec must be a 1024-dim array (got ${resumeVec?.length})`);
   }
 
   // Stage 1 — cosine retrieval (RPC already orders by distance asc = best first).

@@ -333,9 +333,40 @@ create index if not exists jobs_tsv_idx on public.jobs
 -- for existing rows). embedding_model is tracked so we can re-embed in batches
 -- when swapping models without orphaning rows.
 
-alter table public.jobs add column if not exists embedding vector(1536);
+alter table public.jobs add column if not exists embedding vector(1024);
 alter table public.jobs add column if not exists embedding_model text;
 alter table public.jobs add column if not exists embedded_at timestamptz;
+
+-- One-time model swap: OpenAI text-embedding-3-small (1536d) -> Voyage
+-- voyage-4-large (1024d, input_type=document) — the query/résumé side
+-- (ops-console) moved to the same model in lockstep, so cosine search stays
+-- an apples-to-apples comparison. Guarded on the column's CURRENT dimension
+-- so re-running schema.sql on every deploy is a no-op once this has applied
+-- once — without the guard, repeating the ALTER would silently wipe
+-- freshly-backfilled embeddings on every deploy (violates the "safe to
+-- re-run on every prod row" rule in CLAUDE.md).
+-- v_jobs_enriched (above) depends on jobs.embedding and blocks
+-- ALTER COLUMN TYPE; drop it here, migrate, recreate verbatim right after
+-- (see below, after the HNSW index) — it can't be recreated until the job
+-- relevance classification columns two sections down exist, since the
+-- deployed view's column list includes them.
+drop view if exists public.v_jobs_enriched;
+
+do $$
+begin
+  if (select format_type(atttypid, atttypmod) from pg_attribute
+      where attrelid = 'public.jobs'::regclass and attname = 'embedding')
+     <> 'vector(1024)' then
+    -- Old (1536d OpenAI) vectors aren't valid at the new dimension — null
+    -- them out (and their model tag) so the type change casts cleanly.
+    -- scripts/backfill-embeddings.mjs re-embeds every row where embedding
+    -- is null, so this is a deliberate hard cutover, not silent data loss.
+    update public.jobs set embedding = null, embedding_model = null, embedded_at = null
+      where embedding is not null;
+    drop index if exists jobs_embedding_hnsw_idx;
+    alter table public.jobs alter column embedding type vector(1024) using null;
+  end if;
+end $$;
 
 -- ── job relevance classification (f-113) ───────────────────────────
 -- Tags each job with a coarse role family + whether it's a "target" role for
@@ -380,15 +411,37 @@ create index if not exists jobs_target_active_idx on public.jobs (job_family)
 --   - Same query syntax (`embedding <=> vector`); zero code change.
 --
 -- m=16 / ef_construction=64 are pgvector defaults — well-tuned for
--- 1536-dim OpenAI embeddings at our scale. Bump them if recall ever
+-- 1024-dim voyage-4-large embeddings at our scale. Bump them if recall ever
 -- looks low; they cost build time but not query time.
 create index if not exists jobs_embedding_hnsw_idx
   on public.jobs using hnsw (embedding vector_cosine_ops)
   with (m = 16, ef_construction = 64);
 
+-- Recreates the view dropped above (needed on every re-run, not just the
+-- first, since schema.sql must be idempotent — without this CREATE, a second
+-- run would drop v_jobs_enriched and never bring it back). Fuller column
+-- list than the early v_jobs_enriched definition above (adds job_family/
+-- is_target/seniority/classified_at/classified_by) since those columns now
+-- exist by this point in the file; matches what's actually live.
+create view public.v_jobs_enriched as
+select
+  j.id, j.company_id, j.external_id, j.title, j.location, j.url,
+  j.department, j.employment_type,
+  j.first_seen_at, j.last_seen_at, j.closed_at, j.fingerprint,
+  j.embedding, j.embedding_model, j.embedded_at,
+  j.description_fetched_at, j.description_hash,
+  j.comp_min, j.comp_max, j.comp_currency, j.comp_interval, j.comp_text,
+  j.remote, j.source_updated_at, j.source_published_at,
+  j.description_summary, j.description_summary_model, j.description_summary_at,
+  j.job_family, j.is_target, j.seniority, j.classified_at, j.classified_by,
+  jd.description
+from public.jobs j
+left join public.job_descriptions jd on jd.job_id = j.id;
+grant select on public.v_jobs_enriched to anon, authenticated, service_role;
+
 -- ── resume matching RPCs ───────────────────────────────────────────
 -- Symmetric resume↔jobs cosine search over the HNSW index. The resume is
--- embedded into the SAME 1536-dim space as jobs.embedding (see
+-- embedded into the SAME 1024-dim space as jobs.embedding (see
 -- scripts/embed-resume.mjs), so `embedding <=> resume_vec` is a true
 -- cosine distance. Both functions are STABLE and read-only.
 --
