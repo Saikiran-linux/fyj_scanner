@@ -1,7 +1,142 @@
 [
   {
+    "slug": "alteryx:wd108:AlteryxCareers",
+    "careers_url": "https://alteryx.wd108.myworkdayjobs.com/AlteryxCareers",
+    "probe_url": "https://alteryx.wd108.myworkdayjobs.com/wday/cxs/alteryx/AlteryxCareers/jobs"
+  },
+  {
+    "slug": "bannerhealth:wd108:Careers",
+    "careers_url": "https://bannerhealth.wd108.myworkdayjobs.com/Careers",
+    "probe_url": "https://bannerhealth.wd108.myworkdayjobs.com/wday/cxs/bannerhealth/Careers/jobs"
+  },
+  {
+    "slug": "carilionclinic:wd12:External_Careers",
+    "careers_url": "https://carilionclinic.wd12.myworkdayjobs.com/External_Careers",
+    "probe_url": "https://carilionclinic.wd12.myworkdayjobs.com/wday/cxs/carilionclinic/External_Careers/jobs"
+  },
+  {
+    "slug": "cmegroup:wd1:cme_careers",
+    "careers_url": "https://cmegroup.wd1.myworkdayjobs.com/cme_careers",
+    "probe_url": "https://cmegroup.wd1.myworkdayjobs.com/wday/cxs/cmegroup/cme_careers/jobs"
+  },
+  {
+    "slug": "cmu:wd5:CMU",
+    "careers_url": "https://cmu.wd5.myworkdayjobs.com/CMU",
+    "probe_url": "https://cmu.wd5.myworkdayjobs.com/wday/cxs/cmu/CMU/jobs"
+  },
+  {
+    "slug": "cmu:wd5:SEI",
+    "careers_url": "https://cmu.wd5.myworkdayjobs.com/SEI",
+    "probe_url": "https://cmu.wd5.myworkdayjobs.com/wday/cxs/cmu/SEI/jobs"
+  },
+  {
+    "slug": "communicarehealth:wd1:CHSExternalCareerSite",
+    "careers_url": "https://communicarehealth.wd1.myworkdayjobs.com/CHSExternalCareerSite",
+    "probe_url": "https://communicarehealth.wd1.myworkdayjobs.com/wday/cxs/communicarehealth/CHSExternalCareerSite/jobs"
+  },
+  {
+    "slug": "creditacceptance:wd5:credit_acceptance",
+    "careers_url": "https://creditacceptance.wd5.myworkdayjobs.com/credit_acceptance",
+    "probe_url": "https://creditacceptance.wd5.myworkdayjobs.com/wday/cxs/creditacceptance/credit_acceptance/jobs"
+  },
+  {
+    "slug": "csgi:wd5:CSGCareers",
+    "careers_url": "https://csgi.wd5.myworkdayjobs.com/CSGCareers",
+    "probe_url": "https://csgi.wd5.myworkdayjobs.com/wday/cxs/csgi/CSGCareers/jobs"
+  },
+  {
+    "slug": "empower:wd12:empower",
+    "careers_url": "https://empower.wd12.myworkdayjobs.com/empower",
+    "probe_url": "https://empower.wd12.myworkdayjobs.com/wday/cxs/empower/empower/jobs"
+  },
+  {
+    "slug": "hshs:wd1:hshscareers",
+    "careers_url": "https://hshs.wd1.myworkdayjobs.com/hshscareers",
+    "probe_url": "https://hshs.wd1.myworkdayjobs.com/wday/cxs/hshs/hshscareers/jobs"
+  },
+  {
+    "slug": "jda:wd5:JDA_Careers",
+    "careers_url": "https://jda.wd5.myworkdayjobs.com/JDA_Careers",
+    "probe_url": "https://jda.wd5.myworkdayjobs.com/wday/cxs/jda/JDA_Careers/jobs"
+  },
+  {
+    "slug": "kiongroup:wd3:kiongroup",
+    "careers_url": "https://kiongroup.wd3.myworkdayjobs.com/kiongroup",
+    "probe_url": "https://kiongroup.wd3.myworkdayjobs.com/wday/cxs/kiongroup/kiongroup/jobs"
+  },
+  {
+    "slug": "merceruniversity:wd1:external",
+    "careers_url": "https://merceruniversity.wd1.myworkdayjobs.com/external",
+    "probe_url": "https://merceruniversity.wd1.myworkdayjobs.com/wday/cxs/merceruniversity/external/jobs"
+  },
+  {
+    "slug": "montefiore:wd12:MMC",
+    "careers_url": "https://montefiore.wd12.myworkdayjobs.com/MMC",
+    "probe_url": "https://montefiore.wd12.myworkdayjobs.com/wday/cxs/montefiore/MMC/jobs"
+  },
+  {
+    "slug": "ms:wd5:External",
+    "careers_url": "https://ms.wd5.myworkdayjobs.com/External",
+    "probe_url": "https://ms.wd5.myworkdayjobs.com/wday/cxs/ms/External/jobs"
+  },
+  {
+    "slug": "nghs:wd1:External",
+    "careers_url": "https://nghs.wd1.myworkdayjobs.com/External",
+    "probe_url": "https://nghs.wd1.myworkdayjobs.com/wday/cxs/nghs/External/jobs"
+  },
+  {
     "slug": "nvidia:wd5:NVIDIAExternalCareerSite",
     "careers_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
     "probe_url": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs"
+  },
+  {
+    "slug": "qualys:wd5:Careers",
+    "careers_url": "https://qualys.wd5.myworkdayjobs.com/Careers",
+    "probe_url": "https://qualys.wd5.myworkdayjobs.com/wday/cxs/qualys/Careers/jobs"
+  },
+  {
+    "slug": "resmed:wd3:ResMed_External_Careers",
+    "careers_url": "https://resmed.wd3.myworkdayjobs.com/ResMed_External_Careers",
+    "probe_url": "https://resmed.wd3.myworkdayjobs.com/wday/cxs/resmed/ResMed_External_Careers/jobs"
+  },
+  {
+    "slug": "rochester:wd5:UR_Nursing",
+    "careers_url": "https://rochester.wd5.myworkdayjobs.com/UR_Nursing",
+    "probe_url": "https://rochester.wd5.myworkdayjobs.com/wday/cxs/rochester/UR_Nursing/jobs"
+  },
+  {
+    "slug": "roswellpark:wd5:externalcareers",
+    "careers_url": "https://roswellpark.wd5.myworkdayjobs.com/externalcareers",
+    "probe_url": "https://roswellpark.wd5.myworkdayjobs.com/wday/cxs/roswellpark/externalcareers/jobs"
+  },
+  {
+    "slug": "ryder:wd5:rydercareers",
+    "careers_url": "https://ryder.wd5.myworkdayjobs.com/rydercareers",
+    "probe_url": "https://ryder.wd5.myworkdayjobs.com/wday/cxs/ryder/rydercareers/jobs"
+  },
+  {
+    "slug": "saintlukes:wd1:saintlukeshealthcareers",
+    "careers_url": "https://saintlukes.wd1.myworkdayjobs.com/saintlukeshealthcareers",
+    "probe_url": "https://saintlukes.wd1.myworkdayjobs.com/wday/cxs/saintlukes/saintlukeshealthcareers/jobs"
+  },
+  {
+    "slug": "snapfinance:wd1:Snap_External_Careers",
+    "careers_url": "https://snapfinance.wd1.myworkdayjobs.com/Snap_External_Careers",
+    "probe_url": "https://snapfinance.wd1.myworkdayjobs.com/wday/cxs/snapfinance/Snap_External_Careers/jobs"
+  },
+  {
+    "slug": "spgi:wd5:SPGI_Careers",
+    "careers_url": "https://spgi.wd5.myworkdayjobs.com/SPGI_Careers",
+    "probe_url": "https://spgi.wd5.myworkdayjobs.com/wday/cxs/spgi/SPGI_Careers/jobs"
+  },
+  {
+    "slug": "thinkbrg:wd5:BRG_External_Career_Site",
+    "careers_url": "https://thinkbrg.wd5.myworkdayjobs.com/BRG_External_Career_Site",
+    "probe_url": "https://thinkbrg.wd5.myworkdayjobs.com/wday/cxs/thinkbrg/BRG_External_Career_Site/jobs"
+  },
+  {
+    "slug": "vcuhealth:wd1:VCUHealth_careers",
+    "careers_url": "https://vcuhealth.wd1.myworkdayjobs.com/VCUHealth_careers",
+    "probe_url": "https://vcuhealth.wd1.myworkdayjobs.com/wday/cxs/vcuhealth/VCUHealth_careers/jobs"
   }
 ]

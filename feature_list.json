@@ -239,15 +239,18 @@
         "supabase/schema.sql: companies.ats CHECK widened to include 'workday' (idempotent drop/add constraint).",
         "Live E2E 2026-06-30 vs nvidia:wd5:NVIDIAExternalCareerSite: fetchJobs schema_ok, 40 jobs across 2 pages; fetchJobPosting -> description + {employment_type:'Full time',location,remote,url,source_published_at}. Every row has external_id+title.",
         "APPLIED TO PROD 2026-06-30 (mwcpoaefmggapztkxakp): companies.ats CHECK widened + nvidia tenant seeded (enabled), both verified via pg_get_constraintdef + row check.",
-        "data/slugs-workday.json (curated) + seed/build-seeds.mjs: workday seeds plumbed with precomputed URLs."
+        "data/slugs-workday.json (curated) + seed/build-seeds.mjs: workday seeds plumbed with precomputed URLs.",
+        "seed/discover-workday.mjs (2026-07-01): tenant-discovery tool. Fully-automatic name->triple isn't possible (myworkdayjobs.com root 406s with no redirect; the site id lives only in the public career URL), so it parses tenant:dc:site out of career URLs — sourced via WebSearch restricted to myworkdayjobs.com — verifies each via CXS, and merges the live ones into slugs-workday.json.",
+        "COVERAGE 2026-07-01: 28 workday tenants discovered + verified + seeded to prod (all enabled) — Morgan Stanley, KION, Ryder, S&P Global, ResMed, CME, Qualys, Alteryx, Blue Yonder, Empower, CSG, Snap/Credit fintech, BRG, CMU, Mercer + 10 hospital systems. ~13k jobs (bounded per scan by WORKDAY_MAX_PAGES)."
       ],
-      "next": "Bulk tenant discovery (the 'new slug source'): harvest myworkdayjobs.com tenant:dc:site triples into data/slugs-workday.json. Adapter + seed pipeline are ready for hundreds; today there is one verified tenant (nvidia).",
+      "next": "Scale discovery further (more WebSearch passes / a scheduled discovery run); consider pruning the pure-clinical hospital boards if their is_target=false volume isn't worth the scan cost.",
       "touches": [
         "src/providers.mjs",
         "src/rate-limiter.mjs",
         "supabase/schema.sql",
         "data/slugs-workday.json",
-        "seed/build-seeds.mjs"
+        "seed/build-seeds.mjs",
+        "seed/discover-workday.mjs"
       ]
     },
     {

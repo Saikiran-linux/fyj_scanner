@@ -20,7 +20,9 @@ Added the **Workday** ATS adapter (`PROVIDERS.workday` in `src/providers.mjs`) �
 
 **Workable (f-902) stays deferred.** Re-probed the public JSON API live (widget v1 + v3) across ~48 active companies — accounts resolve (200) but return **0 postings** every time (reproduces the 0/104). Not viable without HTML-scrape/auth; user chose Workday-only.
 
-**What's next:** bulk Workday tenant discovery (the 'new slug source') — harvest `tenant:dc:site` triples into `data/slugs-workday.json`; the adapter + seed pipeline are ready for hundreds.
+**Tenant discovery (2026-07-01):** built `seed/discover-workday.mjs` — fully-automatic name→triple isn't possible (myworkdayjobs.com root 406s with no redirect; the site id lives only in the public career URL), so it parses `tenant:dc:site` out of career URLs (sourced via `WebSearch` restricted to `myworkdayjobs.com`), verifies each via CXS, and merges live ones into `slugs-workday.json`. **Discovered + verified + seeded 28 tenants to prod** (all enabled, ~13k jobs): Morgan Stanley, KION, Ryder, S&P Global, ResMed, CME, Qualys, Alteryx, Blue Yonder, Empower, CSG, Snap/Credit fintech, BRG, CMU, Mercer + 10 hospital systems.
+
+**What's next:** scale discovery further (more search passes / a scheduled run); optionally prune the pure-clinical hospital boards if their `is_target=false` volume isn't worth the scan cost. NB: the 28 tenants are live in the DB now, so the next scheduled scan will start pulling them via the adapter on `main`.
 
 ---
 
