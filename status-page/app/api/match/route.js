@@ -1,7 +1,7 @@
 import { matchResume } from '../../../lib/match';
 
-// Node runtime: needs the service-role + OpenAI keys and longer than the edge
-// budget (cosine retrieve + ~40 rerank calls ≈ 8-12s).
+// Node runtime: needs the service-role + Voyage + OpenAI keys and longer than the
+// edge budget (cosine retrieve + ~40 rerank calls ≈ 8-12s).
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -24,8 +24,11 @@ export async function POST(req) {
   if (resumeText.trim().length < 30) {
     return Response.json({ error: 'Could not read enough résumé text. Try another file or paste the text.' }, { status: 400 });
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return Response.json({ error: 'Server missing OPENAI_API_KEY — set it to enable matching.' }, { status: 503 });
+  // Embedding runs on Voyage (voyage-4-large, jobs.embedding's space); the
+  // JD-precis + rerank steps run on OpenAI chat models. Both keys are required.
+  const missing = ['VOYAGE_API_KEY', 'OPENAI_API_KEY'].filter((k) => !process.env[k]);
+  if (missing.length) {
+    return Response.json({ error: `Server missing ${missing.join(' + ')} — set to enable matching.` }, { status: 503 });
   }
   try {
     const result = await matchResume(resumeText, { remote, location });

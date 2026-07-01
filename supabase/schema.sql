@@ -1382,7 +1382,12 @@ order by count(*) desc;
 create table if not exists public.user_profiles (
   user_id              uuid primary key references auth.users(id) on delete cascade,
   resume_text          text,
-  resume_embedding     vector(1536),
+  -- Voyage voyage-4-large @ 1024d (input_type='query'), the SAME space as
+  -- jobs.embedding — so resume_embedding <=> jobs.embedding is a valid cosine
+  -- comparison. Was vector(1536) under the old OpenAI text-embedding-3-small
+  -- model; migrated in lockstep with the jobs.embedding swap above. The
+  -- guarded DO block below re-types any existing 1536d column.
+  resume_embedding     vector(1024),
   resume_storage_path  text,
   preferred_locations  text[],
   remote_ok            boolean not null default true,
@@ -1390,6 +1395,25 @@ create table if not exists public.user_profiles (
   seniority            text check (seniority is null or seniority in ('junior','mid','senior','staff','principal')),
   updated_at           timestamptz not null default now()
 );
+
+-- One-time model swap, mirroring the jobs.embedding block above: OpenAI
+-- text-embedding-3-small (1536d) -> Voyage voyage-4-large (1024d). Guarded on
+-- the column's CURRENT dimension so re-running schema.sql is a no-op once
+-- applied. The ivfflat index below depends on resume_embedding and would block
+-- ALTER COLUMN TYPE, so drop it inside the guard; the create-index that follows
+-- rebuilds it. Old 1536d résumé vectors aren't valid at the new dimension —
+-- null them so the type change casts cleanly (process-resume re-embeds on next
+-- upload); resume_text is untouched.
+do $$
+begin
+  if (select format_type(atttypid, atttypmod) from pg_attribute
+      where attrelid = 'public.user_profiles'::regclass and attname = 'resume_embedding')
+     <> 'vector(1024)' then
+    update public.user_profiles set resume_embedding = null where resume_embedding is not null;
+    drop index if exists user_profiles_embedding_idx;
+    alter table public.user_profiles alter column resume_embedding type vector(1024) using null;
+  end if;
+end $$;
 
 create index if not exists user_profiles_embedding_idx
   on public.user_profiles using ivfflat (resume_embedding vector_cosine_ops)

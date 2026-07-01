@@ -8,7 +8,7 @@ A minimal Next.js 15 dashboard that visualises the scanner's SLA and recent runs
 |---|---|
 | `/` (Overview) | Three SLA tiles, per-source health (24h/7d/30d toggle), three charts (active jobs, new per scan, closed per scan), recent scans |
 | `/jobs` | Searchable job list — title contains, ATS filter, active-only toggle, paginated 50/page |
-| `/matches` | Upload a résumé (PDF, parsed in-browser) → top live job matches. Two-stage: cosine retrieve → gpt-4o-mini rerank. Needs `OPENAI_API_KEY`. |
+| `/matches` | Upload a résumé (PDF, parsed in-browser) → top live job matches. Two-stage: cosine retrieve → gpt-4o-mini rerank. Needs `VOYAGE_API_KEY` (embedding, `voyage-4-large` @ 1024d — must match the scanner) + `OPENAI_API_KEY` (JD-precis + rerank). |
 | `/scans` | Paginated scan history with status filter (all/ok/failed/running) |
 | `/scans/[id]` | Single scan — summary tiles, top error reasons, all probe results with filter pills (all/failed/blocked/slowest) |
 | `/companies` | Companies table — slug search, ATS filter, state filter (enabled/disabled/errored), sorted by error count |
@@ -31,7 +31,7 @@ Open <http://localhost:3000>.
 
 1. New project in Vercel → import this repo.
 2. **Root Directory** → set to `status-page`.
-3. Environment variables → add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+3. Environment variables → add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (plus `VOYAGE_API_KEY` + `OPENAI_API_KEY` for the `/matches` page).
 4. Deploy.
 
 Vercel auto-detects Next.js; no build config needed.

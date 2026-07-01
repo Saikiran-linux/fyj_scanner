@@ -1,6 +1,7 @@
 /**
- * Resume → jobs matching, server-side only (reads OPENAI_API_KEY + the
- * service-role key — never import from a Client Component).
+ * Resume → jobs matching, server-side only (reads VOYAGE_API_KEY for embedding,
+ * OPENAI_API_KEY for the JD-precis + rerank chat calls, and the service-role key
+ * — never import from a Client Component).
  *
  * This mirrors the canonical CLI matcher in the repo's src/ (resume-to-jd.mjs
  * + embeddings + match-resume.mjs + rerank.mjs), reimplemented here because the
@@ -13,7 +14,14 @@
 import { pgRpc } from './supabase';
 import { locationMatches } from './geo';
 
-const EMBED_MODEL = 'text-embedding-3-small';
+// Embedding: Voyage voyage-4-large truncated to 1024 dims (input_type='query'),
+// the SAME space as jobs.embedding (see src/embeddings.mjs + scripts/embed-resume.mjs).
+// The index was migrated off OpenAI text-embedding-3-small (1536d) — embedding the
+// résumé with OpenAI here produced a 1536-dim vector and made match_resume_candidates
+// fail with "different vector dimensions 1536 and 1024". The JD-precis and rerank
+// steps below still use OpenAI chat models.
+const EMBED_MODEL = 'voyage-4-large';
+const EMBED_DIM = 1024;
 const SUMMARY_MODEL = process.env.RESUME_JD_MODEL || 'gpt-4o-mini';
 const RERANK_MODEL = process.env.RERANK_MODEL || 'gpt-4o-mini';
 const CANDIDATES = Number(process.env.MATCH_CANDIDATES || 40);
@@ -28,6 +36,12 @@ const REMOTE_VALUES = new Set(['remote', 'hybrid', 'onsite']);
 function openaiKey() {
   const k = process.env.OPENAI_API_KEY;
   if (!k) throw new Error('Server missing OPENAI_API_KEY');
+  return k;
+}
+
+function voyageKey() {
+  const k = process.env.VOYAGE_API_KEY;
+  if (!k) throw new Error('Server missing VOYAGE_API_KEY');
   return k;
 }
 
@@ -94,10 +108,28 @@ async function resumeToJd(resumeRaw) {
   return { jdText: [title, signals, summary].filter(Boolean).join('\n\n'), title };
 }
 
-// ── 2. embed (text-embedding-3-small, same space as jobs.embedding) ──────────
+// ── 2. embed (Voyage voyage-4-large @ 1024d, input_type='query') ──────────────
+// Mirrors scripts/embed-resume.mjs: résumé/query side of Voyage's asymmetric
+// retrieval, landing in the same 1024-dim space as jobs.embedding (document side).
 async function embed(text) {
-  const data = await openai('embeddings', { model: EMBED_MODEL, input: text });
-  return data.data[0].embedding;
+  const res = await fetch('https://api.voyageai.com/v1/embeddings', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${voyageKey()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: EMBED_MODEL,
+      input: text,
+      input_type: 'query',
+      output_dimension: EMBED_DIM,
+    }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Voyage embeddings → ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json();
+  const vec = data.data?.[0]?.embedding;
+  if (!Array.isArray(vec) || vec.length !== EMBED_DIM) {
+    throw new Error(`Voyage returned ${vec?.length ?? 'no'} dims, expected ${EMBED_DIM}`);
+  }
+  return vec;
 }
 
 // ── 3. pointwise rerank (gpt-4o-mini fit score) — bake-off winner ────────────
