@@ -6,6 +6,64 @@ Verified state at the moment is also exposed by `./init.sh` and (live) by the da
 
 ---
 
+## 2026-07-02 · Cross-repo note: ops-console brought into lockstep with f-152 Voyage embeddings
+
+No scanner code change — recording a contract for future sessions. The **ops-console
+(sibling `fyj` repo) was still embedding candidate résumés/queries with OpenAI
+`text-embedding-3-small` @ 1536** while this repo's index runs on **Voyage
+`voyage-4-large` @ 1024** (f-152, `input_type='document'`). That drift made
+ops-console↔index cosine meaningless and left its `client_profiles.embedding`
+NULL. Fixed on the ops-console side: it now embeds with `voyage-4-large`,
+`output_dimension=1024`, `input_type='query'` (the asymmetric pair to our
+`'document'`), verified live (top cosine 0.72–0.74 vs search_jobs).
+⚠️ **If you change this repo's embedding model/dim again, the ops-console MUST
+follow in the same commit-cycle** — its résumé vectors have to share our space.
+(Stale note in feature_list.json ~line 722 — "Embedding model unchanged
+(text-embedding-3-small)" — predates f-152; disregard.)
+
+---
+
+## 2026-07-01 · Observability: Sentry + LangSmith + CF AI Gateway seams (env-gated)
+
+Platform observability (paired with the same rollout in the fyj ops-console
+repo). New `src/observability.mjs` — ALL optional, keyed off env, no-op when
+unset (matching the embeddings/summaries `isEnabled()` gates); telemetry can
+never break a scan.
+
+- **Sentry** (`@sentry/node`, lazy-imported only when SENTRY_DSN set): crash
+  capture in `scan.mjs` (load-companies fail, write-fail guardrail) + **per-shard
+  Cron monitors** `scan-shard-<i>` (in_progress→ok/error, crontab
+  `17 0,6,12,18 * * *`, margin 30m) — a shard that stops firing now ALERTS.
+  `scan.yml` maps `SENTRY_DSN` from repo secrets (safe while absent).
+- **LangSmith**: `maybeTraceable()` wraps `tailor()` (loop.mjs, parent chain run)
+  and `chat()` (tailor/llm.mjs, llm child runs with `usage_metadata` token
+  counts) — score progression per attempt visible per trace. NOTE: traces carry
+  résumé + JD text; set retention. Key: LANGSMITH_API_KEY (+_PROJECT).
+- **CF AI Gateway**: base-URL swap in `tailor/llm.mjs` (OpenAI+Anthropic),
+  `summarize.mjs`, `rerank.mjs` via AI_GATEWAY_URL (+ optional _TOKEN) —
+  logging/cost/caching for the paid LLM passes (re-summarize of identical JDs
+  becomes cache hits). Voyage isn't gateway-supported; embeddings stay direct.
+- **Deps**: first two runtime deps (@sentry/node, langsmith) — scan/data path
+  stays bare-fetch; init.sh §6 message updated to say so honestly.
+- **Verified**: `node --check` on all 6 touched files; no-key no-op smoke
+  (direct URLs, traceable passthrough, checkIn undefined, init false); gateway
+  URL swap smoke; `./init.sh` 9 pass / 0 fail. NOT verified live (needs
+  SENTRY_DSN/LANGSMITH_API_KEY/AI_GATEWAY_URL set + a real scan/tailor run).
+- **ACTIVATION (later same day)**: LANGSMITH_API_KEY added to local `.env` and
+  **verified end-to-end** — found + fixed a live bug: `traceable` silently
+  records nothing without the LANGSMITH_TRACING env flag, so `maybeTraceable`
+  now forces `tracingEnabled: true` + a shared Client, and new `flushTraces()`
+  drains batches before CLI exit (wired into scripts/tailor-resume.mjs). Proof:
+  run `setup-smoke-2 [success]` visible in project fyj-scanner via runs/query.
+  **Sentry now live too**: fyj-scanner project (o4511662597603328/4511662725267456),
+  DSN in local `.env` + GitHub Actions secret `SENTRY_DSN` (gh secret set). Verified:
+  raw envelope 200, SDK `initErrorTracking()`→true, captureException + per-shard
+  cron check-in (`scan-shard-0`) + flush all succeed. The next scheduled scan
+  (or `npm run scan`) reports its first check-in. Still pending: AI_GATEWAY_URL
+  once the gateway exists (CF token needs AI Gateway: Edit scope).
+
+---
+
 ## 2026-06-30 · f-104: Workday adapter (POST + pagination + detail) — verified live
 
 Added the **Workday** ATS adapter (`PROVIDERS.workday` in `src/providers.mjs`) — the first provider whose listing isn't a single GET. Workday CXS needs a **paginated POST** (`/wday/cxs/{tenant}/{site}/jobs`, 20/page, `total` says when to stop) + a **per-job detail GET** for the description + structured fields (the listing carries neither).

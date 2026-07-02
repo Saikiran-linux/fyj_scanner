@@ -17,6 +17,7 @@
 
 import { generate } from './generator.mjs';
 import { evaluate } from './evaluator.mjs';
+import { maybeTraceable } from '../observability.mjs';
 
 const DEFAULT_THRESHOLD = 9;
 const DEFAULT_MAX_ATTEMPTS = 5;
@@ -38,7 +39,7 @@ const DEFAULT_MAX_ATTEMPTS = 5;
  * onProgress (optional): called after each attempt with the attempt record.
  * Lets the CLI stream live updates instead of waiting for the whole loop.
  */
-export async function tailor({
+async function tailorImpl({
   resumeText,
   job,
   threshold = DEFAULT_THRESHOLD,
@@ -180,4 +181,15 @@ export async function tailor({
     stopReason,
     error: loopError,
   };
+}
+
+// Public entry: LangSmith-traced when LANGSMITH_API_KEY is set — one parent
+// "tailor-resume" run per loop, with the generator/evaluator chat() calls
+// nesting under it as llm children (AsyncLocalStorage propagation). The score
+// progression across attempts is exactly what to inspect when tuning the
+// threshold. Untraced = tailorImpl untouched. Lazy one-time wrap.
+let _tailor = null;
+export async function tailor(args) {
+  if (!_tailor) _tailor = await maybeTraceable(tailorImpl, { name: 'tailor-resume', run_type: 'chain' });
+  return _tailor(args);
 }

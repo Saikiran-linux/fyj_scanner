@@ -28,6 +28,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { tailor } from '../src/tailor/loop.mjs';
 import { PROVIDER } from '../src/tailor/llm.mjs';
+import { flushTraces } from '../src/observability.mjs';
 
 function parseArgs(argv) {
   const args = {};
@@ -149,6 +150,11 @@ if (result.winner.critique?.feedback) {
   console.log(`\nevaluator feedback on winning draft:`);
   console.log(`  ${result.winner.critique.feedback}`);
 }
+
+// Drain LangSmith batches before exit (no-op without LANGSMITH_API_KEY) —
+// otherwise a short-lived CLI process drops the trace on the floor.
+await flushTraces();
+
 if (result.stopReason === 'error') {
   console.error(`\n(loop hit an LLM error: ${result.error?.message})`);
   process.exit(2);

@@ -28,6 +28,7 @@
  */
 
 import { update } from './supabase-client.mjs';
+import { openaiChatUrl, aiGatewayHeaders } from './observability.mjs';
 
 export const SUMMARY_MODEL = 'gpt-4o-mini';
 
@@ -123,11 +124,15 @@ export async function summarizeText(description) {
   for (let attempt = 1; attempt <= SUMMARIZE_MAX_ATTEMPTS; attempt++) {
     let res;
     try {
-      res = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Routes via Cloudflare AI Gateway when AI_GATEWAY_URL is set (logs/cost/
+      // cache — identical descriptions re-summarized after a fingerprint change
+      // become cache hits instead of paid calls).
+      res = await fetch(openaiChatUrl(), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
+          ...aiGatewayHeaders(),
         },
         body: JSON.stringify({
           model: SUMMARY_MODEL,
