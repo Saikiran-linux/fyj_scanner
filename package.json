@@ -25,5 +25,9 @@
   },
   "engines": {
     "node": ">=20.6"
+  },
+  "dependencies": {
+    "@sentry/node": "^10.63.0",
+    "langsmith": "^0.7.14"
   }
 }

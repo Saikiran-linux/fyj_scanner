@@ -22,6 +22,8 @@
  * for one resume ≈ $0.005, query-time only (never on the 70k index).
  */
 
+import { openaiChatUrl, aiGatewayHeaders } from './observability.mjs';
+
 export const RERANK_MODEL = process.env.RERANK_MODEL || 'gpt-4o-mini';
 
 // Parallel chat-completions. gpt-4o-mini tier-1 is 500 RPM / 200k TPM; 6 keeps
@@ -60,9 +62,10 @@ async function scoreOne(resumeText, job, model) {
   for (let attempt = 1; attempt <= RERANK_MAX_ATTEMPTS; attempt++) {
     let res;
     try {
-      res = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Routes via Cloudflare AI Gateway when AI_GATEWAY_URL is set (logs/cost/cache).
+      res = await fetch(openaiChatUrl(), {
         method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json', ...aiGatewayHeaders() },
         body: JSON.stringify(body),
       });
     } catch {

@@ -82,6 +82,11 @@ jobs:
           # change needed. Default matrix [0] → SHARD_COUNT=1 (unsharded).
           SHARD_INDEX: ${{ matrix.shard }}
           SHARD_COUNT: ${{ strategy.job-total }}
+          # Observability (optional — src/observability.mjs no-ops when the
+          # secret is absent, so this line is safe before it exists). Sentry
+          # captures crashes + a per-shard Cron monitor (scan-shard-<i>) so a
+          # shard that stops firing ALERTS instead of dying silently.
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: node src/scan.mjs
 
       - name: Upload logs (always)

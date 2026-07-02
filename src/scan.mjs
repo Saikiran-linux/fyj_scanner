@@ -25,6 +25,7 @@ import { RateLimiter } from './rate-limiter.mjs';
 import { isEnabled as embeddingsEnabled, embedAndPersistJobs } from './embeddings.mjs';
 import { isEnabled as summariesEnabled, summarizeAndPersistJobs } from './summarize.mjs';
 import { isEnabled as r2Enabled, contentHash, putGzipJson } from './r2.mjs';
+import { initErrorTracking, captureException, scanCheckIn, flushTelemetry } from './observability.mjs';
 
 // md5 hex of the description text. Postgres' md5() emits the same encoding,
 // so a hash computed here can be compared bit-for-bit against the value
@@ -124,6 +125,12 @@ const SHARD_HI = Math.floor(((SHARD_INDEX + 1) * SHARD_BUCKETS) / SHARD_COUNT);
 const SHARD_AND = SHARDED ? `(shard.gte.${SHARD_LO},shard.lt.${SHARD_HI})` : null;
 const SHARD_TAG = SHARDED ? `[shard ${SHARD_INDEX}/${SHARD_COUNT} buckets ${SHARD_LO}-${SHARD_HI - 1}] ` : '';
 
+// Sentry (no-op without SENTRY_DSN): crash capture + a per-shard Cron monitor
+// so a shard that stops firing ALERTS instead of dying silently. The check-in
+// id pairs this run's in_progress with its final ok/error.
+await initErrorTracking({ shard_index: SHARD_INDEX, shard_count: SHARD_COUNT });
+const SCAN_CHECKIN = scanCheckIn('in_progress');
+
 const SCAN_ID = await openScan();
 console.log(`${SHARD_TAG}Scan ${SCAN_ID} started`);
 
@@ -152,6 +159,9 @@ try {
 } catch (e) {
   await closeScan(SCAN_ID, 'failed', { notes: `failed to load companies: ${e.message}` });
   console.error(e);
+  captureException(e, { at: 'load-companies', scanId: SCAN_ID });
+  scanCheckIn('error', SCAN_CHECKIN);
+  await flushTelemetry();
   process.exit(1);
 }
 
@@ -166,6 +176,8 @@ for (let i = companies.length - 1; i > 0; i--) {
 console.log(`${SHARD_TAG}Loaded ${companies.length} enabled companies`);
 if (companies.length === 0) {
   await closeScan(SCAN_ID, 'ok', { notes: `${SHARD_TAG}no companies in shard` });
+  scanCheckIn('ok', SCAN_CHECKIN);
+  await flushTelemetry();
   process.exit(0);
 }
 
@@ -917,6 +929,10 @@ if (writeFailHigh) {
   // Non-zero exit so the GitHub Actions run goes red. Set exitCode (not
   // process.exit) so the totals-refresh below still runs before we exit.
   process.exitCode = 1;
+  captureException(
+    new Error(`scan guardrail: ${totals.companies_write_failed}/${totals.companies_probed} companies failed their DB write`),
+    { at: 'write-fail-guardrail', scanId: SCAN_ID },
+  );
 }
 
 // Refresh the per-source totals MV that backs the dashboard. The live
@@ -929,6 +945,12 @@ try {
 } catch (e) {
   console.warn(`Totals refresh failed (non-fatal): ${e.message}`);
 }
+
+// Close out the Sentry Cron check-in with the run's real status and drain
+// pending events. Must be the LAST top-level statement — after this the
+// process exits with whatever exitCode the guardrails set.
+scanCheckIn(process.exitCode ? 'error' : 'ok', SCAN_CHECKIN);
+await flushTelemetry();
 
 // ── helpers ────────────────────────────────────────────────────────
 

@@ -13,6 +13,8 @@
  * and gpt-5-mini ≈ Haiku price.
  */
 
+import { openaiChatUrl, anthropicMessagesUrl, aiGatewayHeaders, maybeTraceable } from '../observability.mjs';
+
 const PROVIDER = process.env.TAILOR_PROVIDER
   || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : 'openai');
 
@@ -60,7 +62,7 @@ export function estimateCostUSD(model, inputTokens, outputTokens) {
  * would double-spend on rate-limited calls. Single attempt; the loop is
  * the resilience boundary.
  */
-export async function chat({ role, system, user, maxTokens = 2000, responseFormat }) {
+async function chatImpl({ role, system, user, maxTokens = 2000, responseFormat }) {
   const model = getModel(role);
 
   if (PROVIDER === 'openai') {
@@ -77,11 +79,13 @@ export async function chat({ role, system, user, maxTokens = 2000, responseForma
     };
     if (responseFormat === 'json') body.response_format = { type: 'json_object' };
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Routes via Cloudflare AI Gateway when AI_GATEWAY_URL is set (logs/cost/cache).
+    const res = await fetch(openaiChatUrl(), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
+        ...aiGatewayHeaders(),
       },
       body: JSON.stringify(body),
     });
@@ -90,7 +94,11 @@ export async function chat({ role, system, user, maxTokens = 2000, responseForma
     const text = data?.choices?.[0]?.message?.content?.trim() ?? '';
     const inputTokens = data?.usage?.prompt_tokens ?? 0;
     const outputTokens = data?.usage?.completion_tokens ?? 0;
-    return { text, inputTokens, outputTokens, costUSD: estimateCostUSD(model, inputTokens, outputTokens), model };
+    return {
+      text, inputTokens, outputTokens, costUSD: estimateCostUSD(model, inputTokens, outputTokens), model,
+      // LangSmith reads token usage from this key on traced runs; harmless otherwise.
+      usage_metadata: { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
+    };
   }
 
   if (PROVIDER === 'anthropic') {
@@ -104,12 +112,14 @@ export async function chat({ role, system, user, maxTokens = 2000, responseForma
       system,
       messages: [{ role: 'user', content: user }],
     };
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Routes via Cloudflare AI Gateway when AI_GATEWAY_URL is set (logs/cost/cache).
+    const res = await fetch(anthropicMessagesUrl(), {
       method: 'POST',
       headers: {
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
+        ...aiGatewayHeaders(),
       },
       body: JSON.stringify(body),
     });
@@ -118,10 +128,22 @@ export async function chat({ role, system, user, maxTokens = 2000, responseForma
     const text = data?.content?.[0]?.text?.trim() ?? '';
     const inputTokens = data?.usage?.input_tokens ?? 0;
     const outputTokens = data?.usage?.output_tokens ?? 0;
-    return { text, inputTokens, outputTokens, costUSD: estimateCostUSD(model, inputTokens, outputTokens), model };
+    return {
+      text, inputTokens, outputTokens, costUSD: estimateCostUSD(model, inputTokens, outputTokens), model,
+      usage_metadata: { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
+    };
   }
 
   throw new Error(`unknown TAILOR_PROVIDER=${PROVIDER}`);
+}
+
+// Public entry: LangSmith-traced when LANGSMITH_API_KEY is set (a child "llm"
+// run per generator/evaluator call, nested under the tailor() parent via
+// AsyncLocalStorage), otherwise chatImpl untouched. Lazy one-time wrap.
+let _chat = null;
+export async function chat(args) {
+  if (!_chat) _chat = await maybeTraceable(chatImpl, { name: 'tailor-chat', run_type: 'llm' });
+  return _chat(args);
 }
 
 export { PROVIDER };

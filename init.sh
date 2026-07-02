@@ -87,16 +87,17 @@ if [ -f .env ] && command -v node >/dev/null 2>&1; then
   esac
 fi
 
-# 6. node_modules check. Today the root package.json has no deps (bare fetch
-#    keeps cold-start fast), so node_modules is expected to be absent — only
-#    flag a mismatch if the lockfile actually pins packages. status-page has
-#    its own node_modules and isn't checked here.
+# 6. node_modules check. The scan/data path stays bare-fetch by design (fast
+#    cold start); the only sanctioned deps are the OPTIONAL observability SDKs
+#    (@sentry/node + langsmith — env-gated no-ops, see src/observability.mjs).
+#    Flag a mismatch if the lockfile pins packages that aren't installed.
+#    status-page has its own node_modules and isn't checked here.
 if [ -f package-lock.json ]; then
   LOCK_PKGS=$(node -e "try{const l=require('./package-lock.json');console.log(Object.keys(l.packages||{}).filter(p=>p.startsWith('node_modules/')).length)}catch{console.log(0)}")
   if [ "$LOCK_PKGS" -gt 0 ] && [ ! -d node_modules ]; then
     fail "package-lock.json pins $LOCK_PKGS deps but node_modules missing — run npm install"
   else
-    ok "deps: root package has no third-party deps (bare fetch by design)"
+    ok "deps: $LOCK_PKGS pinned (observability SDKs only; scan path stays bare-fetch)"
   fi
 fi
 
