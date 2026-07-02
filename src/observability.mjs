@@ -68,9 +68,20 @@ export function scanCheckIn(status, checkInId) {
       },
       {
         schedule: { type: 'crontab', value: '17 0,6,12,18 * * *' },
-        checkinMargin: 30, // GH Actions' schedule queue can lag; don't false-alarm
-        maxRuntime: 35,    // hard-killed at 30 min by the workflow
+        // GitHub Actions' scheduled-workflow queue is best-effort: it routinely
+        // delivers runs HOURS late (2–4h observed on this repo) or drops them
+        // entirely — scan.yml's own comment notes it "silently drops fires".
+        // A tight margin therefore false-alarms on every healthy-but-late run.
+        // 300 min (5h) absorbs realistic lag while staying under the 6h cadence;
+        // failureIssueThreshold=2 means a single missed slot won't page — only a
+        // truly-AWOL scanner (>~12h dark, two consecutive misses) does. A dropped
+        // 6h scan is self-healing (the next run's per-company close-sweep catches
+        // up), so it isn't page-worthy on its own.
+        checkinMargin: 300,
+        maxRuntime: 35, // scans finish in ~5 min; hard-killed at 30 min by the workflow
         timezone: 'Etc/UTC',
+        failureIssueThreshold: 2,
+        recoveryThreshold: 1,
       },
     );
   } catch (e) {
